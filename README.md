@@ -1,6 +1,13 @@
 # eri-regent
 Calculates two-electron repulsion integrals with Regent
 
+# Precomputed Boys Function
+Use the python script to generate a header file containing the lookup table of the Boys function.
+
+```
+./gen_precomputed_header.py
+```
+
 # Testing
 The easiest way to test is to use docker
 
