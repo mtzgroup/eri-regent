@@ -5,6 +5,7 @@ Calculates two-electron repulsion integrals with Regent
 Use the python script to generate a header file containing the lookup table of the Boys function.
 
 ```
+# Requires python3.7 or higher
 ./gen_precomputed_header.py
 ```
 
