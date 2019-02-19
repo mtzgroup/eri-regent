@@ -99,6 +99,7 @@ do
     var t : double = alpha * (a*a+b*b+c*c)
     computeR000(t, alpha, R000, 1)
 
+    -- TODO: Reduce number of operations by using `alpha`
     -- TODO: Compute pi^5 by squaring
     var lambda : double = 2 * sqrt(pow(M_PI, 5)) / (bra.eta * ket.eta
                                                     * sqrt(bra.eta + ket.eta))
@@ -160,7 +161,7 @@ do
   -- TODO: partition r_density
 
   if block_type == 0 then
-    -- FIXME: Cannot parallelize due to reduce in `r_density_matrix`
+    -- FIXME: Cannot parallelize due to reduce in `j_values`
     -- __demand(__parallel)
     for color in coloring do
       coulombSSSS(p_gausses[color], r_density,

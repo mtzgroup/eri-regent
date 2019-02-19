@@ -5,11 +5,14 @@ from scipy import integrate, exp
 FILE_NAME = "precomputedBoys.h"
 FUNCTION_NAME = "getPrecomputedBoys"
 ARRAY_NAME = "_precomputedBoys"
-LARGEST_J = 4 + 6  # TODO: update this value once it is known
+LARGEST_J = 16 + 6  # TODO: update this value once it is known
 
+
+def integrand(u, t, j):
+    return u ** (2. * j) * exp(-t * u ** 2.)
 
 def boys(t, j):
-    return integrate.quad(lambda u: u ** (2 * j) * exp(-t * u ** 2), 0, 1)
+    return integrate.quadrature(integrand, 0., 1., args=(t, j), tol=1e-15, rtol=1e-15)
 
 
 with open(FILE_NAME, "w") as file:
@@ -29,7 +32,8 @@ const double {ARRAY_NAME}[{len(values)}] = {{
 
 double {FUNCTION_NAME}(double t, int j) {{
     int t_index = 10 * t;
-    assert(t_index >= 0 && t_index <= 120 && j >= 0 && j <= {LARGEST_J});
+    assert(t_index >= 0 && t_index <= 120);
+    assert(j >= 0 && j <= {LARGEST_J});
     return {ARRAY_NAME}[{LARGEST_J + 1} * t_index + j];
 }}
 """
