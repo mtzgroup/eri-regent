@@ -93,7 +93,8 @@ terra Config:initialize_from_command()
     c.abort()
   end
 
-  self.num_bra_kets = self.num_gausses * (self.num_gausses - 1) / 2
+  -- self.num_bra_kets = self.num_gausses * (self.num_gausses - 1) / 2
+  self.num_bra_kets = self.num_gausses * self.num_gausses
   self.num_blocks = 1 -- FIXME: Use the largest L to count how many different
                       --        kernels we need to use
 end

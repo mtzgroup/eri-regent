@@ -9,8 +9,9 @@ local sqrt = cmath.sqrt
 local pow = cmath.pow
 local floor = cmath.floor
 local exp = cmath.exp
+-- local getPrecomputedBoys = terralib.includec("precomputedBoys.h").getPrecomputedBoys
 -- FIXME: Hack to allow docker to see header file
-local getPrecomputedBoys = terralib.includec("precomputedBoys.h", {"-I", "/coulomb"}).getPrecomputedBoys
+local getPrecomputedBoys = terralib.includec("precomputedBoys.h", {"-I", "/eri"}).getPrecomputedBoys
 
 fspace HermiteGaussian {
   x     : double;
@@ -22,7 +23,7 @@ fspace HermiteGaussian {
                        -- Number of values is given by
                        -- (L + 1) * (L + 2) * (L + 3) / 6
                        -- Can I use `legion_domain_t` here?
-  bound : float;
+  bound : float;       -- TODO
 }
 
 fspace PrimitiveBraKet {
@@ -31,22 +32,23 @@ fspace PrimitiveBraKet {
 }
 
 terra computeR000(t : double, alpha : double, R000 : &double, length : int)
-  -- assert(t > 0, "FIXME: Not sure if I need to handle this case.")
+  assert(t >= 0, "t must be non-negative!")
 
-  if 0 <= t and t < 12 then
+  if t < 12 then
+    assert(length-1 <= 16, "Only accurate for j <= 16")
     var t_est : double = floor(10.0 * t + 0.5) / 10.0
     R000[length-1] = 0
-    var factor = 1
+    var factor : double = 1
     for k = 0, 7 do
-      var f : double = getPrecomputedBoys(t_est, length-1+k) * factor
-      R000[length-1] = R000[length-1] + f
+      var boys_est : double = getPrecomputedBoys(t_est, length-1+k)
+      R000[length-1] = R000[length-1] + factor * boys_est
       factor = factor * (t_est - t) / (k + 1)
     end
     for j = length-2, -1, -1 do
-      R000[j] = (2 * t * R000[j+1] + exp(-1.0 * t)) / (2.0 * j + 1)
+      R000[j] = (2.0 * t * R000[j+1] + exp(-t)) / (2.0 * j + 1)
     end
   else
-    assert(length <= 16, "Only accurate for j <= 16")
+    assert(length-1 <= 16, "Only accurate for j <= 16")
     R000[0] = sqrt(M_PI) / (2.0 * sqrt(t))
     var g : double
     if t < 15 then
@@ -61,11 +63,11 @@ terra computeR000(t : double, alpha : double, R000 : &double, length : int)
     end
 
     if t < 30 then
-      R000[0] = R000[0] - exp(-1.0 * t) * g / t
+      R000[0] = R000[0] - exp(-t) * g / t
     end
 
     for j = 1, length do
-      R000[j] = 2.0 / t * ((2 * j + 1) * R000[j-1] - exp(-1.0 * t))
+      R000[j] = 2.0 / t * ((2 * j + 1) * R000[j-1] - exp(-t))
     end
   end
 
@@ -97,7 +99,11 @@ do
     var t : double = alpha * (a*a+b*b+c*c)
     computeR000(t, alpha, R000, 1)
 
-    r_j_values[bra_ket.bra_idx] += R000[0] * r_density[ket.d_start_idx]
+    -- TODO: Compute pi^5 by squaring
+    var lambda : double = 2 * sqrt(pow(M_PI, 5)) / (bra.eta * ket.eta
+                                                    * sqrt(bra.eta + ket.eta))
+
+    r_j_values[bra_ket.bra_idx] += lambda * R000[0] * r_density[ket.d_start_idx]
   end
 end
 
@@ -161,6 +167,7 @@ do
                   p_j_values[color], p_bra_kets[color])
     end
   elseif block_type == 1 then
+    assert(false, "Block type not implemented")
     -- __demand(__parallel)
     for color in coloring do
       coulombSSSP(p_gausses[color], r_density,
@@ -219,7 +226,6 @@ do
       r_gausses[i].L = datai[0]
       r_gausses[i].d_start_idx = density_idx
       r_gausses[i].bound = 0  -- TODO
-      i = i + 1
       var L = r_gausses[i].L
       var H : int = (L + 1) * (L + 2) * (L + 3) / 6
       var values : &double = sgetnd(density_str, H)
@@ -228,6 +234,7 @@ do
         density_idx = density_idx + 1
       end
       c.free(values)
+      i = i + 1
     end
   end
   c.fclose(file)
@@ -239,13 +246,13 @@ do
                                            bra_ket_ispace)
   for bra_idx in r_gausses.ispace do
     for ket_idx in r_gausses.ispace do
-      if bra_idx <= ket_idx then
+      -- if bra_idx <= ket_idx then  -- FIXME: Do I need all bra_kets?
         -- Create a PrimitiveBraKet and give it a block color
         var bra_ket_ptr = c.legion_index_iterator_next(itr)
         var block = r_gausses[bra_idx].L + r_gausses[ket_idx].L
         c.legion_coloring_add_point(block_coloring, block, bra_ket_ptr)
         r_bra_kets[bra_ket_ptr] = {bra_idx, ket_idx}
-      end
+      -- end
     end
   end
   c.legion_index_iterator_destroy(itr)
@@ -259,7 +266,7 @@ do
   if filename[0] ~= 0 then
     var file = c.fopen(filename, "w")
     for i in r_j_values.ispace do
-      c.fprintf(file, "%lf\n", r_j_values[i])
+      c.fprintf(file, "%.12f\n", r_j_values[i])
     end
     c.fclose(file)
   end
@@ -292,6 +299,7 @@ task toplevel()
   var p_bra_gausses = image(r_gausses, p_bra_kets, r_bra_kets.bra_idx)
   var p_ket_gausses = image(r_gausses, p_bra_kets, r_bra_kets.ket_idx)
   var p_gausses = p_bra_gausses | p_ket_gausses
+  -- FIXME: j data also has a variable length like `density_matrix`
   var p_j_values = image(r_j_values, p_bra_kets, r_bra_kets.bra_idx)
   -- var p_density_matrix = image(r_density_matrix, p_gausses, r_gausses.d_start_idx)
   -- FIXME: Need to manually color density matrix.
@@ -304,7 +312,7 @@ task toplevel()
   for block = 0, config.num_blocks do
     coulomb(p_gausses[block], r_density_matrix,
             p_j_values[block], p_bra_kets[block],
-            block, 2)
+            block, 1)
   end
 
   __fence(__execution, __block) -- Make sure we only time the computation
