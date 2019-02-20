@@ -8,7 +8,6 @@ struct Config {
   num_bra_kets       : int;
   num_density_values : int;
   highest_L          : int;
-  num_blocks         : int;
   parallelism        : int;
   verbose            : bool;
   input_filename     : int8[512];
@@ -95,8 +94,6 @@ terra Config:initialize_from_command()
 
   -- self.num_bra_kets = self.num_gausses * (self.num_gausses - 1) / 2
   self.num_bra_kets = self.num_gausses * self.num_gausses
-  self.num_blocks = 1 -- FIXME: Use the largest L to count how many different
-                      --        kernels we need to use
 end
 
 return Config

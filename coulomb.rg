@@ -249,6 +249,7 @@ do
     for ket_idx in r_gausses.ispace do
       -- if bra_idx <= ket_idx then  -- FIXME: Do I need all bra_kets?
         -- Create a PrimitiveBraKet and give it a block color
+        -- FIXME: Would it be better to add an L12 field for coloring?
         var bra_ket_ptr = c.legion_index_iterator_next(itr)
         var block = r_gausses[bra_idx].L + r_gausses[ket_idx].L
         c.legion_coloring_add_point(block_coloring, block, bra_ket_ptr)
@@ -283,7 +284,6 @@ task toplevel()
   c.printf("* # BraKets                : %15u *\n", config.num_bra_kets)
   c.printf("* # Density Values         : %15u *\n", config.num_density_values)
   c.printf("* Highest Angular Momentum : %15u *\n", config.highest_L)
-  c.printf("* # Blocks                 : %15u *\n", config.num_blocks)
   c.printf("* # Parallel Tasks         : %15u *\n", config.parallelism)
   c.printf("**********************************************\n")
 
@@ -310,7 +310,7 @@ task toplevel()
 
   -- FIXME: Cannot parallelize due to reduce in `r_density_matrix`
   -- __demand(__parallel)
-  for block = 0, config.num_blocks do
+  for block = 0, config.highest_L+1 do
     coulomb(p_gausses[block], r_density_matrix,
             p_j_values[block], p_bra_kets[block],
             block, 1)
