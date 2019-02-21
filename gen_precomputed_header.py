@@ -19,15 +19,14 @@ with open(FILE_NAME, "w") as file:
     values = [boys(t / 10.0, j) for t in range(121) for j in range(LARGEST_J + 1)]
     max_abs_error = max([e for _, e in values] + [0.0])
     max_rel_error = max([e / r for r, e in values] + [0.0])
-    # TODO: Set precision here
-    array_body = ",\n    ".join(["%.32f" % r for r, _ in values])
+    array_body = ",\n  ".join(["%.15f" % r for r, _ in values])
     header = """#pragma once
 #include <assert.h>
 
 double """ + FUNCTION_NAME + """(double t, int j);
 
 const double """ + ARRAY_NAME + "[" + str(len(values)) + """] = {
-    """ + array_body + """
+  """ + array_body + """
 };
 
 double """ + FUNCTION_NAME + """(double t, int j) {
