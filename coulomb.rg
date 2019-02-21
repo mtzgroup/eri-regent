@@ -25,7 +25,11 @@ fspace PrimitiveBraKet {
 
 require("boys")
 -- Import integrals after declaring fspaces and `computeR000`
-for _, type in pairs({"SSSS", "SSSP"}) do
+integralTypes = {
+  "SSSS",
+  -- "SSSP", "SSPP", "SPSP", "SPPP", "PPPP",
+}
+for _, type in pairs(integralTypes) do
   require("integrals."..type)
 end
 
@@ -52,13 +56,13 @@ do
       coulombSSSS(p_gausses[color], r_density,
                   p_j_values[color], p_bra_kets[color])
     end
-  elseif block_type.x == 0 and block_type.y == 1 then
-    assert(false, "Block type not implemented")
-    -- __demand(__parallel)
-    for color in coloring do
-      coulombSSSP(p_gausses[color], r_density,
-                  p_j_values[color], p_bra_kets[color])
-    end
+  -- elseif block_type.x == 0 and block_type.y == 1 then
+  --   assert(false, "Block type not implemented")
+  --   -- __demand(__parallel)
+  --   for color in coloring do
+  --     coulombSSSP(p_gausses[color], r_density,
+  --                 p_j_values[color], p_bra_kets[color])
+  --   end
   else
     assert(false, "Block type not implemented")
   end
@@ -105,14 +109,13 @@ do
       -- "L eta x y z [density values]"
       c.sscanf([&int8](line), "%d %lf %lf %lf %lf %256[0-9.eE- ]",
                               datai, data, data+1, data+2, data+3, density_str)
-      r_gausses[i].x = data[1]
-      r_gausses[i].y = data[2]
-      r_gausses[i].z = data[3]
-      r_gausses[i].eta = data[0]
-      r_gausses[i].L = datai[0]
-      r_gausses[i].d_start_idx = density_idx
-      r_gausses[i].bound = 0  -- TODO
-      var L = r_gausses[i].L
+      var L : int = datai[0]
+      var eta : double = data[0]
+      var x : double = data[1]
+      var y : double = data[2]
+      var z : double = data[3]
+      r_gausses[i] = [HermiteGaussian]{x=x, y=y, z=z, eta=eta, L=L,
+                                       d_start_idx=density_idx, bound=0}
       var H : int = (L + 1) * (L + 2) * (L + 3) / 6
       var values : &double = sgetnd(density_str, H)
       for j = 0, H do
