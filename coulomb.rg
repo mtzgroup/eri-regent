@@ -18,8 +18,9 @@ fspace HermiteGaussian {
 }
 
 fspace PrimitiveBraKet {
-  bra_idx : int1d;
-  ket_idx : int1d;
+  bra_idx    : int1d;
+  ket_idx    : int1d;
+  block_type : int2d;
 }
 
 require("boys")
@@ -32,7 +33,7 @@ task coulomb(r_gausses  : region(ispace(int1d), HermiteGaussian),
              r_density  : region(ispace(int1d), double),
              r_j_values : region(ispace(int1d), double),
              r_bra_kets : region(PrimitiveBraKet),
-             block_type : int, parallelism : int)
+             block_type : int2d, parallelism : int)
 where
   reads(r_gausses, r_density, r_bra_kets), reads writes(r_j_values)
 do
@@ -44,14 +45,14 @@ do
   var p_j_values = image(r_j_values, p_bra_kets, r_bra_kets.bra_idx)
   -- TODO: partition r_density
 
-  if block_type == 0 then
+  if block_type.x == 0 and block_type.y == 0 then
     -- FIXME: Cannot parallelize due to reduce in `j_values`
     -- __demand(__parallel)
     for color in coloring do
       coulombSSSS(p_gausses[color], r_density,
                   p_j_values[color], p_bra_kets[color])
     end
-  elseif block_type == 1 then
+  elseif block_type.x == 0 and block_type.y == 1 then
     assert(false, "Block type not implemented")
     -- __demand(__parallel)
     for color in coloring do
@@ -124,25 +125,19 @@ do
   end
   c.fclose(file)
 
-  var block_coloring : legion_coloring_t = c.legion_coloring_create()
   var bra_ket_ispace = c.legion_physical_region_get_logical_region(
                               __physical(r_bra_kets)[0]).index_space
-  var itr = c.legion_index_iterator_create(__runtime(), __context(),
-                                           bra_ket_ispace)
+  var itr = c.legion_index_iterator_create(__runtime(), __context(), bra_ket_ispace)
   for bra_idx in r_gausses.ispace do
     for ket_idx in r_gausses.ispace do
       -- if bra_idx <= ket_idx then  -- FIXME: Do I need all bra_kets?
-        -- Create a PrimitiveBraKet and give it a block color
-        -- FIXME: Would it be better to add an L12 field for coloring?
         var bra_ket_ptr = c.legion_index_iterator_next(itr)
-        var block = r_gausses[bra_idx].L + r_gausses[ket_idx].L
-        c.legion_coloring_add_point(block_coloring, block, bra_ket_ptr)
-        r_bra_kets[bra_ket_ptr] = {bra_idx, ket_idx}
+        var block_type : int2d = {r_gausses[bra_idx].L, r_gausses[ket_idx].L}
+        r_bra_kets[bra_ket_ptr] = {bra_idx, ket_idx, block_type}
       -- end
     end
   end
   c.legion_index_iterator_destroy(itr)
-  return block_coloring
 end
 
 task write_output(r_j_values : region(ispace(int1d), double), filename : &int8)
@@ -176,11 +171,11 @@ task toplevel()
   var r_j_values = region(ispace(int1d, config.num_gausses), double)
   var r_bra_kets = region(ispace(ptr, config.num_bra_kets), PrimitiveBraKet)
 
-  var block_coloring = populateData(r_gausses, r_density_matrix, r_j_values,
-                                    r_bra_kets, config.input_filename)
+  populateData(r_gausses, r_density_matrix, r_j_values, r_bra_kets, config.input_filename)
 
   -- TODO: Need to decide how much parallelism to give to each block
-  var p_bra_kets = partition(disjoint, r_bra_kets, block_coloring)
+  var block_coloring = ispace(int2d, {config.highest_L+1, config.highest_L+1})
+  var p_bra_kets = partition(r_bra_kets.block_type, block_coloring)
   var p_bra_gausses = image(r_gausses, p_bra_kets, r_bra_kets.bra_idx)
   var p_ket_gausses = image(r_gausses, p_bra_kets, r_bra_kets.ket_idx)
   var p_gausses = p_bra_gausses | p_ket_gausses
@@ -192,19 +187,17 @@ task toplevel()
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_start = c.legion_get_current_time_in_micros()
 
-  -- FIXME: Cannot parallelize due to reduce in `r_density_matrix`
+  -- FIXME: Cannot parallelize due to reduce in `j_values`
   -- __demand(__parallel)
-  for block = 0, config.highest_L+1 do
-    coulomb(p_gausses[block], r_density_matrix,
-            p_j_values[block], p_bra_kets[block],
-            block, 1)
+  for block_type in block_coloring do
+    coulomb(p_gausses[block_type], r_density_matrix,
+            p_j_values[block_type], p_bra_kets[block_type],
+            block_type, 1)
   end
 
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_stop = c.legion_get_current_time_in_micros()
   c.printf("Coulomb operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
-
-  c.legion_coloring_destroy(block_coloring)
 
   write_output(r_j_values, config.output_filename)
 end
