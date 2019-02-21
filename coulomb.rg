@@ -13,12 +13,13 @@ fspace HermiteGaussian {
   d_start_idx : int1d; -- Preprocessed density matrix elements.
                        -- Number of values is given by
                        -- (L + 1) * (L + 2) * (L + 3) / 6
-                       -- Can I use `legion_domain_t` here?
+                       -- FIXME: Can I use `legion_domain_t` here?
+                       --        Or maybe a region?
   bound : float;       -- TODO
 }
 
 fspace PrimitiveBraKet {
-  bra_idx    : int1d;
+  bra_idx    : int1d; -- FIXME: Should this be a `ptr(HermiteGaussian)`?
   ket_idx    : int1d;
   block_type : int2d;
 }
@@ -51,6 +52,8 @@ do
 
   if block_type.x == 0 and block_type.y == 0 then
     -- FIXME: Cannot parallelize due to reduce in `j_values`
+    --        I could do a manual reduction by creating a list of regions
+    --        and then reducing them all to `r_j_values`. Is there a better way?
     -- __demand(__parallel)
     for color in coloring do
       coulombSSSS(p_gausses[color], r_density,
@@ -143,12 +146,12 @@ do
   c.legion_index_iterator_destroy(itr)
 end
 
-task write_output(r_j_values : region(ispace(int1d), double), filename : &int8)
+task write_output(r_j_values : region(ispace(int1d), double), config : Config)
 where
   reads(r_j_values)
 do
-  if filename[0] ~= 0 then
-    var file = c.fopen(filename, "w")
+  if config.output_filename[0] ~= 0 then
+    var file = c.fopen(config.output_filename, "w")
     for i in r_j_values.ispace do
       c.fprintf(file, "%.12f\n", r_j_values[i])
     end
@@ -202,7 +205,7 @@ task toplevel()
   var ts_stop = c.legion_get_current_time_in_micros()
   c.printf("Coulomb operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
 
-  write_output(r_j_values, config.output_filename)
+  write_output(r_j_values, config)
 end
 
 regentlib.start(toplevel)

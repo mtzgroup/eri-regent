@@ -6,6 +6,7 @@ local M_PI = cmath.M_PI
 local sqrt = cmath.sqrt
 local pow = cmath.pow
 
+-- FIXME: Will the Cuda code generator work even when it calls a terra function?
 __demand(__cuda)
 task coulombSSSS(r_gausses  : region(ispace(int1d), HermiteGaussian),
                  r_density  : region(ispace(int1d), double),
