@@ -3,15 +3,6 @@ import "regent"
 local Config = require("config")
 local c = regentlib.c
 local assert = regentlib.assert
-local cmath = terralib.includec("math.h")
-local M_PI = cmath.M_PI
-local sqrt = cmath.sqrt
-local pow = cmath.pow
-local floor = cmath.floor
-local exp = cmath.exp
--- local getPrecomputedBoys = terralib.includec("precomputedBoys.h").getPrecomputedBoys
--- FIXME: Hack to allow docker to see header file
-local getPrecomputedBoys = terralib.includec("precomputedBoys.h", {"-I", "/eri"}).getPrecomputedBoys
 
 fspace HermiteGaussian {
   x     : double;
@@ -31,117 +22,10 @@ fspace PrimitiveBraKet {
   ket_idx : int1d;
 }
 
-terra computeR000(t : double, alpha : double, R000 : &double, length : int)
-  assert(t >= 0, "t must be non-negative!")
-
-  if t < 12 then
-    assert(length-1 <= 16, "Only accurate for j <= 16")
-    var t_est : double = floor(10.0 * t + 0.5) / 10.0
-    R000[length-1] = 0
-    var factor : double = 1
-    for k = 0, 7 do
-      var boys_est : double = getPrecomputedBoys(t_est, length-1+k)
-      R000[length-1] = R000[length-1] + factor * boys_est
-      factor = factor * (t_est - t) / (k + 1)
-    end
-    for j = length-2, -1, -1 do
-      R000[j] = (2.0 * t * R000[j+1] + exp(-t)) / (2.0 * j + 1)
-    end
-  else
-    assert(length-1 <= 16, "Only accurate for j <= 16")
-    R000[0] = sqrt(M_PI) / (2.0 * sqrt(t))
-    var g : double
-    if t < 15 then
-      g = 0.4999489092 - 0.2473631686 / t + 0.321180909 / (t * t)
-            - 0.3811559346 / (t * t * t)
-    elseif t < 18 then
-      g = 0.4998436875 - 0.24249438 / t + 0.24642845 / (t * t);
-    elseif t < 24 then
-      g = 0.499093162 - 0.2152832 / t
-    elseif t < 30 then
-      g = 0.490
-    end
-
-    if t < 30 then
-      R000[0] = R000[0] - exp(-t) * g / t
-    end
-
-    for j = 1, length do
-      R000[j] = 2.0 / t * ((2 * j + 1) * R000[j-1] - exp(-t))
-    end
-  end
-
-  var factor : double = 1
-  for j = 0, length do
-    R000[j] = R000[j] * factor
-    factor = factor * -2 * alpha
-  end
-end
-
-__demand(__cuda)
-task coulombSSSS(r_gausses  : region(ispace(int1d), HermiteGaussian),
-                 r_density  : region(ispace(int1d), double),
-                 r_j_values : region(ispace(int1d), double),
-                 r_bra_kets : region(PrimitiveBraKet))
-where
-  reads(r_gausses, r_density, r_bra_kets), reduces +(r_j_values)
-do
-  var R000 : double[1]
-  for bra_ket in r_bra_kets do
-    var bra = r_gausses[bra_ket.bra_idx]
-    var ket = r_gausses[bra_ket.ket_idx]
-    -- TODO: Use Gaussian.bound to filter useless loops
-    var a : double = bra.x - ket.x
-    var b : double = bra.y - ket.y
-    var c : double = bra.z - ket.z
-
-    var alpha : double = bra.eta * ket.eta / (bra.eta + ket.eta)
-    var t : double = alpha * (a*a+b*b+c*c)
-    computeR000(t, alpha, R000, 1)
-
-    -- TODO: Reduce number of operations by using `alpha`
-    -- TODO: Compute pi^5 by squaring
-    var lambda : double = 2 * sqrt(pow(M_PI, 5)) / (bra.eta * ket.eta
-                                                    * sqrt(bra.eta + ket.eta))
-
-    r_j_values[bra_ket.bra_idx] += lambda * R000[0] * r_density[ket.d_start_idx]
-  end
-end
-
-__demand(__cuda)
-task coulombSSSP(r_gausses  : region(ispace(int1d), HermiteGaussian),
-                 r_density  : region(ispace(int1d), double),
-                 r_j_values : region(ispace(int1d), double),
-                 r_bra_kets : region(PrimitiveBraKet))
-where
-  reads(r_gausses, r_density, r_bra_kets), reduces +(r_j_values)
-do
-  var R000 : double[4]
-  for bra_ket in r_bra_kets do
-    var bra = r_gausses[bra_ket.bra_idx]
-    var ket = r_gausses[bra_ket.ket_idx]
-    -- TODO: Use Gaussian.bound to filter useless loops
-    var a : double = bra.x - ket.x
-    var b : double = bra.y - ket.y
-    var c : double = bra.z - ket.z
-
-    var alpha : double = bra.eta * ket.eta / (bra.eta + ket.eta)
-    var t : double = alpha * (a*a+b*b+c*c)
-    computeR000(t, alpha, R000, 4)
-
-    var R1000 = a * R000[1]
-    var R0100 = b * R000[1]
-    var R0010 = c * R000[1]
-
-    var P0 = r_density[ket.d_start_idx]
-    var P1 = r_density[ket.d_start_idx + 1]
-    var P2 = r_density[ket.d_start_idx + 2]
-    var P3 = r_density[ket.d_start_idx + 3]
-
-    r_j_values[bra_ket.bra_idx] += P0 * R000[0] - P1 * R1000
-                                                - P2 * R0100
-                                                - P3 * R0010
-  end
+require("boys")
+-- Import integrals after declaring fspaces and `computeR000`
+for _, type in pairs({"SSSS", "SSSP"}) do
+  require("integrals."..type)
 end
 
 task coulomb(r_gausses  : region(ispace(int1d), HermiteGaussian),
@@ -326,39 +210,3 @@ task toplevel()
 end
 
 regentlib.start(toplevel)
-
-
--- TODO: Better naming for symbols
--- local aSymbol = symbol(double)
--- local bSymbol = symbol(double)
--- local cSymbol = symbol(double)
--- local R000Symbol = symbol(&double)
--- -- TODO: Maybe this could be memoized since it does not directly depend on
--- --       a, b, c, or j.
--- function genRNLMJExpr(N, L, M)
---   local J = N + L + M
---   local function aux(N, L, M)
---     if N < 0 or L < 0 or M < 0 then
---       return `0
---     elseif N == 0 and L == 0 and M == 0 then
---       return `R000Symbol[J]
---     elseif N == 0 and L == 0 then
---       local first, second = aux(0, 0, M - 1), aux(0, 0, M - 2)
---       return `aSymbol * first + (M - 1) * second
---     elseif N == 0 then
---       local first, second = aux(0, L - 1, M), aux(0, L - 2, M)
---       return `bSymbol * first + (L - 1) * second
---     else
---       local first, second = aux(N - 1, L, M), aux(N - 2, L, M)
---       return `cSymbol * first + (N - 1) * second
---     end
---   end
---   return aux(N, L, M)
--- end
--- terra computeR(a : double, b : double, c : double, N : int, L : int, M : int)
---   var [aSymbol] = a
---   var [bSymbol] = b
---   var [cSymbol] = c
---   var [R000Symbol] = computeR000(0, 3) -- TODO: Actually compute this
---   return [ genRNLMJExpr(1, 2, 1) ]
--- end
