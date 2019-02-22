@@ -10,18 +10,19 @@ fspace HermiteGaussian {
   z     : double;
   eta   : double;      -- Exponent of Gaussian
   L     : int;         -- Angular momentum
-  d_start_idx : int1d; -- Preprocessed density matrix elements.
+  data_rect : rect1d;  -- Gives a range of indices to index into both
+                       -- the density matrix and j values.
                        -- Number of values is given by
                        -- (L + 1) * (L + 2) * (L + 3) / 6
-                       -- FIXME: Can I use `legion_domain_t` here?
-                       --        Or maybe a region?
   bound : float;       -- TODO
 }
 
 fspace PrimitiveBraKet {
   bra_idx    : int1d; -- FIXME: Should this be a `ptr(HermiteGaussian)`?
   ket_idx    : int1d;
-  block_type : int2d;
+  block_type : int2d; -- Gives the type of integral to compute by {L12, L34}
+                      -- where L12 <= angular momentum of bra
+                      --       L34 <= angular momentum of ket
 }
 
 require("boys")
@@ -34,29 +35,30 @@ for _, type in pairs(integralTypes) do
   require("integrals."..type)
 end
 
-task coulomb(r_gausses  : region(ispace(int1d), HermiteGaussian),
-             r_density  : region(ispace(int1d), double),
-             r_j_values : region(ispace(int1d), double),
-             r_bra_kets : region(PrimitiveBraKet),
-             block_type : int2d, parallelism : int)
+task coulomb(r_bra_gausses : region(ispace(int1d), HermiteGaussian),
+             r_ket_gausses : region(ispace(int1d), HermiteGaussian),
+             r_density     : region(ispace(int1d), double),
+             r_j_values    : region(ispace(int1d), double),
+             r_bra_kets    : region(PrimitiveBraKet),
+             block_type    : int2d, parallelism : int)
 where
-  reads(r_gausses, r_density, r_bra_kets), reads writes(r_j_values)
+  reads(r_bra_gausses, r_ket_gausses, r_density, r_bra_kets),
+  reads writes(r_j_values)
 do
   var coloring = ispace(int1d, parallelism)
   var p_bra_kets = partition(equal, r_bra_kets, coloring)
-  var p_bra_gausses = image(r_gausses, p_bra_kets, r_bra_kets.bra_idx)
-  var p_ket_gausses = image(r_gausses, p_bra_kets, r_bra_kets.ket_idx)
-  var p_gausses = p_bra_gausses | p_ket_gausses
-  var p_j_values = image(r_j_values, p_bra_kets, r_bra_kets.bra_idx)
-  -- TODO: partition r_density
+  var p_bra_gausses = image(r_bra_gausses, p_bra_kets, r_bra_kets.bra_idx)
+  var p_ket_gausses = image(r_ket_gausses, p_bra_kets, r_bra_kets.ket_idx)
+  var p_j_values = image(r_j_values, p_bra_gausses, r_bra_gausses.data_rect)
+  var p_density = image(r_density, p_ket_gausses, r_ket_gausses.data_rect)
 
   if block_type.x == 0 and block_type.y == 0 then
     -- FIXME: Cannot parallelize due to reduce in `j_values`
     --        I could do a manual reduction by creating a list of regions
-    --        and then reducing them all to `r_j_values`. Is there a better way?
+    --        and then reducing them all to `r_j_values`.
     -- __demand(__parallel)
     for color in coloring do
-      coulombSSSS(p_gausses[color], r_density,
+      coulombSSSS(p_bra_gausses[color], p_ket_gausses[color], p_density[color],
                   p_j_values[color], p_bra_kets[color])
     end
   -- elseif block_type.x == 0 and block_type.y == 1 then
@@ -93,7 +95,7 @@ task populateData(r_gausses  : region(ispace(int1d), HermiteGaussian),
                   r_density  : region(ispace(int1d), double),
                   r_j_values : region(ispace(int1d), double),
                   r_bra_kets : region(PrimitiveBraKet),
-                  file_name  : &int8)
+                  config     : Config)
 where
   reads writes(r_gausses, r_density, r_j_values, r_bra_kets)
 do
@@ -102,7 +104,7 @@ do
   var datai : int[1]
   var data : double[5]
   var density_str : int8[256]
-  var file = c.fopen(file_name, "r")
+  var file = c.fopen(config.input_filename, "r")
   var line : int8[512]
   fgets(line, 512, file)  -- Skip first line
   var i : int1d = 0
@@ -117,9 +119,9 @@ do
       var x : double = data[1]
       var y : double = data[2]
       var z : double = data[3]
-      r_gausses[i] = [HermiteGaussian]{x=x, y=y, z=z, eta=eta, L=L,
-                                       d_start_idx=density_idx, bound=0}
       var H : int = (L + 1) * (L + 2) * (L + 3) / 6
+      r_gausses[i] = {x=x, y=y, z=z, eta=eta, L=L,
+                      data_rect={density_idx, density_idx+H-1}, bound=0}
       var values : &double = sgetnd(density_str, H)
       for j = 0, H do
         r_density[density_idx] = values[j]
@@ -139,7 +141,8 @@ do
       -- if bra_idx <= ket_idx then  -- FIXME: Do I need all bra_kets?
         var bra_ket_ptr = c.legion_index_iterator_next(itr)
         var block_type : int2d = {r_gausses[bra_idx].L, r_gausses[ket_idx].L}
-        r_bra_kets[bra_ket_ptr] = {bra_idx, ket_idx, block_type}
+        r_bra_kets[bra_ket_ptr] = {bra_idx=bra_idx, ket_idx=ket_idx,
+                                   block_type=block_type}
       -- end
     end
   end
@@ -167,28 +170,25 @@ task toplevel()
   c.printf("*                                            *\n")
   c.printf("* # Hermite Gaussians      : %15u *\n", config.num_gausses)
   c.printf("* # BraKets                : %15u *\n", config.num_bra_kets)
-  c.printf("* # Density Values         : %15u *\n", config.num_density_values)
+  c.printf("* # Data values            : %15u *\n", config.num_data_values)
   c.printf("* Highest Angular Momentum : %15u *\n", config.highest_L)
   c.printf("* # Parallel Tasks         : %15u *\n", config.parallelism)
   c.printf("**********************************************\n")
 
   var r_gausses = region(ispace(int1d, config.num_gausses), HermiteGaussian)
-  var r_density_matrix = region(ispace(int1d, config.num_density_values), double)
-  var r_j_values = region(ispace(int1d, config.num_gausses), double)
+  var r_density_matrix = region(ispace(int1d, config.num_data_values), double)
+  var r_j_values = region(ispace(int1d, config.num_data_values), double)
   var r_bra_kets = region(ispace(ptr, config.num_bra_kets), PrimitiveBraKet)
 
-  populateData(r_gausses, r_density_matrix, r_j_values, r_bra_kets, config.input_filename)
+  populateData(r_gausses, r_density_matrix, r_j_values, r_bra_kets, config)
 
   -- TODO: Need to decide how much parallelism to give to each block
   var block_coloring = ispace(int2d, {config.highest_L+1, config.highest_L+1})
   var p_bra_kets = partition(r_bra_kets.block_type, block_coloring)
   var p_bra_gausses = image(r_gausses, p_bra_kets, r_bra_kets.bra_idx)
   var p_ket_gausses = image(r_gausses, p_bra_kets, r_bra_kets.ket_idx)
-  var p_gausses = p_bra_gausses | p_ket_gausses
-  -- FIXME: j data also has a variable length like `density_matrix`
-  var p_j_values = image(r_j_values, p_bra_kets, r_bra_kets.bra_idx)
-  -- var p_density_matrix = image(r_density_matrix, p_gausses, r_gausses.d_start_idx)
-  -- FIXME: Need to manually color density matrix.
+  var p_density_matrix = image(r_density_matrix, p_ket_gausses, r_gausses.data_rect)
+  var p_j_values = image(r_j_values, p_bra_gausses, r_gausses.data_rect)
 
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_start = c.legion_get_current_time_in_micros()
@@ -196,9 +196,9 @@ task toplevel()
   -- FIXME: Cannot parallelize due to reduce in `j_values`
   -- __demand(__parallel)
   for block_type in block_coloring do
-    coulomb(p_gausses[block_type], r_density_matrix,
-            p_j_values[block_type], p_bra_kets[block_type],
-            block_type, 1)
+    coulomb(p_bra_gausses[block_type], p_ket_gausses[block_type],
+            p_density_matrix[block_type], p_j_values[block_type],
+            p_bra_kets[block_type], block_type, 1)
   end
 
   __fence(__execution, __block) -- Make sure we only time the computation

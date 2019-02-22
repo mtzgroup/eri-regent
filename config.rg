@@ -4,10 +4,10 @@ local c = regentlib.c
 local cstring = terralib.includec("string.h")
 
 struct Config {
-  num_gausses        : int;
-  num_bra_kets       : int;
-  num_density_values : int;
-  highest_L          : int;
+  num_gausses        : int;       -- Number of Hermite Gaussians
+  num_bra_kets       : int;       -- Number of brakets
+  num_data_values    : int;       -- Number of J values and size of density matrix
+  highest_L          : int;       -- Highest angular momentum over all Gaussians
   parallelism        : int;
   verbose            : bool;
   input_filename     : int8[512];
@@ -52,7 +52,7 @@ terra Config:initialize_from_command()
       c.fscanf(file, "%d", &self.num_gausses)
       var line : int8[512]
       var L : int
-      self.num_density_values = 0
+      self.num_data_values = 0
       self.highest_L = 0
       c.fgets(line, 512, file) -- Read blank line
       for i = 0, self.num_gausses do
@@ -61,7 +61,7 @@ terra Config:initialize_from_command()
           self.highest_L = L
         end
         var H : int = (L + 1) * (L + 2) * (L + 3) / 6
-        self.num_density_values = self.num_density_values + H
+        self.num_data_values = self.num_data_values + H
       end
       c.fclose(file)
     elseif cstring.strcmp(args.argv[i], "-o") == 0 then

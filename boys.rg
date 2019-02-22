@@ -3,9 +3,9 @@ import "regent"
 local assert = regentlib.assert
 local cmath = terralib.includec("math.h")
 local M_PI = cmath.M_PI
-local sqrt = cmath.sqrt
-local floor = cmath.floor
-local exp = cmath.exp
+local sqrt = regentlib.sqrt(double)
+local floor = regentlib.floor(double)
+local exp = regentlib.exp(double)
 
 -- Use a python script to generate `precomputedBoys.h`
 -- `python gen_precomputed_header.py`
@@ -16,10 +16,14 @@ local getPrecomputedBoys = terralib.includec("precomputedBoys.h", {"-I", "/eri"}
 -- Computes a list of size `length` of auxiliary values.
 -- R000[j] = (-2*alpha)^j * F_j(t)
 -- where F_j(t) is the boys function.
+-- FIXME: Should be an inlined task
+-- FIXME: Metaprogram so that length is constant
+-- FIXME: Pass in a region of Boys values instead of using `getPrecomputedBoys`
 terra computeR000(t : double, alpha : double, R000 : &double, length : int)
   assert(t >= 0, "t must be non-negative!")
 
   if t < 12 then
+    -- FIXME: No assert on GPU.
     assert(length-1 <= 16, "Only accurate for j <= 16")
     var t_est : double = floor(10.0 * t + 0.5) / 10.0
     R000[length-1] = 0

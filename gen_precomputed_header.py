@@ -15,6 +15,7 @@ def boys(t, j):
     return integrate.quadrature(integrand, 0., 1., args=(t, j), tol=1e-15, rtol=1e-15)
 
 
+# FIXME: Output a Regent task to populate a region instead of a C header.
 with open(FILE_NAME, "w") as file:
     values = [boys(t / 10.0, j) for t in range(121) for j in range(LARGEST_J + 1)]
     max_abs_error = max([e for _, e in values] + [0.0])

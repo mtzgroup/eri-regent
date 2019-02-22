@@ -3,8 +3,8 @@ import "regent"
 
 local cmath = terralib.includec("math.h")
 local M_PI = cmath.M_PI
-local sqrt = cmath.sqrt
-local pow = cmath.pow
+local sqrt = regentlib.sqrt(double)
+local pow = regentlib.pow(double)
 
 __demand(__cuda)
 task coulombSSSP(r_gausses  : region(ispace(int1d), HermiteGaussian),
