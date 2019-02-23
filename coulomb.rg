@@ -5,15 +5,14 @@ local c = regentlib.c
 local assert = regentlib.assert
 
 fspace HermiteGaussian {
-  x     : double;
-  y     : double;
-  z     : double;
-  eta   : double;      -- Exponent of Gaussian
-  L     : int;         -- Angular momentum
-  data_rect : rect1d;  -- Gives a range of indices to index into both
-                       -- the density matrix and j values.
-                       -- Number of values is given by
-                       -- (L + 1) * (L + 2) * (L + 3) / 6
+  {x, y, z} : double;  -- Location of Gaussian
+  eta       : double;  -- Exponent of Gaussian
+  L         : int;     -- Angular momentum
+  data_rect : rect1d;  -- Gives a range of indices where the number of values
+                       -- is given by (L + 1) * (L + 2) * (L + 3) / 6
+                       -- If `HermiteGaussian` is interpreted as a "bra", then
+                       --`data_rect` refers to the J values. Otherwise, it
+                       -- refers to the density matrix values.
   bound : float;       -- TODO
 }
 
@@ -35,31 +34,33 @@ for _, type in pairs(integralTypes) do
   require("integrals."..type)
 end
 
-task coulomb(r_bra_gausses : region(ispace(int1d), HermiteGaussian),
+-- Takes a group of BraKets that all have the same angular momentum pair.
+-- Computes the necessary integrals and adds the values into `r_j_values`.
+task coulomb(r_bra_kets    : region(PrimitiveBraKet),
+             r_bra_gausses : region(ispace(int1d), HermiteGaussian),
              r_ket_gausses : region(ispace(int1d), HermiteGaussian),
              r_density     : region(ispace(int1d), double),
              r_j_values    : region(ispace(int1d), double),
-             r_bra_kets    : region(PrimitiveBraKet),
              block_type    : int2d, parallelism : int)
 where
-  reads(r_bra_gausses, r_ket_gausses, r_density, r_bra_kets),
-  reads writes(r_j_values)
+  reads(r_bra_kets, r_bra_gausses, r_ket_gausses, r_density),
+  reduces +(r_j_values)
 do
   var coloring = ispace(int1d, parallelism)
   var p_bra_kets = partition(equal, r_bra_kets, coloring)
   var p_bra_gausses = image(r_bra_gausses, p_bra_kets, r_bra_kets.bra_idx)
   var p_ket_gausses = image(r_ket_gausses, p_bra_kets, r_bra_kets.ket_idx)
-  var p_j_values = image(r_j_values, p_bra_gausses, r_bra_gausses.data_rect)
   var p_density = image(r_density, p_ket_gausses, r_ket_gausses.data_rect)
 
+  var r_j_partials = region(r_j_values.ispace, double)
+  fill(r_j_partials, 0)
+  var p_j_partials = image(r_j_partials, p_bra_gausses, r_bra_gausses.data_rect)
+
   if block_type.x == 0 and block_type.y == 0 then
-    -- FIXME: Cannot parallelize due to reduce in `j_values`
-    --        I could do a manual reduction by creating a list of regions
-    --        and then reducing them all to `r_j_values`.
-    -- __demand(__parallel)
+    __demand(__parallel)
     for color in coloring do
-      coulombSSSS(p_bra_gausses[color], p_ket_gausses[color], p_density[color],
-                  p_j_values[color], p_bra_kets[color])
+      coulombSSSS(p_bra_kets[color], p_bra_gausses[color], p_ket_gausses[color], p_density[color],
+                  p_j_partials[color])
     end
   -- elseif block_type.x == 0 and block_type.y == 1 then
   --   assert(false, "Block type not implemented")
@@ -70,6 +71,10 @@ do
   --   end
   else
     assert(false, "Block type not implemented")
+  end
+
+  for i in r_j_values.ispace do
+    r_j_values[i] += r_j_partials[i]
   end
 end
 
@@ -141,6 +146,7 @@ do
       -- if bra_idx <= ket_idx then  -- FIXME: Do I need all bra_kets?
         var bra_ket_ptr = c.legion_index_iterator_next(itr)
         var block_type : int2d = {r_gausses[bra_idx].L, r_gausses[ket_idx].L}
+        -- TODO: Is it safe to directly index with an integer?
         r_bra_kets[bra_ket_ptr] = {bra_idx=bra_idx, ket_idx=ket_idx,
                                    block_type=block_type}
       -- end
@@ -193,12 +199,12 @@ task toplevel()
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_start = c.legion_get_current_time_in_micros()
 
-  -- FIXME: Cannot parallelize due to reduce in `j_values`
-  -- __demand(__parallel)
+  __demand(__parallel)
   for block_type in block_coloring do
-    coulomb(p_bra_gausses[block_type], p_ket_gausses[block_type],
+    coulomb(p_bra_kets[block_type],
+            p_bra_gausses[block_type], p_ket_gausses[block_type],
             p_density_matrix[block_type], p_j_values[block_type],
-            p_bra_kets[block_type], block_type, 1)
+            block_type, 1)
   end
 
   __fence(__execution, __block) -- Make sure we only time the computation
