@@ -9,16 +9,18 @@ local pow = regentlib.pow(double)
 local computeR000 = generateTaskComputeR000(4)
 
 __demand(__cuda)
-task coulombSSSP(r_gausses  : region(ispace(int1d), HermiteGaussian),
-                 r_density  : region(ispace(int1d), double),
-                 r_j_values : region(ispace(int1d), double),
-                 r_bra_kets : region(PrimitiveBraKet))
+task coulombSSSP(r_bra_kets    : region(PrimitiveBraKet),
+                 r_bra_gausses : region(ispace(int1d), HermiteGaussian),
+                 r_ket_gausses : region(ispace(int1d), HermiteGaussian),
+                 r_density     : region(ispace(int1d), double),
+                 r_j_values    : region(ispace(int1d), double))
 where
-  reads(r_gausses, r_density, r_bra_kets), reduces +(r_j_values)
+  reads(r_bra_kets, r_bra_gausses, r_ket_gausses, r_density),
+  reduces +(r_j_values)
 do
   for bra_ket in r_bra_kets do
-    var bra = r_gausses[bra_ket.bra_idx]
-    var ket = r_gausses[bra_ket.ket_idx]
+    var bra = r_bra_gausses[bra_ket.bra_idx]
+    var ket = r_ket_gausses[bra_ket.ket_idx]
     -- TODO: Use Gaussian.bound to filter useless loops
     var a : double = bra.x - ket.x
     var b : double = bra.y - ket.y

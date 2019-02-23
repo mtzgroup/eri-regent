@@ -28,7 +28,7 @@ require("boys")
 -- Import integrals after declaring fspaces and `computeR000`
 integralTypes = {
   "SSSS",
-  -- "SSSP", "SSPP", "SPSP", "SPPP", "PPPP",
+  "SSSP", -- "SSPP", "SPSP", "SPPP", "PPPP",
 }
 for _, type in pairs(integralTypes) do
   require("integrals."..type)
@@ -41,7 +41,7 @@ task coulomb(r_bra_kets    : region(PrimitiveBraKet),
              r_ket_gausses : region(ispace(int1d), HermiteGaussian),
              r_density     : region(ispace(int1d), double),
              r_j_values    : region(ispace(int1d), double),
-             block_type    : int2d, parallelism : int)
+             parallelism   : int)
 where
   reads(r_bra_kets, r_bra_gausses, r_ket_gausses, r_density),
   reduces +(r_j_values)
@@ -56,19 +56,21 @@ do
   fill(r_j_partials, 0)
   var p_j_partials = image(r_j_partials, p_bra_gausses, r_bra_gausses.data_rect)
 
+  var block_type = r_bra_kets[0].block_type
   if block_type.x == 0 and block_type.y == 0 then
     __demand(__parallel)
     for color in coloring do
-      coulombSSSS(p_bra_kets[color], p_bra_gausses[color], p_ket_gausses[color], p_density[color],
-                  p_j_partials[color])
+      coulombSSSS(p_bra_kets[color],
+                  p_bra_gausses[color], p_ket_gausses[color],
+                  p_density[color], p_j_partials[color])
     end
-  -- elseif block_type.x == 0 and block_type.y == 1 then
-  --   assert(false, "Block type not implemented")
-  --   -- __demand(__parallel)
-  --   for color in coloring do
-  --     coulombSSSP(p_gausses[color], r_density,
-  --                 p_j_values[color], p_bra_kets[color])
-  --   end
+  elseif block_type.x == 0 and block_type.y == 1 then
+    __demand(__parallel)
+    for color in coloring do
+      coulombSSSP(p_bra_kets[color],
+                  p_bra_gausses[color], p_ket_gausses[color],
+                  p_density[color], p_j_partials[color])
+    end
   else
     assert(false, "Block type not implemented")
   end
@@ -96,13 +98,13 @@ terra sgetnd(str : &int8, n : int)
   return values
 end
 
-task populateData(r_gausses  : region(ispace(int1d), HermiteGaussian),
+task populateData(r_bra_kets : region(PrimitiveBraKet),
+                  r_gausses  : region(ispace(int1d), HermiteGaussian),
                   r_density  : region(ispace(int1d), double),
                   r_j_values : region(ispace(int1d), double),
-                  r_bra_kets : region(PrimitiveBraKet),
                   config     : Config)
 where
-  reads writes(r_gausses, r_density, r_j_values, r_bra_kets)
+  reads writes(r_bra_kets, r_gausses, r_density, r_j_values)
 do
   fill(r_j_values, 0)
 
@@ -174,26 +176,26 @@ task toplevel()
   c.printf("**********************************************\n")
   c.printf("*      Two-Electron Repulsion Integrals      *\n")
   c.printf("*                                            *\n")
+  c.printf("* Highest Angular Momentum : %15u *\n", config.highest_L)
   c.printf("* # Hermite Gaussians      : %15u *\n", config.num_gausses)
   c.printf("* # BraKets                : %15u *\n", config.num_bra_kets)
   c.printf("* # Data values            : %15u *\n", config.num_data_values)
-  c.printf("* Highest Angular Momentum : %15u *\n", config.highest_L)
   c.printf("* # Parallel Tasks         : %15u *\n", config.parallelism)
   c.printf("**********************************************\n")
 
-  var r_gausses = region(ispace(int1d, config.num_gausses), HermiteGaussian)
-  var r_density_matrix = region(ispace(int1d, config.num_data_values), double)
-  var r_j_values = region(ispace(int1d, config.num_data_values), double)
   var r_bra_kets = region(ispace(ptr, config.num_bra_kets), PrimitiveBraKet)
+  var r_gausses = region(ispace(int1d, config.num_gausses), HermiteGaussian)
+  var r_density = region(ispace(int1d, config.num_data_values), double)
+  var r_j_values = region(ispace(int1d, config.num_data_values), double)
 
-  populateData(r_gausses, r_density_matrix, r_j_values, r_bra_kets, config)
+  populateData(r_bra_kets, r_gausses, r_density, r_j_values, config)
 
   -- TODO: Need to decide how much parallelism to give to each block
   var block_coloring = ispace(int2d, {config.highest_L+1, config.highest_L+1})
   var p_bra_kets = partition(r_bra_kets.block_type, block_coloring)
   var p_bra_gausses = image(r_gausses, p_bra_kets, r_bra_kets.bra_idx)
   var p_ket_gausses = image(r_gausses, p_bra_kets, r_bra_kets.ket_idx)
-  var p_density_matrix = image(r_density_matrix, p_ket_gausses, r_gausses.data_rect)
+  var p_density = image(r_density, p_ket_gausses, r_gausses.data_rect)
   var p_j_values = image(r_j_values, p_bra_gausses, r_gausses.data_rect)
 
   __fence(__execution, __block) -- Make sure we only time the computation
@@ -203,8 +205,7 @@ task toplevel()
   for block_type in block_coloring do
     coulomb(p_bra_kets[block_type],
             p_bra_gausses[block_type], p_ket_gausses[block_type],
-            p_density_matrix[block_type], p_j_values[block_type],
-            block_type, 1)
+            p_density[block_type], p_j_values[block_type], 1)
   end
 
   __fence(__execution, __block) -- Make sure we only time the computation
