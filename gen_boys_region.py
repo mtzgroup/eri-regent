@@ -16,16 +16,12 @@ def boys(t, j):
 
 
 with h5py.File(FILE_NAME, "w") as f:
-
-    # `values` has shape (121, LARGEST_J + 1)
     values, errors = np.transpose(
-        [[boys(t / 10.0, j) for j in range(LARGEST_J + 1)] for t in range(121)],
+        [[boys(t / 10.0, j) for t in range(121)] for j in range(LARGEST_J + 1)],
         axes=(2, 0, 1),
     )
     relative_errors = errors / values
-
     f["data"] = values
-
-    print("Wrote precomputed Boys to " + FILE_NAME)
+    print("Wrote Boys values to " + FILE_NAME)
     print("max absolute error = " + str(np.max(errors)))
     print("max relative error = " + str(np.max(relative_errors)))
