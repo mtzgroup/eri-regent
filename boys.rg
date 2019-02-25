@@ -6,27 +6,27 @@ local sqrt = regentlib.sqrt(double)
 local floor = regentlib.floor(double)
 local exp = regentlib.exp(double)
 
--- Use a python script to generate `precomputedBoys.h`
--- `python gen_precomputed_header.py`
--- local getPrecomputedBoys = terralib.includec("precomputedBoys.h").getPrecomputedBoys
--- FIXME: Hack to allow docker to see header file
-local getPrecomputedBoys = terralib.includec("precomputedBoys.h", {"-I", "/eri"}).getPrecomputedBoys
-
 function generateTaskComputeR000(length)
   -- Computes a list of size `length` of auxiliary values.
   -- R000[j] = (-2*alpha)^j * F_j(t)
   -- where F_j(t) is the Boys function.
   -- Only accurate for j <= 16
-  -- FIXME: demand inline does not work
-  -- local __demand(__inline) task computeR000(t : double, alpha : double) : double[length]
-  local task computeR000(t : double, alpha : double) : double[length]
+  local
+  __demand(__inline)
+  task computeR000(t      : double,
+                   alpha  : double,
+                   r_boys : region(ispace(int2d), PrecomputedBoys)) : double[length]
+  where
+    reads(r_boys)
+  do
     var R000 : double[length]
     if t < 12 then
-      var t_est : double = floor(10.0 * t + 0.5) / 10.0
+      var t_idx : int = floor(10.0 * t + 0.5)
+      var t_est : double = t_idx / 10.0
       R000[length-1] = 0
       var factor : double = 1
       for k = 0, 7 do
-        var boys_est : double = getPrecomputedBoys(t_est, length-1+k)
+        var boys_est : double = r_boys[{t_idx, length-1+k}].data
         R000[length-1] = R000[length-1] + factor * boys_est
         factor = factor * (t_est - t) / (k + 1)
       end

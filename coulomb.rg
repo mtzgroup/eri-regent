@@ -24,6 +24,10 @@ fspace PrimitiveBraKet {
                       --       L34 <= angular momentum of ket
 }
 
+fspace PrecomputedBoys {
+  data : double;
+}
+
 require("boys")
 -- Import integrals after declaring fspaces and `computeR000`
 integralTypes = {
@@ -41,9 +45,10 @@ task coulomb(r_bra_kets    : region(PrimitiveBraKet),
              r_ket_gausses : region(ispace(int1d), HermiteGaussian),
              r_density     : region(ispace(int1d), double),
              r_j_values    : region(ispace(int1d), double),
+             r_boys        : region(ispace(int2d), PrecomputedBoys),
              parallelism   : int)
 where
-  reads(r_bra_kets, r_bra_gausses, r_ket_gausses, r_density),
+  reads(r_bra_kets, r_bra_gausses, r_ket_gausses, r_density, r_boys),
   reduces +(r_j_values)
 do
   var coloring = ispace(int1d, parallelism)
@@ -62,14 +67,14 @@ do
     for color in coloring do
       coulombSSSS(p_bra_kets[color],
                   p_bra_gausses[color], p_ket_gausses[color],
-                  p_density[color], p_j_partials[color])
+                  p_density[color], p_j_partials[color], r_boys)
     end
   elseif block_type.x == 0 and block_type.y == 1 then
     __demand(__parallel)
     for color in coloring do
       coulombSSSP(p_bra_kets[color],
                   p_bra_gausses[color], p_ket_gausses[color],
-                  p_density[color], p_j_partials[color])
+                  p_density[color], p_j_partials[color], r_boys)
     end
   else
     assert(false, "Block type not implemented")
@@ -198,6 +203,10 @@ task toplevel()
   var p_density = image(r_density, p_ket_gausses, r_gausses.data_rect)
   var p_j_values = image(r_j_values, p_bra_gausses, r_gausses.data_rect)
 
+  var r_boys = region(ispace(int2d, {121, 23}), PrecomputedBoys)
+  attach(hdf5, r_boys.data, "precomputedBoys.hdf5", regentlib.file_read_only)
+  acquire(r_boys)
+
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_start = c.legion_get_current_time_in_micros()
 
@@ -205,12 +214,15 @@ task toplevel()
   for block_type in block_coloring do
     coulomb(p_bra_kets[block_type],
             p_bra_gausses[block_type], p_ket_gausses[block_type],
-            p_density[block_type], p_j_values[block_type], 1)
+            p_density[block_type], p_j_values[block_type], r_boys, 1)
   end
 
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_stop = c.legion_get_current_time_in_micros()
   c.printf("Coulomb operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
+
+  release(r_boys)
+  detach(hdf5, r_boys.data)
 
   write_output(r_j_values, config)
 end
