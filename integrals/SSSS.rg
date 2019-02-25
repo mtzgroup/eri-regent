@@ -29,7 +29,7 @@ do
 
     var alpha : double = bra.eta * ket.eta / (bra.eta + ket.eta)
     var t : double = alpha * (a*a+b*b+c*c)
-    var R000 : double[1] = computeR000(t, alpha, r_boys)
+    var R000 : double[1] = __demand(__inline, computeR000(t, alpha, r_boys))
 
     -- TODO: Precompute parts of `lambda`
     var lambda : double = 2 * sqrt(pow(M_PI, 5)) / (bra.eta * ket.eta
