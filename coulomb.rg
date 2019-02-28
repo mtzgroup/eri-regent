@@ -152,6 +152,7 @@ do
         var block_type : int2d = {r_gausses[bra_idx].L, r_gausses[ket_idx].L}
         r_bra_kets[bra_ket_idx] = {bra_idx=bra_idx, ket_idx=ket_idx,
                                    block_type=block_type}
+        bra_ket_idx += 1
       -- end
     end
   end
