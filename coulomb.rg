@@ -155,7 +155,6 @@ do
       -- end
     end
   end
-  c.legion_index_iterator_destroy(itr)
 end
 
 task write_output(r_j_values : region(ispace(int1d), double), config : Config)
