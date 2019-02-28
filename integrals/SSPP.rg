@@ -6,7 +6,7 @@ local M_PI = cmath.M_PI
 local sqrt = regentlib.sqrt(double)
 local pow = regentlib.pow(double)
 
-local computeR000 = generateTaskComputeR000(2)
+local computeR000 = generateTaskComputeR000(3)
 
 __demand(__cuda)
 task coulombSSSP(r_bra_kets    : region(PrimitiveBraKet),
@@ -29,16 +29,34 @@ do
 
     var alpha : double = bra.eta * ket.eta / (bra.eta + ket.eta)
     var t : double = alpha * (a*a+b*b+c*c)
-    var R000 : double[2] = __demand(__inline, computeR000(t, alpha, r_boys))
+    var R000 : double[3] = __demand(__inline, computeR000(t, alpha, r_boys))
 
     var R1000 : double = a * R000[1]
     var R0100 : double = b * R000[1]
     var R0010 : double = c * R000[1]
 
+    var R1001 : double = a * R000[2];
+    var R0101 : double = b * R000[2];
+    var R0011 : double = c * R000[2];
+
+    var R1100 : double = a * R0101;
+    var R1010 : double = a * R0011;
+    var R0110 : double = b * R0011;
+
+    var R2000 : double = a * R1001 + R000[1];
+    var R0200 : double = b * R0101 + R000[1];
+    var R0020 : double = c * R0011 + R000[1];
+
     var P0 : double = r_density[ket.data_rect.lo]
     var P1 : double = r_density[ket.data_rect.lo + 1]
     var P2 : double = r_density[ket.data_rect.lo + 2]
     var P3 : double = r_density[ket.data_rect.lo + 3]
+    var P4 : double = r_density[ket.data_rect.lo + 4]
+    var P5 : double = r_density[ket.data_rect.lo + 5]
+    var P6 : double = r_density[ket.data_rect.lo + 6]
+    var P7 : double = r_density[ket.data_rect.lo + 7]
+    var P8 : double = r_density[ket.data_rect.lo + 8]
+    var P9 : double = r_density[ket.data_rect.lo + 9]
 
     -- TODO: Precompute parts of `lambda`
     var lambda : double = 2 * sqrt(pow(M_PI, 5)) / (bra.eta * ket.eta
@@ -48,6 +66,12 @@ do
     result -= R1000 * P1
     result -= R0100 * P2
     result -= R0010 * P3
+    result += R1100 * P4
+    result += R1010 * P5
+    result += R0110 * P6
+    result += R2000 * P7
+    result += R0200 * P8
+    result += R0020 * P9
     result *= lambda
     r_j_values[bra.data_rect.lo] += result
   end
