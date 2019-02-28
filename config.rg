@@ -56,7 +56,8 @@ terra Config:initialize_from_command()
       self.highest_L = 0
       c.fgets(line, 512, file) -- Read blank line
       for i = 0, self.num_gausses do
-        c.fscanf(file, "%d", &L)
+        c.fgets(line, 512, file)
+        c.sscanf(line, "%d", &L)
         if L > self.highest_L then
           self.highest_L = L
         end
