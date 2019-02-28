@@ -17,7 +17,7 @@ fspace HermiteGaussian {
 }
 
 fspace PrimitiveBraKet {
-  bra_idx    : int1d; -- FIXME: Should this be a `ptr(HermiteGaussian)`?
+  bra_idx    : int1d;
   ket_idx    : int1d;
   block_type : int2d; -- Gives the type of integral to compute by {L12, L34}
                       -- where L12 <= angular momentum of bra
@@ -40,7 +40,7 @@ end
 
 -- Takes a group of BraKets that all have the same angular momentum pair.
 -- Computes the necessary integrals and adds the values into `r_j_values`.
-task coulomb(r_bra_kets    : region(PrimitiveBraKet),
+task coulomb(r_bra_kets    : region(ispace(int1d), PrimitiveBraKet),
              r_bra_gausses : region(ispace(int1d), HermiteGaussian),
              r_ket_gausses : region(ispace(int1d), HermiteGaussian),
              r_density     : region(ispace(int1d), double),
@@ -103,7 +103,7 @@ terra sgetnd(str : &int8, n : int)
   return values
 end
 
-task populateData(r_bra_kets : region(PrimitiveBraKet),
+task populateData(r_bra_kets : region(ispace(int1d), PrimitiveBraKet),
                   r_gausses  : region(ispace(int1d), HermiteGaussian),
                   r_density  : region(ispace(int1d), double),
                   r_j_values : region(ispace(int1d), double),
@@ -145,16 +145,12 @@ do
   end
   c.fclose(file)
 
-  var bra_ket_ispace = c.legion_physical_region_get_logical_region(
-                              __physical(r_bra_kets)[0]).index_space
-  var itr = c.legion_index_iterator_create(__runtime(), __context(), bra_ket_ispace)
+  var bra_ket_idx : int = 0
   for bra_idx in r_gausses.ispace do
     for ket_idx in r_gausses.ispace do
       -- if bra_idx <= ket_idx then  -- FIXME: Do I need all bra_kets?
-        var bra_ket_ptr = c.legion_index_iterator_next(itr)
         var block_type : int2d = {r_gausses[bra_idx].L, r_gausses[ket_idx].L}
-        -- TODO: Is it safe to directly index with an integer?
-        r_bra_kets[bra_ket_ptr] = {bra_idx=bra_idx, ket_idx=ket_idx,
+        r_bra_kets[bra_ket_idx] = {bra_idx=bra_idx, ket_idx=ket_idx,
                                    block_type=block_type}
       -- end
     end
@@ -188,7 +184,7 @@ task toplevel()
   c.printf("* # Parallel Tasks         : %15u *\n", config.parallelism)
   c.printf("**********************************************\n")
 
-  var r_bra_kets = region(ispace(ptr, config.num_bra_kets), PrimitiveBraKet)
+  var r_bra_kets = region(ispace(int1d, config.num_bra_kets), PrimitiveBraKet)
   var r_gausses = region(ispace(int1d, config.num_gausses), HermiteGaussian)
   var r_density = region(ispace(int1d, config.num_data_values), double)
   var r_j_values = region(ispace(int1d, config.num_data_values), double)
