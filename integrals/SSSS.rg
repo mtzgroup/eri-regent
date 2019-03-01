@@ -34,6 +34,7 @@ do
     -- TODO: Precompute parts of `lambda`
     var lambda : double = 2 * sqrt(pow(M_PI, 5)) / (bra.eta * ket.eta
                                                     * sqrt(bra.eta + ket.eta))
-    r_j_values[bra.data_rect.lo] += lambda * R000[0] * r_density[ket.data_rect.lo]
+    var result : double = lambda * R000[0] * r_density[ket.data_rect.lo]
+    r_j_values[bra.data_rect.lo] += result
   end
 end

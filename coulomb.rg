@@ -20,8 +20,8 @@ fspace PrimitiveBraKet {
   bra_idx    : int1d;
   ket_idx    : int1d;
   block_type : int2d; -- Gives the type of integral to compute by {L12, L34}
-                      -- where L12 <= angular momentum of bra
-                      --       L34 <= angular momentum of ket
+                      -- where L12 <- angular momentum of bra
+                      --       L34 <- angular momentum of ket
 }
 
 fspace PrecomputedBoys {
@@ -29,7 +29,7 @@ fspace PrecomputedBoys {
 }
 
 require("boys")
--- Import integrals after declaring fspaces and `computeR000`
+-- Must import integrals after declaring fspaces and `generateTaskComputeR000`
 integralTypes = {
   "SSSS",
   "SSSP", -- "SSPP", "SPSP", "SPPP", "PPPP",
@@ -89,7 +89,7 @@ terra fgets(line : &int8, n : int, file : &c.FILE) : bool
   return c.fgets(line, n, file) ~= nil
 end
 
--- Reads n doubles from `str` separated by spaces and puts them into `values`
+-- Returns a list of n doubles from `str` separated by spaces
 terra sgetnd(str : &int8, n : int)
   var values : &double = [&double](c.malloc(sizeof(double) * n))
   var token : &int8 = c.strtok(str, " ")
@@ -103,6 +103,7 @@ terra sgetnd(str : &int8, n : int)
   return values
 end
 
+-- Populates regions from input file
 task populateData(r_bra_kets : region(ispace(int1d), PrimitiveBraKet),
                   r_gausses  : region(ispace(int1d), HermiteGaussian),
                   r_density  : region(ispace(int1d), double),
@@ -115,7 +116,7 @@ do
 
   var datai : int[1]
   var data : double[5]
-  var density_str : int8[256]
+  var density_str : int8[512]
   var file = c.fopen(config.input_filename, "r")
   var line : int8[512]
   fgets(line, 512, file)  -- Skip first line
@@ -124,7 +125,7 @@ do
   while fgets(line, 512, file) do
     if c.strncmp(line, "\n", 1) ~= 0 and c.strncmp(line, "\r\n", 2) ~= 0 then
       -- "L eta x y z [density values]"
-      c.sscanf([&int8](line), "%d %lf %lf %lf %lf %256[0-9.eE- ]",
+      c.sscanf([&int8](line), "%d %lf %lf %lf %lf %512[0-9.eE- ]",
                               datai, data, data+1, data+2, data+3, density_str)
       var L : int = datai[0]
       var eta : double = data[0]
