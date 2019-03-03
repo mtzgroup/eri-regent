@@ -49,13 +49,12 @@ terra Config:initialize_from_command()
       end
       cstring.strncpy(self.input_filename, args.argv[i], 512)
       -- The first line of the file is the number of HermiteGaussians
-      c.fscanf(file, "%d", &self.num_gausses)
+      c.fscanf(file, "%d\n", &self.num_gausses)
       var line : int8[512]
       var L : int
       self.num_data_values = 0
       self.highest_L = 0
-      c.fgets(line, 512, file) -- Read blank line
-      for i = 0, self.num_gausses do
+      for j = 0, self.num_gausses do
         c.fgets(line, 512, file)
         c.sscanf(line, "%d", &L)
         if L > self.highest_L then
@@ -93,7 +92,7 @@ terra Config:initialize_from_command()
     c.abort()
   end
 
-  -- self.num_bra_kets = self.num_gausses * (self.num_gausses - 1) / 2
+  -- self.num_bra_kets = self.num_gausses * (self.num_gausses + 1) / 2
   self.num_bra_kets = self.num_gausses * self.num_gausses
 end
 

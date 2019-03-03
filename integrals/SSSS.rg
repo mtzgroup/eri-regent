@@ -36,5 +36,9 @@ do
                                                     * sqrt(bra.eta + ket.eta))
     var result : double = lambda * R000[0] * r_density[ket.data_rect.lo]
     r_j_values[bra.data_rect.lo] += result
+    -- if (bra_ket.bra_idx ~= bra_ket.ket_idx) then
+    --   var result : double = lambda * R000[0] * r_density[bra.data_rect.lo]
+    --   r_j_values[ket.data_rect.lo] += result
+    -- end
   end
 end

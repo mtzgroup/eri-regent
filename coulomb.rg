@@ -32,7 +32,7 @@ require("boys")
 -- Must import integrals after declaring fspaces and `generateTaskComputeR000`
 integralTypes = {
   "SSSS",
-  "SSSP", -- "SSPP", "SPSP", "SPPP", "PPPP",
+  --"SSSP", "SSPP", "SPSP", "SPPP", "PPPP"
 }
 for _, type in pairs(integralTypes) do
   require("integrals."..type)
@@ -46,11 +46,16 @@ task coulomb(r_bra_kets    : region(ispace(int1d), PrimitiveBraKet),
              r_density     : region(ispace(int1d), double),
              r_j_values    : region(ispace(int1d), double),
              r_boys        : region(ispace(int2d), PrecomputedBoys),
-             parallelism   : int)
+             parallelism   : int,
+             block_type    : int2d)
 where
   reads(r_bra_kets, r_bra_gausses, r_ket_gausses, r_density, r_boys),
   reduces +(r_j_values)
 do
+  if r_bra_kets.volume == 0 then
+    return
+  end
+
   var coloring = ispace(int1d, parallelism)
   var p_bra_kets = partition(equal, r_bra_kets, coloring)
   var p_bra_gausses = image(r_bra_gausses, p_bra_kets, r_bra_kets.bra_idx)
@@ -60,23 +65,50 @@ do
   var r_j_partials = region(r_j_values.ispace, double)
   fill(r_j_partials, 0)
   var p_j_partials = image(r_j_partials, p_bra_gausses, r_bra_gausses.data_rect)
-
-  var block_type = r_bra_kets[0].block_type
-  if block_type.x == 0 and block_type.y == 0 then
+  if block_type == [int2d]{0, 0} then
     __demand(__parallel)
     for color in coloring do
       coulombSSSS(p_bra_kets[color],
                   p_bra_gausses[color], p_ket_gausses[color],
                   p_density[color], p_j_partials[color], r_boys)
     end
-  elseif block_type.x == 0 and block_type.y == 1 then
-    __demand(__parallel)
-    for color in coloring do
-      coulombSSSP(p_bra_kets[color],
-                  p_bra_gausses[color], p_ket_gausses[color],
-                  p_density[color], p_j_partials[color], r_boys)
-    end
+  -- elseif block_type == [int2d]{0, 1} then
+  --   __demand(__parallel)
+  --   for color in coloring do
+  --     coulombSSSP(p_bra_kets[color],
+  --                 p_bra_gausses[color], p_ket_gausses[color],
+  --                 p_density[color], p_j_partials[color], r_boys)
+  --   end
+  -- elseif block_type == [int2d]{0, 2} then
+  --   __demand(__parallel)
+  --   for color in coloring do
+  --     coulombSSPP(p_bra_kets[color],
+  --                 p_bra_gausses[color], p_ket_gausses[color],
+  --                 p_density[color], p_j_partials[color], r_boys)
+  --   end
+  -- elseif block_type == [int2d]{1, 1} then
+  --   __demand(__parallel)
+  --   for color in coloring do
+  --     coulombSPSP(p_bra_kets[color],
+  --                 p_bra_gausses[color], p_ket_gausses[color],
+  --                 p_density[color], p_j_partials[color], r_boys)
+  --   end
+  -- elseif block_type == [int2d]{1, 2} then
+  --   __demand(__parallel)
+  --   for color in coloring do
+  --     coulombSPPP(p_bra_kets[color],
+  --                 p_bra_gausses[color], p_ket_gausses[color],
+  --                 p_density[color], p_j_partials[color], r_boys)
+  --   end
+  -- elseif block_type == [int2d]{2, 2} then
+  --   __demand(__parallel)
+  --   for color in coloring do
+  --     coulombPPPP(p_bra_kets[color],
+  --                 p_bra_gausses[color], p_ket_gausses[color],
+  --                 p_density[color], p_j_partials[color], r_boys)
+  --   end
   else
+    c.printf("Block type = {%d, %d}\n", block_type.x, block_type.y)
     assert(false, "Block type not implemented")
   end
 
@@ -96,7 +128,7 @@ terra sgetnd(str : &int8, n : int)
   var i : int = 0
   while token ~= nil do
     assert(i < n, "Too many values found!\n")
-    values[i] = c.atof(token)
+    values[i] = c.strtod(token, nil)
     token = c.strtok(nil, " ")
     i = i + 1
   end
@@ -144,29 +176,45 @@ do
       i = i + 1
     end
   end
+  -- c.printf("%d %d\n", density_idx, config.num_data_values)
+  assert([int](density_idx) == config.num_data_values, "Wrong number of data values")
   c.fclose(file)
 
   var bra_ket_idx : int = 0
   for bra_idx in r_gausses.ispace do
     for ket_idx in r_gausses.ispace do
-      -- if bra_idx <= ket_idx then  -- FIXME: Do I need all bra_kets?
-        var block_type : int2d = {r_gausses[bra_idx].L, r_gausses[ket_idx].L}
+      -- if bra_idx <= ket_idx then
+        var block_type : int2d
+        if r_gausses[bra_idx].L <= r_gausses[ket_idx].L then
+          block_type = {r_gausses[bra_idx].L, r_gausses[ket_idx].L}
+        else
+          block_type = {r_gausses[ket_idx].L, r_gausses[bra_idx].L}
+        end
         r_bra_kets[bra_ket_idx] = {bra_idx=bra_idx, ket_idx=ket_idx,
                                    block_type=block_type}
         bra_ket_idx += 1
       -- end
     end
   end
+  assert(bra_ket_idx == config.num_bra_kets, "Wrong number of BraKets")
 end
 
-task write_output(r_j_values : region(ispace(int1d), double), config : Config)
+task write_output(r_gausses  : region(ispace(int1d), HermiteGaussian),
+                  r_j_values : region(ispace(int1d), double),
+                  config : Config)
 where
-  reads(r_j_values)
+  reads(r_gausses, r_j_values)
 do
   if config.output_filename[0] ~= 0 then
     var file = c.fopen(config.output_filename, "w")
-    for i in r_j_values.ispace do
-      c.fprintf(file, "%.12f\n", r_j_values[i])
+    -- c.fprintf(file, "%d\n\n", config.num_gausses)
+    for i in r_gausses.ispace do
+      var bra = r_gausses[i]
+      -- c.fprintf(file, "%d %.6f %.12f %.12f %.12f ", bra.L, bra.eta, bra.x, bra.y, bra.z)
+      for j = [int](bra.data_rect.lo), [int](bra.data_rect.hi) + 1 do
+        c.fprintf(file, "%.12f ", r_j_values[j])
+      end
+      c.fprintf(file, "\n")
     end
     c.fclose(file)
   end
@@ -211,7 +259,7 @@ task toplevel()
   for block_type in block_coloring do
     coulomb(p_bra_kets[block_type],
             p_bra_gausses[block_type], p_ket_gausses[block_type],
-            p_density[block_type], p_j_values[block_type], r_boys, 1)
+            p_density[block_type], p_j_values[block_type], r_boys, 1, block_type)
   end
 
   __fence(__execution, __block) -- Make sure we only time the computation
@@ -221,7 +269,7 @@ task toplevel()
   release(r_boys)
   detach(hdf5, r_boys.data)
 
-  write_output(r_j_values, config)
+  write_output(r_gausses, r_j_values, config)
 end
 
 regentlib.start(toplevel)

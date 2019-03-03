@@ -9,7 +9,7 @@ local pow = regentlib.pow(double)
 local computeR000 = generateTaskComputeR000(4)
 
 __demand(__cuda)
-task coulombSSSP(r_bra_kets    : region(ispace(int1d), PrimitiveBraKet),
+task coulombSPPP(r_bra_kets    : region(ispace(int1d), PrimitiveBraKet),
                  r_bra_gausses : region(ispace(int1d), HermiteGaussian),
                  r_ket_gausses : region(ispace(int1d), HermiteGaussian),
                  r_density     : region(ispace(int1d), double),
