@@ -35,17 +35,17 @@ do
     var R0100 : double = b * R000[1]
     var R0010 : double = c * R000[1]
 
-    var R1001 : double = a * R000[2];
-    var R0101 : double = b * R000[2];
-    var R0011 : double = c * R000[2];
+    var R1001 : double = a * R000[2]
+    var R0101 : double = b * R000[2]
+    var R0011 : double = c * R000[2]
 
-    var R1100 : double = a * R0101;
-    var R1010 : double = a * R0011;
-    var R0110 : double = b * R0011;
+    var R1100 : double = a * R0101
+    var R1010 : double = a * R0011
+    var R0110 : double = b * R0011
 
-    var R2000 : double = a * R1001 + R000[1];
-    var R0200 : double = b * R0101 + R000[1];
-    var R0020 : double = c * R0011 + R000[1];
+    var R2000 : double = a * R1001 + R000[1]
+    var R0200 : double = b * R0101 + R000[1]
+    var R0020 : double = c * R0011 + R000[1]
 
     var P0 : double = r_density[ket.data_rect.lo]
     var P1 : double = r_density[ket.data_rect.lo + 1]
