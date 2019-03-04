@@ -24,15 +24,15 @@ function generateTaskComputeR000(length)
     if t < 12 then
       var t_idx : int = floor(10.0 * t + 0.5)
       var t_est : double = t_idx / 10.0
-      R000[length-1] = 0
-      var factor : double = 1
+      R000[length-1] = 0.0
+      var factor : double = 1.0
       for k = 0, 7 do
         var boys_est : double = r_boys[{t_idx, length-1+k}].data
         R000[length-1] = R000[length-1] + factor * boys_est
         factor = factor * (t_est - t) / (k + 1)
       end
       for j = length-2, -1, -1 do
-        R000[j] = (2.0 * t * R000[j+1] + exp(-t)) / (2.0 * j + 1)
+        R000[j] = (2.0 * t * R000[j+1] + exp(-t)) / (2.0 * j + 1.0)
       end
     else
       R000[0] = sqrt(M_PI) / (2.0 * sqrt(t))
@@ -51,15 +51,15 @@ function generateTaskComputeR000(length)
         R000[0] = R000[0] - exp(-t) * g / t
       end
 
-      for j = 1, length do
-        R000[j] = 2.0 / t * ((2 * j + 1) * R000[j-1] - exp(-t))
+      for j = 0, length-1 do
+        R000[j+1] = ((2.0 * j + 1.0) * R000[j] - exp(-t)) / (2.0 * t)
       end
     end
 
-    var factor : double = 1
+    var factor : double = 1.0
     for j = 0, length do
       R000[j] = R000[j] * factor
-      factor = factor * -2 * alpha
+      factor = factor * -2.0 * alpha
     end
     return R000
   end
