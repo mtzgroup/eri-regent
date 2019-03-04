@@ -59,7 +59,7 @@ do
     var P9 : double = r_density[ket.data_rect.lo + 9]
 
     -- TODO: Precompute parts of `lambda`
-    var lambda : double = 2 * sqrt(pow(M_PI, 5)) / (bra.eta * ket.eta
+    var lambda : double = 2.0*M_PI*M_PI*sqrt(M_PI) / (bra.eta * ket.eta
                                                     * sqrt(bra.eta + ket.eta))
     var result : double
     result = R000[0] * P0

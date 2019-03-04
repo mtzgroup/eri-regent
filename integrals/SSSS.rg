@@ -32,7 +32,7 @@ do
     var R000 : double[1] = __demand(__inline, computeR000(t, alpha, r_boys))
 
     -- TODO: Precompute parts of `lambda`
-    var lambda : double = 2 * sqrt(pow(M_PI, 5)) / (bra.eta * ket.eta
+    var lambda : double = 2.0*M_PI*M_PI*sqrt(M_PI) / (bra.eta * ket.eta
                                                     * sqrt(bra.eta + ket.eta))
     var result : double = lambda * R000[0] * r_density[ket.data_rect.lo]
     r_j_values[bra.data_rect.lo] += result

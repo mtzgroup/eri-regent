@@ -32,7 +32,7 @@ require("boys")
 -- Must import integrals after declaring fspaces and `generateTaskComputeR000`
 integralTypes = {
   "SSSS",
-  --"SSSP", "SSPP", "SPSP", "SPPP", "PPPP"
+  -- "SSSP", "SSPP", "SPSP", "SPPP", "PPPP"
 }
 for _, type in pairs(integralTypes) do
   require("integrals."..type)
@@ -52,9 +52,7 @@ where
   reads(r_bra_kets, r_bra_gausses, r_ket_gausses, r_density, r_boys),
   reduces +(r_j_values)
 do
-  if r_bra_kets.volume == 0 then
-    return
-  end
+  if r_bra_kets.volume == 0 then return end
 
   var coloring = ispace(int1d, parallelism)
   var p_bra_kets = partition(equal, r_bra_kets, coloring)
@@ -63,7 +61,7 @@ do
   var p_density = image(r_density, p_ket_gausses, r_ket_gausses.data_rect)
 
   var r_j_partials = region(r_j_values.ispace, double)
-  fill(r_j_partials, 0)
+  fill(r_j_partials, 0.0)
   var p_j_partials = image(r_j_partials, p_bra_gausses, r_bra_gausses.data_rect)
   if block_type == [int2d]{0, 0} then
     __demand(__parallel)
@@ -121,16 +119,14 @@ terra fgets(line : &int8, n : int, file : &c.FILE) : bool
   return c.fgets(line, n, file) ~= nil
 end
 
--- Returns a list of n doubles from `str` separated by spaces
-terra sgetnd(str : &int8, n : int)
-  var values : &double = [&double](c.malloc(sizeof(double) * n))
-  var token : &int8 = c.strtok(str, " ")
-  var i : int = 0
-  while token ~= nil do
-    assert(i < n, "Too many values found!\n")
-    values[i] = c.strtod(token, nil)
-    token = c.strtok(nil, " ")
-    i = i + 1
+terra readline(line : &int8, H : int)
+  -- "L eta x y z [density values]"
+  var values : &double = [&double](c.malloc(sizeof(double) * (H + 5)))
+  var beginC : &int8 = line
+  var endC : &int8
+  for i = 0, H + 5 do
+    values[i] = c.strtod(beginC, &endC)
+    beginC = endC
   end
   return values
 end
@@ -144,11 +140,8 @@ task populateData(r_bra_kets : region(ispace(int1d), PrimitiveBraKet),
 where
   reads writes(r_bra_kets, r_gausses, r_density, r_j_values)
 do
-  fill(r_j_values, 0)
+  fill(r_j_values, 0.0)
 
-  var datai : int[1]
-  var data : double[5]
-  var density_str : int8[512]
   var file = c.fopen(config.input_filename, "r")
   var line : int8[512]
   fgets(line, 512, file)  -- Skip first line
@@ -156,20 +149,19 @@ do
   var density_idx : int1d = 0
   while fgets(line, 512, file) do
     if c.strncmp(line, "\n", 1) ~= 0 and c.strncmp(line, "\r\n", 2) ~= 0 then
-      -- "L eta x y z [density values]"
-      c.sscanf([&int8](line), "%d %lf %lf %lf %lf %512[0-9.eE- ]",
-                              datai, data, data+1, data+2, data+3, density_str)
-      var L : int = datai[0]
-      var eta : double = data[0]
-      var x : double = data[1]
-      var y : double = data[2]
-      var z : double = data[3]
+      var data : int[1]
+      c.sscanf([&int8](line), "%d", data)
+      var L : int = data[0]
       var H : int = (L + 1) * (L + 2) * (L + 3) / 6
+      var values : &double = readline(line, H)
+      var eta : double = values[1]
+      var x : double = values[2]
+      var y : double = values[3]
+      var z : double = values[4]
       r_gausses[i] = {x=x, y=y, z=z, eta=eta, L=L,
                       data_rect={density_idx, density_idx+H-1}, bound=0}
-      var values : &double = sgetnd(density_str, H)
       for j = 0, H do
-        r_density[density_idx] = values[j]
+        r_density[density_idx] = values[j + 5]
         density_idx = density_idx + 1
       end
       c.free(values)
