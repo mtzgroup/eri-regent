@@ -1,12 +1,10 @@
--- Assumes fspaces and `generateTaskComputeR000` have been previously declared.
+-- Assumes fspaces and `computeR0004` have been previously declared.
 import "regent"
 
 local cmath = terralib.includec("math.h")
 local M_PI = cmath.M_PI
 local sqrt = regentlib.sqrt(double)
 local pow = regentlib.pow(double)
-
-local computeR000 = generateTaskComputeR000(5)
 
 __demand(__cuda)
 task coulombPPPP(r_bra_kets    : region(ispace(int1d), PrimitiveBraKet),
@@ -29,7 +27,7 @@ do
 
     var alpha : double = bra.eta * ket.eta / (bra.eta + ket.eta)
     var t : double = alpha * (a*a+b*b+c*c)
-    var R000 : double[5] = __demand(__inline, computeR000(t, alpha, r_boys))
+    var R000 : double[5] = __demand(__inline, computeR0004(t, alpha, r_boys))
 
     var R1000 : double = a * R000[1]
     var R0100 : double = b * R000[1]

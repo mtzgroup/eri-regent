@@ -29,7 +29,12 @@ fspace PrecomputedBoys {
 }
 
 require("boys")
--- Must import integrals after declaring fspaces and `generateTaskComputeR000`
+computeR0000 = generateTaskComputeR000(1)
+computeR0001 = generateTaskComputeR000(2)
+computeR0002 = generateTaskComputeR000(3)
+computeR0003 = generateTaskComputeR000(4)
+computeR0004 = generateTaskComputeR000(5)
+-- Must import integrals after declaring fspaces and `computeR000*`
 integralTypes = {
   "SSSS",
   "SSSP", "SSPP", "SPSS", "SPSP", "SPPP", "PPSS", "PPSP", "PPPP"
