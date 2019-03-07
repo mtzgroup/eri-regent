@@ -257,24 +257,28 @@ do
   end
 end
 
-task verify_output(r_j_values      : region(ispace(int1d), double),
+task verify_output(r_gausses       : region(ispace(int1d), HermiteGaussian),
+                   r_j_values      : region(ispace(int1d), double),
                    r_true_j_values : region(ispace(int1d), double),
                    config          : Config)
 where
-  reads(r_j_values, r_true_j_values)
+  reads(r_gausses, r_j_values, r_true_j_values)
 do
   if config.true_values_filename[0] == 0 then
     return
   end
   var max_error : double = 0.0
-  for i in r_j_values.ispace do
-    var error : double = r_j_values[i] - r_true_j_values[i]
-    if error > 1e-10 or error < -1e-10 then
-      c.printf("Value differs at i = %d: actual = %.12f, expected = %.12f\n",
-               i, r_j_values[i], r_true_j_values[i])
-    end
-    if error > max_error then
-      max_error = error
+  for gauss_idx in r_gausses.ispace do
+    var gaussian = r_gausses[gauss_idx]
+    for i = [int](gaussian.data_rect.lo), [int](gaussian.data_rect.hi + 1) do
+      var error : double = r_j_values[i] - r_true_j_values[i]
+      if error > 1e-10 or error < -1e-10 then
+        c.printf("Value differs at gaussian = %d, L = %d, i = %d: actual = %.12f, expected = %.12f\n",
+                 gauss_idx, gaussian.L, i - [int](gaussian.data_rect.lo), r_j_values[i], r_true_j_values[i])
+      end
+      if error > max_error then
+        max_error = error
+      end
     end
   end
   c.printf("Max error = %.12f\n", max_error)
@@ -331,7 +335,7 @@ task toplevel()
   detach(hdf5, r_boys.data)
 
   write_output(r_gausses, r_j_values, config)
-  verify_output(r_j_values, r_true_j_values, config)
+  verify_output(r_gausses, r_j_values, r_true_j_values, config)
 end
 
 regentlib.start(toplevel)
