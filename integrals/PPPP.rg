@@ -1,4 +1,4 @@
--- Assumes fspaces and `computeR000` have been previously declared.
+-- Assumes fspaces and `generateTaskComputeR000` have been previously declared.
 import "regent"
 
 local cmath = terralib.includec("math.h")

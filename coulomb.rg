@@ -32,7 +32,7 @@ require("boys")
 -- Must import integrals after declaring fspaces and `generateTaskComputeR000`
 integralTypes = {
   "SSSS",
-  -- "SSSP", "SSPP", "SPSP", "SPPP", "PPPP"
+  "SSSP", "SSPP", "SPSS", "SPSP", "SPPP", "PPSS", "PPSP", "PPPP"
 }
 for _, type in pairs(integralTypes) do
   require("integrals."..type)
@@ -70,41 +70,62 @@ do
                   p_bra_gausses[color], p_ket_gausses[color],
                   p_density[color], p_j_partials[color], r_boys)
     end
-  -- elseif block_type == [int2d]{0, 1} then
-  --   __demand(__parallel)
-  --   for color in coloring do
-  --     coulombSSSP(p_bra_kets[color],
-  --                 p_bra_gausses[color], p_ket_gausses[color],
-  --                 p_density[color], p_j_partials[color], r_boys)
-  --   end
-  -- elseif block_type == [int2d]{0, 2} then
-  --   __demand(__parallel)
-  --   for color in coloring do
-  --     coulombSSPP(p_bra_kets[color],
-  --                 p_bra_gausses[color], p_ket_gausses[color],
-  --                 p_density[color], p_j_partials[color], r_boys)
-  --   end
-  -- elseif block_type == [int2d]{1, 1} then
-  --   __demand(__parallel)
-  --   for color in coloring do
-  --     coulombSPSP(p_bra_kets[color],
-  --                 p_bra_gausses[color], p_ket_gausses[color],
-  --                 p_density[color], p_j_partials[color], r_boys)
-  --   end
-  -- elseif block_type == [int2d]{1, 2} then
-  --   __demand(__parallel)
-  --   for color in coloring do
-  --     coulombSPPP(p_bra_kets[color],
-  --                 p_bra_gausses[color], p_ket_gausses[color],
-  --                 p_density[color], p_j_partials[color], r_boys)
-  --   end
-  -- elseif block_type == [int2d]{2, 2} then
-  --   __demand(__parallel)
-  --   for color in coloring do
-  --     coulombPPPP(p_bra_kets[color],
-  --                 p_bra_gausses[color], p_ket_gausses[color],
-  --                 p_density[color], p_j_partials[color], r_boys)
-  --   end
+  elseif block_type == [int2d]{0, 1} then
+    __demand(__parallel)
+    for color in coloring do
+      coulombSSSP(p_bra_kets[color],
+                  p_bra_gausses[color], p_ket_gausses[color],
+                  p_density[color], p_j_partials[color], r_boys)
+    end
+  elseif block_type == [int2d]{0, 2} then
+    __demand(__parallel)
+    for color in coloring do
+      coulombSSPP(p_bra_kets[color],
+                  p_bra_gausses[color], p_ket_gausses[color],
+                  p_density[color], p_j_partials[color], r_boys)
+    end
+  elseif block_type == [int2d]{1, 0} then
+    __demand(__parallel)
+    for color in coloring do
+      coulombSPSS(p_bra_kets[color],
+                  p_bra_gausses[color], p_ket_gausses[color],
+                  p_density[color], p_j_partials[color], r_boys)
+    end
+  elseif block_type == [int2d]{1, 1} then
+    __demand(__parallel)
+    for color in coloring do
+      coulombSPSP(p_bra_kets[color],
+                  p_bra_gausses[color], p_ket_gausses[color],
+                  p_density[color], p_j_partials[color], r_boys)
+    end
+  elseif block_type == [int2d]{1, 2} then
+    __demand(__parallel)
+    for color in coloring do
+      coulombSPPP(p_bra_kets[color],
+                  p_bra_gausses[color], p_ket_gausses[color],
+                  p_density[color], p_j_partials[color], r_boys)
+    end
+  elseif block_type == [int2d]{2, 0} then
+    __demand(__parallel)
+    for color in coloring do
+      coulombPPSS(p_bra_kets[color],
+                  p_bra_gausses[color], p_ket_gausses[color],
+                  p_density[color], p_j_partials[color], r_boys)
+    end
+  elseif block_type == [int2d]{2, 1} then
+    __demand(__parallel)
+    for color in coloring do
+      coulombPPSP(p_bra_kets[color],
+                  p_bra_gausses[color], p_ket_gausses[color],
+                  p_density[color], p_j_partials[color], r_boys)
+    end
+  elseif block_type == [int2d]{2, 2} then
+    __demand(__parallel)
+    for color in coloring do
+      coulombPPPP(p_bra_kets[color],
+                  p_bra_gausses[color], p_ket_gausses[color],
+                  p_density[color], p_j_partials[color], r_boys)
+    end
   else
     c.printf("Block type = {%d, %d}\n", block_type.x, block_type.y)
     assert(false, "Block type not implemented")
@@ -175,17 +196,10 @@ do
   var bra_ket_idx : int = 0
   for bra_idx in r_gausses.ispace do
     for ket_idx in r_gausses.ispace do
-      -- if bra_idx <= ket_idx then
-        var block_type : int2d
-        if r_gausses[bra_idx].L <= r_gausses[ket_idx].L then
-          block_type = {r_gausses[bra_idx].L, r_gausses[ket_idx].L}
-        else
-          block_type = {r_gausses[ket_idx].L, r_gausses[bra_idx].L}
-        end
-        r_bra_kets[bra_ket_idx] = {bra_idx=bra_idx, ket_idx=ket_idx,
-                                   block_type=block_type}
-        bra_ket_idx += 1
-      -- end
+      var block_type : int2d = {r_gausses[bra_idx].L, r_gausses[ket_idx].L}
+      r_bra_kets[bra_ket_idx] = {bra_idx=bra_idx, ket_idx=ket_idx,
+                                 block_type=block_type}
+      bra_ket_idx += 1
     end
   end
   assert(bra_ket_idx == config.num_bra_kets, "Wrong number of BraKets")

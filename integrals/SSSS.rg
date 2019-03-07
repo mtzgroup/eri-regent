@@ -1,4 +1,4 @@
--- Assumes fspaces and `computeR000` have been previously declared.
+-- Assumes fspaces and `generateTaskComputeR000` have been previously declared.
 import "regent"
 
 local cmath = terralib.includec("math.h")
@@ -31,14 +31,12 @@ do
     var t : double = alpha * (a*a+b*b+c*c)
     var R000 : double[1] = __demand(__inline, computeR000(t, alpha, r_boys))
 
+    var P0 : double = r_density[ket.data_rect.lo]
+
     -- TODO: Precompute parts of `lambda`
     var lambda : double = 2.0*M_PI*M_PI*sqrt(M_PI) / (bra.eta * ket.eta
                                                     * sqrt(bra.eta + ket.eta))
-    var result : double = lambda * R000[0] * r_density[ket.data_rect.lo]
-    r_j_values[bra.data_rect.lo] += result
-    -- if (bra_ket.bra_idx ~= bra_ket.ket_idx) then
-    --   var result : double = lambda * R000[0] * r_density[bra.data_rect.lo]
-    --   r_j_values[ket.data_rect.lo] += result
-    -- end
+
+    r_j_values[bra.data_rect.lo] += lambda * R000[0] * P0
   end
 end
