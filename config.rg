@@ -12,6 +12,7 @@ struct Config {
   verbose            : bool;
   input_filename     : int8[512];
   output_filename    : int8[512];
+  true_values_filename : int8[512];
 }
 
 terra print_usage_and_abort()
@@ -21,7 +22,8 @@ terra print_usage_and_abort()
   c.printf("  -i {input.dat}  : Use {input.dat} as input data.\n")
   c.printf("  -o {output.dat} : Use {output.dat} as output data.\n")
   c.printf("  -p {value}      : Set the number of parallel tasks to {value}.\n")
-  c.printf("  -v              : Verbose printing.\n")
+  -- c.printf("  -v              : Verbose printing.\n")
+  c.printf("  -v {true_output.dat} : Use {true_output.dat} to check results.\n")
   c.exit(0)
 end
 
@@ -30,6 +32,7 @@ terra Config:initialize_from_command()
   self.verbose = false
   self.input_filename[0] = 0
   self.output_filename[0] = 0
+  self.true_values_filename[0] = 0
 
   var args = c.legion_runtime_get_input_args()
   var i = 1
@@ -80,7 +83,18 @@ terra Config:initialize_from_command()
       i = i + 1
       self.parallelism = c.atoi(args.argv[i])
     elseif cstring.strcmp(args.argv[i], "-v") == 0 then
-      self.verbose = true
+      -- self.verbose = true
+      if self.true_values_filename[0] ~= 0 then
+        c.printf("Error: Only accepts one true values file!\n")
+        c.abort()
+      end
+      i = i + 1
+      var file = c.fopen(args.argv[i], "r")
+      if file == nil then
+        c.printf("File '%s' does not exist!\n", args.argv[i])
+        c.abort()
+      end
+      cstring.strncpy(self.true_values_filename, args.argv[i], 512)
     else
       print_usage_and_abort()
     end

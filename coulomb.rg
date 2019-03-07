@@ -158,13 +158,14 @@ terra readline(line : &int8, H : int)
 end
 
 -- Populates regions from input file
-task populateData(r_bra_kets : region(ispace(int1d), PrimitiveBraKet),
-                  r_gausses  : region(ispace(int1d), HermiteGaussian),
-                  r_density  : region(ispace(int1d), double),
-                  r_j_values : region(ispace(int1d), double),
-                  config     : Config)
+task populateData(r_bra_kets      : region(ispace(int1d), PrimitiveBraKet),
+                  r_gausses       : region(ispace(int1d), HermiteGaussian),
+                  r_density       : region(ispace(int1d), double),
+                  r_j_values      : region(ispace(int1d), double),
+                  r_true_j_values : region(ispace(int1d), double),
+                  config          : Config)
 where
-  reads writes(r_bra_kets, r_gausses, r_density, r_j_values)
+  reads writes(r_bra_kets, r_gausses, r_density, r_j_values, r_true_j_values)
 do
   fill(r_j_values, 0.0)
 
@@ -198,6 +199,31 @@ do
   assert([int](density_idx) == config.num_data_values, "Wrong number of data values")
   c.fclose(file)
 
+  if config.true_values_filename[0] ~= 0 then
+    var file = c.fopen(config.true_values_filename, "r")
+    var line : int8[512]
+    fgets(line, 512, file)  -- Skip first line
+    var i : int1d = 0
+    var j_idx: int1d = 0
+    while fgets(line, 512, file) do
+      if c.strncmp(line, "\n", 1) ~= 0 and c.strncmp(line, "\r\n", 2) ~= 0 then
+        var data : int[1]
+        c.sscanf([&int8](line), "%d", data)
+        var L : int = data[0]
+        var H : int = (L + 1) * (L + 2) * (L + 3) / 6
+        var values : &double = readline(line, H)
+        for j = 0, H do
+          r_true_j_values[j_idx] = values[j + 5]
+          j_idx = j_idx + 1
+        end
+        c.free(values)
+        i = i + 1
+      end
+    end
+    assert([int](j_idx) == config.num_data_values, "Wrong number of j values")
+    c.fclose(file)
+  end
+
   var bra_ket_idx : int = 0
   for bra_idx in r_gausses.ispace do
     for ket_idx in r_gausses.ispace do
@@ -212,7 +238,7 @@ end
 
 task write_output(r_gausses  : region(ispace(int1d), HermiteGaussian),
                   r_j_values : region(ispace(int1d), double),
-                  config : Config)
+                  config     : Config)
 where
   reads(r_gausses, r_j_values)
 do
@@ -229,6 +255,29 @@ do
     end
     c.fclose(file)
   end
+end
+
+task verify_output(r_j_values      : region(ispace(int1d), double),
+                   r_true_j_values : region(ispace(int1d), double),
+                   config          : Config)
+where
+  reads(r_j_values, r_true_j_values)
+do
+  if config.true_values_filename[0] == 0 then
+    return
+  end
+  var max_error : double = 0.0
+  for i in r_j_values.ispace do
+    var error : double = r_j_values[i] - r_true_j_values[i]
+    if error > 1e-10 or error < -1e-10 then
+      c.printf("Value differs at i = %d: actual = %.12f, expected = %.12f\n",
+               i, r_j_values[i], r_true_j_values[i])
+    end
+    if error > max_error then
+      max_error = error
+    end
+  end
+  c.printf("Max error = %.12f\n", max_error)
 end
 
 task toplevel()
@@ -248,8 +297,9 @@ task toplevel()
   var r_gausses = region(ispace(int1d, config.num_gausses), HermiteGaussian)
   var r_density = region(ispace(int1d, config.num_data_values), double)
   var r_j_values = region(ispace(int1d, config.num_data_values), double)
+  var r_true_j_values = region(ispace(int1d, config.num_data_values), double)
 
-  populateData(r_bra_kets, r_gausses, r_density, r_j_values, config)
+  populateData(r_bra_kets, r_gausses, r_density, r_j_values, r_true_j_values, config)
 
   -- TODO: Need to decide how much parallelism to give to each block
   var block_coloring = ispace(int2d, {config.highest_L+1, config.highest_L+1})
@@ -281,6 +331,7 @@ task toplevel()
   detach(hdf5, r_boys.data)
 
   write_output(r_gausses, r_j_values, config)
+  verify_output(r_j_values, r_true_j_values, config)
 end
 
 regentlib.start(toplevel)
