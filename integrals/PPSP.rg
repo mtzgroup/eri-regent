@@ -80,7 +80,7 @@ do
     var lambda : double = 2.0*M_PI*M_PI*sqrt(M_PI) / (bra.eta * ket.eta
                                                     * sqrt(bra.eta + ket.eta))
 
-    var result : double[9]
+    var result : double[10]
     result[0] = R000[0] * P0
     result[1] = R1000 * P0
     result[2] = R0100 * P0
@@ -125,15 +125,15 @@ do
     result[8] -= R0210 * P3
     result[9] -= R0030 * P3
 
-    r_j_values[bra.data_rect.lo] += result[0]
-    r_j_values[bra.data_rect.lo + 1] += result[1]
-    r_j_values[bra.data_rect.lo + 2] += result[2]
-    r_j_values[bra.data_rect.lo + 3] += result[3]
-    r_j_values[bra.data_rect.lo + 4] += result[4]
-    r_j_values[bra.data_rect.lo + 5] += result[5]
-    r_j_values[bra.data_rect.lo + 6] += result[6]
-    r_j_values[bra.data_rect.lo + 7] += result[7]
-    r_j_values[bra.data_rect.lo + 8] += result[8]
-    r_j_values[bra.data_rect.lo + 9] += result[9]
+    r_j_values[bra.data_rect.lo] += lambda * result[0]
+    r_j_values[bra.data_rect.lo + 1] += lambda * result[1]
+    r_j_values[bra.data_rect.lo + 2] += lambda * result[2]
+    r_j_values[bra.data_rect.lo + 3] += lambda * result[3]
+    r_j_values[bra.data_rect.lo + 4] += lambda * result[4]
+    r_j_values[bra.data_rect.lo + 5] += lambda * result[5]
+    r_j_values[bra.data_rect.lo + 6] += lambda * result[6]
+    r_j_values[bra.data_rect.lo + 7] += lambda * result[7]
+    r_j_values[bra.data_rect.lo + 8] += lambda * result[8]
+    r_j_values[bra.data_rect.lo + 9] += lambda * result[9]
   end
 end
