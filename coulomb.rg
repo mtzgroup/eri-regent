@@ -268,6 +268,7 @@ do
     return
   end
   var max_error : double = 0.0
+  var num_incorrect = 0
   for gauss_idx in r_gausses.ispace do
     var gaussian = r_gausses[gauss_idx]
     for i = [int](gaussian.data_rect.lo), [int](gaussian.data_rect.hi + 1) do
@@ -275,12 +276,14 @@ do
       if error > 1e-10 or error < -1e-10 then
         c.printf("Value differs at gaussian = %d, L = %d, i = %d: actual = %.12f, expected = %.12f\n",
                  gauss_idx, gaussian.L, i - [int](gaussian.data_rect.lo), r_j_values[i], r_true_j_values[i])
+        num_incorrect += 1
       end
       if error > max_error then
         max_error = error
       end
     end
   end
+  c.printf("%d/%d incorrect values found\n", num_incorrect, r_j_values.ispace.volume)
   c.printf("Max error = %.12f\n", max_error)
 end
 
@@ -313,7 +316,7 @@ task toplevel()
   var p_density = image(r_density, p_ket_gausses, r_gausses.data_rect)
   var p_j_values = image(r_j_values, p_bra_gausses, r_gausses.data_rect)
 
-  var r_boys = region(ispace(int2d, {121, 23}), PrecomputedBoys)
+  var r_boys = region(ispace(int2d, {121, 11}), PrecomputedBoys)
   attach(hdf5, r_boys.data, "precomputedBoys.hdf5", regentlib.file_read_only)
   acquire(r_boys)
 

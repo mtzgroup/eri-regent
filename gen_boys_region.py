@@ -4,7 +4,7 @@ from scipy import integrate, exp
 
 FILE_NAME = "precomputedBoys.hdf5"
 # Add 6 because we use a seven term Taylor expansion
-LARGEST_J = 16 + 6  # TODO: update this value once it is known
+LARGEST_J = 4 + 6
 
 
 def integrand(u, t, j):
