@@ -3,6 +3,7 @@ import "regent"
 local Config = require("config")
 local c = regentlib.c
 local assert = regentlib.assert
+local fabs = regentlib.fabs(double)
 
 fspace HermiteGaussian {
   {x, y, z} : double;  -- Location of Gaussian
@@ -272,8 +273,8 @@ do
   for gauss_idx in r_gausses.ispace do
     var gaussian = r_gausses[gauss_idx]
     for i = [int](gaussian.data_rect.lo), [int](gaussian.data_rect.hi + 1) do
-      var error : double = r_j_values[i] - r_true_j_values[i]
-      if error > 1e-10 or error < -1e-10 then
+      var error : double = fabs(r_j_values[i] - r_true_j_values[i])
+      if error > 1e-10 then
         c.printf("Value differs at gaussian = %d, L = %d, i = %d: actual = %.12f, expected = %.12f\n",
                  gauss_idx, gaussian.L, i - [int](gaussian.data_rect.lo), r_j_values[i], r_true_j_values[i])
         num_incorrect += 1
