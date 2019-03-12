@@ -4,6 +4,11 @@ local Config = require("config")
 local c = regentlib.c
 local assert = regentlib.assert
 local fabs = regentlib.fabs(double)
+local precomputedBoys = terralib.includec("precomputedBoys.h", {"-I", "."})._precomputed_boys
+
+terra getPrecomputedBoys(t : int, j : int) : double
+  return precomputedBoys[t * 11 + j]
+end
 
 fspace HermiteGaussian {
   {x, y, z} : double;  -- Location of Gaussian
@@ -318,8 +323,10 @@ task toplevel()
   var p_j_values = image(r_j_values, p_bra_gausses, r_gausses.data_rect)
 
   var r_boys = region(ispace(int2d, {121, 11}), PrecomputedBoys)
-  attach(hdf5, r_boys.data, "precomputedBoys.hdf5", regentlib.file_read_only)
-  acquire(r_boys)
+  -- TODO: Use legion API to populate this region
+  for index in r_boys.ispace do
+    r_boys[index].data = getPrecomputedBoys(index.x, index.y)
+  end
 
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_start = c.legion_get_current_time_in_micros()
@@ -334,9 +341,6 @@ task toplevel()
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_stop = c.legion_get_current_time_in_micros()
   c.printf("Coulomb operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
-
-  release(r_boys)
-  detach(hdf5, r_boys.data)
 
   write_output(r_gausses, r_j_values, config)
   verify_output(r_gausses, r_j_values, r_true_j_values, config)
