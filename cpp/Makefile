@@ -1,4 +1,8 @@
 # Make sure LG_RT_DIR is set to legion/runtime
+ifndef LG_RT_DIR
+$(error LG_RT_DIR is not set)
+endif
+
 CC = c++
 CFLAGS = -O2 -Wall -Werror
 INCLUDES = -I$(LG_RT_DIR)
