@@ -1,0 +1,26 @@
+# Make sure LG_RT_DIR is set to legion/runtime
+CC = c++
+CFLAGS = -O2 -Wall -Werror
+INCLUDES = -I$(LG_RT_DIR)
+LFLAGS = -L$(LG_RT_DIR)/../bindings/regent -L .
+LIBS = -lregent -lcoulomb_tasks
+
+SRCS_RG = ../coulomb.rg ../boys.rg ../integrals/*.rg ../generate_lib.rg
+SRCS_CPP = top.cpp
+TARGET = coulomb_cpp
+
+.PHONY: run clean
+
+all: $(TARGET)
+
+libcoulomb_tasks.so coulomb_tasks.h: $(SRCS_RG)
+	regent ../generate_lib.rg ./
+
+$(TARGET): $(SRCS_CPP) libcoulomb_tasks.so coulomb_tasks.h
+	$(CC) $(CFLAGS) $(INCLUDES) $(SRCS_CPP) -o $@ $(LFLAGS) $(LIBS)
+
+run: $(TARGET)
+	LD_LIBRARY_PATH=$(LG_RT_DIR)/../bindings/regent:. ./$(TARGET)
+
+clean:
+	$(RM) $(TARGET) libcoulomb_tasks.so coulomb_tasks.h
