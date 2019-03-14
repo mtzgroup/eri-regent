@@ -30,17 +30,13 @@ terra readline(line : &int8, H : int)
 end
 
 -- Populates regions from input file
-task populateData(r_bra_kets      : region(ispace(int1d), PrimitiveBraKet),
-                  r_gausses       : region(ispace(int1d), HermiteGaussian),
+task populateData(r_gausses       : region(ispace(int1d), HermiteGaussian),
                   r_density       : region(ispace(int1d), double),
-                  r_j_values      : region(ispace(int1d), double),
                   r_true_j_values : region(ispace(int1d), double),
                   config          : Config)
 where
-  reads writes(r_bra_kets, r_gausses, r_density, r_j_values, r_true_j_values)
+  reads writes(r_gausses, r_density, r_true_j_values)
 do
-  fill(r_j_values, 0.0)
-
   var file = c.fopen(config.input_filename, "r")
   var line : int8[512]
   fgets(line, 512, file)  -- Skip first line
@@ -95,17 +91,6 @@ do
     assert([int](j_idx) == config.num_data_values, "Wrong number of j values")
     c.fclose(file)
   end
-
-  var bra_ket_idx : int = 0
-  for bra_idx in r_gausses.ispace do
-    for ket_idx in r_gausses.ispace do
-      var block_type : int2d = {r_gausses[bra_idx].L, r_gausses[ket_idx].L}
-      r_bra_kets[bra_ket_idx] = {bra_idx=bra_idx, ket_idx=ket_idx,
-                                 block_type=block_type}
-      bra_ket_idx += 1
-    end
-  end
-  assert(bra_ket_idx == config.num_bra_kets, "Wrong number of BraKets")
 end
 
 task write_output(r_gausses  : region(ispace(int1d), HermiteGaussian),
@@ -172,13 +157,13 @@ task toplevel()
   c.printf("* # Parallel Tasks         : %15u *\n", config.parallelism)
   c.printf("**********************************************\n")
 
-  var r_bra_kets = region(ispace(int1d, config.num_bra_kets), PrimitiveBraKet)
   var r_gausses = region(ispace(int1d, config.num_gausses), HermiteGaussian)
   var r_density = region(ispace(int1d, config.num_data_values), double)
   var r_j_values = region(ispace(int1d, config.num_data_values), double)
   var r_true_j_values = region(ispace(int1d, config.num_data_values), double)
 
-  populateData(r_bra_kets, r_gausses, r_density, r_j_values, r_true_j_values, config)
+  populateData(r_gausses, r_density, r_true_j_values, config)
+  fill(r_j_values, 0.0)
 
   var r_boys = region(ispace(int2d, {121, 11}), PrecomputedBoys)
   -- TODO: Use legion API to populate this region
@@ -189,7 +174,7 @@ task toplevel()
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_start = c.legion_get_current_time_in_micros()
 
-  coulomb_start(r_bra_kets, r_gausses, r_density, r_j_values, r_boys, config.highest_L)
+  coulombStart(r_gausses, r_density, r_j_values, r_boys, config.highest_L)
 
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_stop = c.legion_get_current_time_in_micros()

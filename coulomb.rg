@@ -139,16 +139,36 @@ do
   end
 end
 
-task coulomb_start(r_bra_kets : region(ispace(int1d), PrimitiveBraKet),
-                   r_gausses  : region(ispace(int1d), HermiteGaussian),
-                   r_density  : region(ispace(int1d), double),
-                   r_j_values : region(ispace(int1d), double),
-                   r_boys     : region(ispace(int2d), PrecomputedBoys),
-                   highest_L  : int)
+task populateBraKets(r_bra_kets : region(ispace(int1d), PrimitiveBraKet),
+                     r_gausses  : region(ispace(int1d), HermiteGaussian))
 where
-  reads(r_bra_kets, r_gausses, r_density, r_boys),
-  reads writes(r_j_values)
+  reads (r_gausses),
+  reads writes(r_bra_kets)
 do
+  var bra_ket_idx : int = 0
+  for bra_idx in r_gausses.ispace do
+    for ket_idx in r_gausses.ispace do
+      var block_type : int2d = {r_gausses[bra_idx].L, r_gausses[ket_idx].L}
+      r_bra_kets[bra_ket_idx] = {bra_idx=bra_idx, ket_idx=ket_idx,
+                                 block_type=block_type}
+      bra_ket_idx += 1
+    end
+  end
+end
+
+task coulombStart(r_gausses  : region(ispace(int1d), HermiteGaussian),
+                  r_density  : region(ispace(int1d), double),
+                  r_j_values : region(ispace(int1d), double),
+                  r_boys     : region(ispace(int2d), PrecomputedBoys),
+                  highest_L  : int)
+where
+  reads(r_gausses, r_density, r_boys),
+  reduces +(r_j_values)
+do
+  var num_bra_kets = r_gausses.ispace.volume * r_gausses.ispace.volume
+  var r_bra_kets = region(ispace(int1d, num_bra_kets), PrimitiveBraKet)
+  populateBraKets(r_bra_kets, r_gausses)
+
   -- TODO: Need to decide how much parallelism to give to each block
   var block_coloring = ispace(int2d, {highest_L+1, highest_L+1})
   var p_bra_kets = partition(r_bra_kets.block_type, block_coloring)
@@ -166,7 +186,3 @@ do
             1, block_type.x, block_type.y)
   end
 end
-
--- TODO: Is there a way to enable this only when it is directly called by regent?
--- local root_dir = arg[0]:match(".*/") or "./"
--- regentlib.save_tasks(root_dir.."embed_tasks.h", root_dir.."libembed_tasks.so")
