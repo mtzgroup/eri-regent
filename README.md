@@ -11,5 +11,5 @@ python gen_boys_region.py
 # Running
 
 ```
-regent coulomb.rg -i h2_6-311g.dat -o output.dat
+regent top.rg -i h2_6-311g.dat -o output.dat
 ```
