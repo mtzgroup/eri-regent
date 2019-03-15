@@ -31,10 +31,10 @@ const std::vector<FieldID> hermite_gaussian_fields = {HERMITE_GAUSSIAN_X,
                                                       HERMITE_GAUSSIAN_BOUND};
 
 enum {
-  PRECOMPUTED_BOYS_DATA
+  DOUBLE_VALUE
 };
 
-const std::vector<FieldID> precomputed_boys_data = {PRECOMPUTED_BOYS_DATA};
+const std::vector<FieldID> double_fields = {DOUBLE_VALUE};
 
 void top_level_task(const Task *task,
                     const std::vector<PhysicalRegion> &regions,

@@ -11,12 +11,15 @@ __demand(__cuda)
 task coulombPPSP(r_bra_kets    : region(ispace(int1d), PrimitiveBraKet),
                  r_bra_gausses : region(ispace(int1d), HermiteGaussian),
                  r_ket_gausses : region(ispace(int1d), HermiteGaussian),
-                 r_density     : region(ispace(int1d), double),
-                 r_j_values    : region(ispace(int1d), double),
-                 r_boys        : region(ispace(int2d), PrecomputedBoys))
+                 r_density     : region(ispace(int1d), Double),
+                 r_j_values    : region(ispace(int1d), Double),
+                 r_boys        : region(ispace(int2d), Double))
 where
   reads(r_bra_kets, r_bra_gausses, r_ket_gausses, r_density, r_boys),
-  reduces +(r_j_values)
+  reduces +(r_j_values),
+  r_density * r_j_values,
+  r_density * r_boys,
+  r_j_values * r_boys
 do
   for bra_ket in r_bra_kets do
     var bra = r_bra_gausses[bra_ket.bra_idx]
@@ -72,10 +75,10 @@ do
     var R0300 : double = b * R0201 + R0101 + R0101
     var R0030 : double = c * R0021 + R0011 + R0011
 
-    var P0 : double = r_density[ket.data_rect.lo]
-    var P1 : double = r_density[ket.data_rect.lo + 1]
-    var P2 : double = r_density[ket.data_rect.lo + 2]
-    var P3 : double = r_density[ket.data_rect.lo + 3]
+    var P0 : double = r_density[ket.data_rect.lo].value
+    var P1 : double = r_density[ket.data_rect.lo + 1].value
+    var P2 : double = r_density[ket.data_rect.lo + 2].value
+    var P3 : double = r_density[ket.data_rect.lo + 3].value
 
     -- TODO: Precompute parts of `lambda`
     var lambda : double = 2.0*M_PI*M_PI*sqrt(M_PI) / (bra.eta * ket.eta
@@ -126,15 +129,15 @@ do
     result[8] -= R0210 * P3
     result[9] -= R0030 * P3
 
-    r_j_values[bra.data_rect.lo] += lambda * result[0]
-    r_j_values[bra.data_rect.lo + 1] += lambda * result[1]
-    r_j_values[bra.data_rect.lo + 2] += lambda * result[2]
-    r_j_values[bra.data_rect.lo + 3] += lambda * result[3]
-    r_j_values[bra.data_rect.lo + 4] += lambda * result[4]
-    r_j_values[bra.data_rect.lo + 5] += lambda * result[5]
-    r_j_values[bra.data_rect.lo + 6] += lambda * result[6]
-    r_j_values[bra.data_rect.lo + 7] += lambda * result[7]
-    r_j_values[bra.data_rect.lo + 8] += lambda * result[8]
-    r_j_values[bra.data_rect.lo + 9] += lambda * result[9]
+    r_j_values[bra.data_rect.lo].value += lambda * result[0]
+    r_j_values[bra.data_rect.lo + 1].value += lambda * result[1]
+    r_j_values[bra.data_rect.lo + 2].value += lambda * result[2]
+    r_j_values[bra.data_rect.lo + 3].value += lambda * result[3]
+    r_j_values[bra.data_rect.lo + 4].value += lambda * result[4]
+    r_j_values[bra.data_rect.lo + 5].value += lambda * result[5]
+    r_j_values[bra.data_rect.lo + 6].value += lambda * result[6]
+    r_j_values[bra.data_rect.lo + 7].value += lambda * result[7]
+    r_j_values[bra.data_rect.lo + 8].value += lambda * result[8]
+    r_j_values[bra.data_rect.lo + 9].value += lambda * result[9]
   end
 end

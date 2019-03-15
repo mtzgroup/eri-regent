@@ -31,11 +31,12 @@ end
 
 -- Populates regions from input file
 task populateData(r_gausses       : region(ispace(int1d), HermiteGaussian),
-                  r_density       : region(ispace(int1d), double),
-                  r_true_j_values : region(ispace(int1d), double),
+                  r_density       : region(ispace(int1d), Double),
+                  r_true_j_values : region(ispace(int1d), Double),
                   config          : Config)
 where
-  reads writes(r_gausses, r_density, r_true_j_values)
+  reads writes(r_gausses, r_density, r_true_j_values),
+  r_density * r_true_j_values
 do
   var file = c.fopen(config.input_filename, "r")
   var line : int8[512]
@@ -56,7 +57,7 @@ do
       r_gausses[i] = {x=x, y=y, z=z, eta=eta, L=L,
                       data_rect={density_idx, density_idx+H-1}, bound=0}
       for j = 0, H do
-        r_density[density_idx] = values[j + 5]
+        r_density[density_idx].value = values[j + 5]
         density_idx = density_idx + 1
       end
       c.free(values)
@@ -81,7 +82,7 @@ do
         var H : int = (L + 1) * (L + 2) * (L + 3) / 6
         var values : &double = readline(line, H)
         for j = 0, H do
-          r_true_j_values[j_idx] = values[j + 5]
+          r_true_j_values[j_idx].value = values[j + 5]
           j_idx = j_idx + 1
         end
         c.free(values)
@@ -94,7 +95,7 @@ do
 end
 
 task write_output(r_gausses  : region(ispace(int1d), HermiteGaussian),
-                  r_j_values : region(ispace(int1d), double),
+                  r_j_values : region(ispace(int1d), Double),
                   config     : Config)
 where
   reads(r_gausses, r_j_values)
@@ -106,7 +107,7 @@ do
       var bra = r_gausses[i]
       -- c.fprintf(file, "%d %.6f %.12f %.12f %.12f ", bra.L, bra.eta, bra.x, bra.y, bra.z)
       for j = [int](bra.data_rect.lo), [int](bra.data_rect.hi) + 1 do
-        c.fprintf(file, "%.12f ", r_j_values[j])
+        c.fprintf(file, "%.12f ", r_j_values[j].value)
       end
       c.fprintf(file, "\n")
     end
@@ -115,8 +116,8 @@ do
 end
 
 task verify_output(r_gausses       : region(ispace(int1d), HermiteGaussian),
-                   r_j_values      : region(ispace(int1d), double),
-                   r_true_j_values : region(ispace(int1d), double),
+                   r_j_values      : region(ispace(int1d), Double),
+                   r_true_j_values : region(ispace(int1d), Double),
                    config          : Config)
 where
   reads(r_gausses, r_j_values, r_true_j_values)
@@ -129,10 +130,11 @@ do
   for gauss_idx in r_gausses.ispace do
     var gaussian = r_gausses[gauss_idx]
     for i = [int](gaussian.data_rect.lo), [int](gaussian.data_rect.hi + 1) do
-      var error : double = fabs(r_j_values[i] - r_true_j_values[i])
+      var error : double = fabs(r_j_values[i].value - r_true_j_values[i].value)
       if error > 1e-10 then
         c.printf("Value differs at gaussian = %d, L = %d, i = %d: actual = %.12f, expected = %.12f\n",
-                 gauss_idx, gaussian.L, i - [int](gaussian.data_rect.lo), r_j_values[i], r_true_j_values[i])
+                 gauss_idx, gaussian.L, i - [int](gaussian.data_rect.lo),
+                 r_j_values[i].value, r_true_j_values[i].value)
         num_incorrect += 1
       end
       if error > max_error then
@@ -158,17 +160,16 @@ task toplevel()
   c.printf("**********************************************\n")
 
   var r_gausses = region(ispace(int1d, config.num_gausses), HermiteGaussian)
-  var r_density = region(ispace(int1d, config.num_data_values), double)
-  var r_j_values = region(ispace(int1d, config.num_data_values), double)
-  var r_true_j_values = region(ispace(int1d, config.num_data_values), double)
+  var r_density = region(ispace(int1d, config.num_data_values), Double)
+  var r_j_values = region(ispace(int1d, config.num_data_values), Double)
+  var r_true_j_values = region(ispace(int1d, config.num_data_values), Double)
 
   populateData(r_gausses, r_density, r_true_j_values, config)
-  fill(r_j_values, 0.0)
 
-  var r_boys = region(ispace(int2d, {121, 11}), PrecomputedBoys)
+  var r_boys = region(ispace(int2d, {121, 11}), Double)
   -- TODO: Use legion API to populate this region
   for index in r_boys.ispace do
-    r_boys[index].data = getPrecomputedBoys(index.x, index.y)
+    r_boys[index].value = getPrecomputedBoys(index.x, index.y)
   end
 
   __fence(__execution, __block) -- Make sure we only time the computation

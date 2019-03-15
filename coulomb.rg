@@ -22,8 +22,8 @@ fspace PrimitiveBraKet {
                       --       L34 <- angular momentum of ket
 }
 
-fspace PrecomputedBoys {
-  data : double;
+fspace Double {
+  value : double;
 }
 
 require("boys")
@@ -59,18 +59,30 @@ do
   end
 end
 
+-- Computes fancy two-electron repulsion integrals
+--
+-- @param r_gausses Region of contracted gaussians.
+-- @param r_density Region of density matrix values that are referenced
+--                  from r_gausses.
+-- @param r_j_values Region of j values that will be overwritten.
+-- @param r_boys Region of precomputed values of the Boys integral.
+-- @param highets_L The highest angular momentum of the contracted guassians.
 task coulomb(r_gausses  : region(ispace(int1d), HermiteGaussian),
-             r_density  : region(ispace(int1d), double),
-             r_j_values : region(ispace(int1d), double),
-             r_boys     : region(ispace(int2d), PrecomputedBoys),
+             r_density  : region(ispace(int1d), Double),
+             r_j_values : region(ispace(int1d), Double),
+             r_boys     : region(ispace(int2d), Double),
              highest_L  : int)
 where
   reads(r_gausses, r_density, r_boys),
-  reads writes(r_j_values)
+  reads writes(r_j_values),
+  r_density * r_j_values,
+  r_density * r_boys,
+  r_j_values * r_boys
 do
   var num_bra_kets = r_gausses.ispace.volume * r_gausses.ispace.volume
   var r_bra_kets = region(ispace(int1d, num_bra_kets), PrimitiveBraKet)
   populateBraKets(r_bra_kets, r_gausses)
+  fill(r_j_values.value, 0.0)
 
   var block_coloring = ispace(int2d, {highest_L+1, highest_L+1})
   var p_bra_kets = partition(r_bra_kets.block_type, block_coloring)
@@ -92,55 +104,63 @@ do
     var p_j_values= image(p_j_values[block_type], p_bra_gausses, r_gausses.data_rect)
 
     if block_type == [int2d]{0, 0} then
-      -- __demand(__parallel) -- TODO: Regent doesn't like this
+      __demand(__parallel)
       for color in coloring do
         coulombSSSS(p_bra_kets[color],
                     p_bra_gausses[color], p_ket_gausses[color],
                     p_density[color], p_j_values[color], r_boys)
       end
     elseif block_type == [int2d]{0, 1} then
+      __demand(__parallel)
       for color in coloring do
         coulombSSSP(p_bra_kets[color],
                     p_bra_gausses[color], p_ket_gausses[color],
                     p_density[color], p_j_values[color], r_boys)
       end
     elseif block_type == [int2d]{0, 2} then
+      __demand(__parallel)
       for color in coloring do
         coulombSSPP(p_bra_kets[color],
                     p_bra_gausses[color], p_ket_gausses[color],
                     p_density[color], p_j_values[color], r_boys)
       end
     elseif block_type == [int2d]{1, 0} then
+      __demand(__parallel)
       for color in coloring do
         coulombSPSS(p_bra_kets[color],
                     p_bra_gausses[color], p_ket_gausses[color],
                     p_density[color], p_j_values[color], r_boys)
       end
     elseif block_type == [int2d]{1, 1} then
+      __demand(__parallel)
       for color in coloring do
         coulombSPSP(p_bra_kets[color],
                     p_bra_gausses[color], p_ket_gausses[color],
                     p_density[color], p_j_values[color], r_boys)
       end
     elseif block_type == [int2d]{1, 2} then
+      __demand(__parallel)
       for color in coloring do
         coulombSPPP(p_bra_kets[color],
                     p_bra_gausses[color], p_ket_gausses[color],
                     p_density[color], p_j_values[color], r_boys)
       end
     elseif block_type == [int2d]{2, 0} then
+      __demand(__parallel)
       for color in coloring do
         coulombPPSS(p_bra_kets[color],
                     p_bra_gausses[color], p_ket_gausses[color],
                     p_density[color], p_j_values[color], r_boys)
       end
     elseif block_type == [int2d]{2, 1} then
+      __demand(__parallel)
       for color in coloring do
         coulombPPSP(p_bra_kets[color],
                     p_bra_gausses[color], p_ket_gausses[color],
                     p_density[color], p_j_values[color], r_boys)
       end
     elseif block_type == [int2d]{2, 2} then
+      __demand(__parallel)
       for color in coloring do
         coulombPPPP(p_bra_kets[color],
                     p_bra_gausses[color], p_ket_gausses[color],

@@ -11,12 +11,15 @@ __demand(__cuda)
 task coulombSSSS(r_bra_kets    : region(ispace(int1d), PrimitiveBraKet),
                  r_bra_gausses : region(ispace(int1d), HermiteGaussian),
                  r_ket_gausses : region(ispace(int1d), HermiteGaussian),
-                 r_density     : region(ispace(int1d), double),
-                 r_j_values    : region(ispace(int1d), double),
-                 r_boys        : region(ispace(int2d), PrecomputedBoys))
+                 r_density     : region(ispace(int1d), Double),
+                 r_j_values    : region(ispace(int1d), Double),
+                 r_boys        : region(ispace(int2d), Double))
 where
   reads(r_bra_kets, r_bra_gausses, r_ket_gausses, r_density, r_boys),
-  reduces +(r_j_values)
+  reduces +(r_j_values),
+  r_density * r_j_values,
+  r_density * r_boys,
+  r_j_values * r_boys
 do
   for bra_ket in r_bra_kets do
     var bra = r_bra_gausses[bra_ket.bra_idx]
@@ -30,12 +33,12 @@ do
     var t : double = alpha * (a*a+b*b+c*c)
     var R000 : double[1] = __demand(__inline, computeR0000(t, alpha, r_boys))
 
-    var P0 : double = r_density[ket.data_rect.lo]
+    var P0 : double = r_density[ket.data_rect.lo].value
 
     -- TODO: Precompute parts of `lambda`
     var lambda : double = 2.0*M_PI*M_PI*sqrt(M_PI) / (bra.eta * ket.eta
                                                     * sqrt(bra.eta + ket.eta))
 
-    r_j_values[bra.data_rect.lo] += lambda * R000[0] * P0
+    r_j_values[bra.data_rect.lo].value += lambda * R000[0] * P0
   end
 end
