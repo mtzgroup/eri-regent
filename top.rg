@@ -149,14 +149,16 @@ end
 task toplevel()
   var config : Config
   config:initialize_from_command()
+  -- Estimate the memory footprint
+  var memory_footprint : int = (config.num_gausses * 60.f
+                                + config.num_data_values * 2.f * 8.f) / 1024 / 1024
   c.printf("**********************************************\n")
   c.printf("*      Two-Electron Repulsion Integrals      *\n")
   c.printf("*                                            *\n")
   c.printf("* Highest Angular Momentum : %15u *\n", config.highest_L)
   c.printf("* # Hermite Gaussians      : %15u *\n", config.num_gausses)
-  c.printf("* # BraKets                : %15u *\n", config.num_bra_kets)
   c.printf("* # Data values            : %15u *\n", config.num_data_values)
-  c.printf("* # Parallel Tasks         : %15u *\n", config.parallelism)
+  c.printf("* Memory footprint         : %12u Mb *\n", memory_footprint)
   c.printf("**********************************************\n")
 
   var r_gausses = region(ispace(int1d, config.num_gausses), HermiteGaussian)

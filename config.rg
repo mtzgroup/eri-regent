@@ -5,7 +5,6 @@ local cstring = terralib.includec("string.h")
 
 struct Config {
   num_gausses        : int;       -- Number of Hermite Gaussians
-  num_bra_kets       : int;       -- Number of brakets
   num_data_values    : int;       -- Number of J values and size of density matrix
   highest_L          : int;       -- Highest angular momentum over all Gaussians
   parallelism        : int;
@@ -101,8 +100,6 @@ terra Config:initialize_from_command()
     c.printf("Error: Input file not given!\n")
     c.abort()
   end
-
-  self.num_bra_kets = self.num_gausses * self.num_gausses
 end
 
 return Config
