@@ -50,12 +50,15 @@ void top_level_task(const Task *task,
     falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_Z);
     falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_ETA);
     falloc.allocate_field(sizeof(int), HERMITE_GAUSSIAN_L);
-    falloc.allocate_field(2 * sizeof(int), HERMITE_GAUSSIAN_DATA_RECT);
+    falloc.allocate_field(sizeof(legion_rect_1d_t), HERMITE_GAUSSIAN_DATA_RECT);
     falloc.allocate_field(sizeof(float), HERMITE_GAUSSIAN_BOUND);
   }
   LogicalRegion r_gausses = runtime->create_logical_region(ctx, ispace, fspace);
 
   runtime->fill_field<double>(ctx, r_gausses, r_gausses, HERMITE_GAUSSIAN_X, 0.f);
+
+  legion_rect_1d_t val = {0, 0};
+  runtime->fill_field<legion_rect_1d_t>(ctx, r_gausses, r_gausses, HERMITE_GAUSSIAN_DATA_RECT, val);
 
   coulomb_launcher launcher;
   launcher.add_argument_r_gausses(r_gausses, r_gausses, hermite_gaussian_fields);
