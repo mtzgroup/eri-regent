@@ -57,7 +57,7 @@ void top_level_task(const Task *task,
 
   runtime->fill_field<double>(ctx, r_gausses, r_gausses, HERMITE_GAUSSIAN_X, 0.f);
 
-  coulombStart_launcher launcher;
+  coulomb_launcher launcher;
   launcher.add_argument_r_gausses(r_gausses, r_gausses, hermite_gaussian_fields);
   // launcher.add_argument_r_density();
   // launcher.add_argument_r_j_values();

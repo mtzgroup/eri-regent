@@ -6,6 +6,7 @@ local M_PI = cmath.M_PI
 local sqrt = regentlib.sqrt(double)
 local pow = regentlib.pow(double)
 
+__demand(__leaf)
 __demand(__cuda)
 task coulombSSPP(r_bra_kets    : region(ispace(int1d), PrimitiveBraKet),
                  r_bra_gausses : region(ispace(int1d), HermiteGaussian),
