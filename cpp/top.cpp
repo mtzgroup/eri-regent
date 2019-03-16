@@ -2,6 +2,7 @@
 // LD_LIBRARY_PATH=[PATH TO legion/bindings/regent]:. ./a.out
 
 #include "coulomb_tasks.h"
+#include "../precomputedBoys.h"
 
 #include "legion.h"
 #include "legion/legion_c_util.h"
@@ -10,72 +11,155 @@
 
 using namespace Legion;
 
-const int TID_TOP_LEVEL_TASK = 0;
-
-enum {
-  HERMITE_GAUSSIAN_X,
-  HERMITE_GAUSSIAN_Y,
-  HERMITE_GAUSSIAN_Z,
-  HERMITE_GAUSSIAN_ETA,
-  HERMITE_GAUSSIAN_L,
-  HERMITE_GAUSSIAN_DATA_RECT,
-  HERMITE_GAUSSIAN_BOUND
+enum {  // Task IDs
+  TOP_LEVEL_TASK_ID,
 };
 
-const std::vector<FieldID> hermite_gaussian_fields = {HERMITE_GAUSSIAN_X,
-                                                      HERMITE_GAUSSIAN_Y,
-                                                      HERMITE_GAUSSIAN_Z,
-                                                      HERMITE_GAUSSIAN_ETA,
-                                                      HERMITE_GAUSSIAN_L,
-                                                      HERMITE_GAUSSIAN_DATA_RECT,
-                                                      HERMITE_GAUSSIAN_BOUND};
-
-enum {
-  DOUBLE_VALUE
+enum {  // Field IDs
+  HERMITE_GAUSSIAN_X_ID,
+  HERMITE_GAUSSIAN_Y_ID,
+  HERMITE_GAUSSIAN_Z_ID,
+  HERMITE_GAUSSIAN_ETA_ID,
+  HERMITE_GAUSSIAN_L_ID,
+  HERMITE_GAUSSIAN_DATA_RECT_ID,
+  HERMITE_GAUSSIAN_BOUND_ID,
 };
 
-const std::vector<FieldID> double_fields = {DOUBLE_VALUE};
+enum {
+  DOUBLE_VALUE_ID,
+};
+
+const std::vector<FieldID> hermite_gaussian_fields = {HERMITE_GAUSSIAN_X_ID,
+                                                      HERMITE_GAUSSIAN_Y_ID,
+                                                      HERMITE_GAUSSIAN_Z_ID,
+                                                      HERMITE_GAUSSIAN_ETA_ID,
+                                                      HERMITE_GAUSSIAN_L_ID,
+                                                      HERMITE_GAUSSIAN_DATA_RECT_ID,
+                                                      HERMITE_GAUSSIAN_BOUND_ID};
+
+const std::vector<FieldID> double_fields = {DOUBLE_VALUE_ID};
 
 void top_level_task(const Task *task,
                     const std::vector<PhysicalRegion> &regions,
                     Context ctx, Runtime *runtime) {
   std::cout << "Hi again from Regent\n";
+  int num_gausses = 10;
+  int highest_L = 0;
 
-  IndexSpace ispace = runtime->create_index_space(ctx, Domain(Rect<1>(0, 2)));
-  FieldSpace fspace = runtime->create_field_space(ctx);
+  Rect<1> gausses_rect(0, num_gausses - 1);
+  Rect<2> boys_rect({0, 0}, {120, 10});
+  IndexSpace i_gausses = runtime->create_index_space(ctx, gausses_rect);
+  IndexSpace i_values = runtime->create_index_space(ctx, gausses_rect);
+  IndexSpace i_boys = runtime->create_index_space(ctx, boys_rect);
+
+  std::cout << "Create field spaces\n";
+  FieldSpace f_gausses = runtime->create_field_space(ctx);
+  FieldSpace f_double = runtime->create_field_space(ctx);
   {
-    FieldAllocator falloc = runtime->create_field_allocator(ctx, fspace);
-    falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_X);
-    falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_Y);
-    falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_Z);
-    falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_ETA);
-    falloc.allocate_field(sizeof(int), HERMITE_GAUSSIAN_L);
-    falloc.allocate_field(sizeof(legion_rect_1d_t), HERMITE_GAUSSIAN_DATA_RECT);
-    falloc.allocate_field(sizeof(float), HERMITE_GAUSSIAN_BOUND);
+    FieldAllocator falloc = runtime->create_field_allocator(ctx, f_gausses);
+    falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_X_ID);
+    falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_Y_ID);
+    falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_Z_ID);
+    falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_ETA_ID);
+    falloc.allocate_field(8, HERMITE_GAUSSIAN_L_ID);
+    falloc.allocate_field(sizeof(legion_rect_1d_t), HERMITE_GAUSSIAN_DATA_RECT_ID);
+    falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_BOUND_ID);
   }
-  LogicalRegion r_gausses = runtime->create_logical_region(ctx, ispace, fspace);
+  {
+    FieldAllocator falloc = runtime->create_field_allocator(ctx, f_double);
+    falloc.allocate_field(sizeof(double), DOUBLE_VALUE_ID);
+  }
 
-  runtime->fill_field<double>(ctx, r_gausses, r_gausses, HERMITE_GAUSSIAN_X, 0.f);
+  std::cout << "Create logical regions\n";
+  LogicalRegion lr_gausses = runtime->create_logical_region(ctx, i_gausses, f_gausses);
+  LogicalRegion lr_density = runtime->create_logical_region(ctx, i_values, f_double);
+  LogicalRegion lr_j_values = runtime->create_logical_region(ctx, i_values, f_double);
+  LogicalRegion lr_boys = runtime->create_logical_region(ctx, i_boys, f_double);
 
-  legion_rect_1d_t val = {0, 0};
-  runtime->fill_field<legion_rect_1d_t>(ctx, r_gausses, r_gausses, HERMITE_GAUSSIAN_DATA_RECT, val);
+  std::cout << "Create physical regions\n";
+  RegionRequirement req_gausses(lr_gausses, READ_WRITE, EXCLUSIVE, lr_gausses);
+  req_gausses.add_field(HERMITE_GAUSSIAN_X_ID);
+  req_gausses.add_field(HERMITE_GAUSSIAN_Y_ID);
+  req_gausses.add_field(HERMITE_GAUSSIAN_Z_ID);
+  req_gausses.add_field(HERMITE_GAUSSIAN_ETA_ID);
+  req_gausses.add_field(HERMITE_GAUSSIAN_L_ID);
+  req_gausses.add_field(HERMITE_GAUSSIAN_DATA_RECT_ID);
+  req_gausses.add_field(HERMITE_GAUSSIAN_BOUND_ID);
+  InlineLauncher gaussian_launcher(req_gausses);
+  PhysicalRegion pr_gausses = runtime->map_region(ctx, gaussian_launcher);
 
+  RegionRequirement req_density(lr_density, READ_WRITE, EXCLUSIVE, lr_density);
+  req_density.add_field(DOUBLE_VALUE_ID);
+  InlineLauncher density_launcher(req_density);
+  PhysicalRegion pr_density = runtime->map_region(ctx, density_launcher);
+
+  RegionRequirement req_boys(lr_boys, READ_WRITE, EXCLUSIVE, lr_boys);
+  req_boys.add_field(DOUBLE_VALUE_ID);
+  InlineLauncher boys_launcher(req_boys);
+  PhysicalRegion pr_boys = runtime->map_region(ctx, boys_launcher);
+
+  pr_gausses.wait_until_valid();
+  pr_density.wait_until_valid();
+  pr_boys.wait_until_valid();
+
+
+  std::cout << "Write to regions\n";
+  // TODO: FieldAccessor is easy to use but may be slow.
+  const FieldAccessor<READ_WRITE, double, 1> gausses_x(pr_gausses, HERMITE_GAUSSIAN_X_ID);
+  const FieldAccessor<READ_WRITE, double, 1> gausses_y(pr_gausses, HERMITE_GAUSSIAN_Y_ID);
+  const FieldAccessor<READ_WRITE, double, 1> gausses_z(pr_gausses, HERMITE_GAUSSIAN_Z_ID);
+  const FieldAccessor<READ_WRITE, double, 1> gausses_eta(pr_gausses, HERMITE_GAUSSIAN_ETA_ID);
+  const FieldAccessor<READ_WRITE, uint64_t, 1> gausses_L(pr_gausses, HERMITE_GAUSSIAN_L_ID);
+  const FieldAccessor<READ_WRITE, legion_rect_1d_t, 1> gausses_data_rect(pr_gausses, HERMITE_GAUSSIAN_DATA_RECT_ID);
+  const FieldAccessor<READ_WRITE, double, 1> gausses_bound(pr_gausses, HERMITE_GAUSSIAN_BOUND_ID);
+  const FieldAccessor<READ_WRITE, double, 1> density_value(pr_density, DOUBLE_VALUE_ID);
+  const FieldAccessor<READ_WRITE, double, 2> boys_value(pr_boys, DOUBLE_VALUE_ID);
+
+  int L = 0;
+  int idx = 0;
+  for (PointInRectIterator<1> pir(gausses_rect); pir(); pir++) {
+    gausses_x[*pir] = 1.f;
+    gausses_y[*pir] = 2.f;
+    gausses_z[*pir] = 3.f;
+    gausses_eta[*pir] = 4.f;
+    gausses_L[*pir] = L;
+    int H = (L + 1) * (L + 2) * (L + 3) / 6;
+    gausses_data_rect[*pir] = {idx, idx + H - 1};
+    gausses_bound[*pir] = 0.f;
+    density_value[*pir] = 5.f;
+    idx += H;
+  }
+
+  idx = 0;
+  for (PointInRectIterator<2> pir(boys_rect); pir(); pir++) {
+    boys_value[*pir] = _precomputed_boys[idx++];
+  }
+
+  runtime->unmap_region(ctx, pr_gausses);
+  runtime->unmap_region(ctx, pr_density);
+  runtime->unmap_region(ctx, pr_boys);
+
+  std::cout << "Launch task\n";
   coulomb_launcher launcher;
-  launcher.add_argument_r_gausses(r_gausses, r_gausses, hermite_gaussian_fields);
-  // launcher.add_argument_r_density();
-  // launcher.add_argument_r_j_values();
-  // launcher.add_argument_r_boys();
-  // launcher.add_argument_highest_L(highest_L);
-  // launcher.execute(runtime, ctx);
+  launcher.add_argument_r_gausses(lr_gausses, lr_gausses, hermite_gaussian_fields);
+  launcher.add_argument_r_density(lr_density, lr_density, double_fields);
+  launcher.add_argument_r_j_values(lr_j_values, lr_j_values, double_fields);
+  launcher.add_argument_r_boys(lr_boys, lr_boys, double_fields);
+  launcher.add_argument_highest_L(highest_L);
+  launcher.execute(runtime, ctx);
+
+  // TODO: Read j values
 }
 
 int main(int argc, char **argv) {
   std::cout << "Hello Legion\n";
-  Runtime::set_top_level_task_id(TID_TOP_LEVEL_TASK);
+  Runtime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
 
-  TaskVariantRegistrar registrar(TID_TOP_LEVEL_TASK, "top_level");
-  registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
-  Runtime::preregister_task_variant<top_level_task>(registrar, "top_level");
+  {
+    TaskVariantRegistrar registrar(TOP_LEVEL_TASK_ID, "top_level");
+    registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
+    Runtime::preregister_task_variant<top_level_task>(registrar, "top_level");
+  }
 
   coulomb_tasks_h_register();
   return Runtime::start(argc, argv);

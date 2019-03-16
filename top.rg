@@ -150,8 +150,10 @@ task toplevel()
   var config : Config
   config:initialize_from_command()
   -- Estimate the memory footprint
-  var memory_footprint : int = (config.num_gausses * 60.f
-                                + config.num_data_values * 2.f * 8.f) / 1024 / 1024
+  var memory_footprint : int = (
+      config.num_gausses * [ terralib.sizeof(HermiteGaussian) ]
+        + 2 * config.num_data_values * [ terralib.sizeof(Double) ]
+    ) / 1024 / 1024
   c.printf("**********************************************\n")
   c.printf("*      Two-Electron Repulsion Integrals      *\n")
   c.printf("*                                            *\n")

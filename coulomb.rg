@@ -11,7 +11,7 @@ fspace HermiteGaussian {
                        -- If `HermiteGaussian` is interpreted as a "bra", then
                        --`data_rect` refers to the J values. Otherwise, it
                        -- refers to the density matrix values.
-  bound : float;       -- TODO
+  bound     : double;  -- TODO
 }
 
 fspace Double {
