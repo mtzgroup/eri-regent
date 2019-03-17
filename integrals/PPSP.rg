@@ -1,5 +1,6 @@
--- Assumes fspaces and `computeR0003` have been previously declared.
 import "regent"
+require("fields")
+require("boys")
 
 local cmath = terralib.includec("math.h")
 local M_PI = cmath.M_PI

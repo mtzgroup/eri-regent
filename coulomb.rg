@@ -1,37 +1,14 @@
 import "regent"
-local c = regentlib.c
-local assert = regentlib.assert
-
-fspace HermiteGaussian {
-  {x, y, z} : double;  -- Location of Gaussian
-  eta       : double;  -- Exponent of Gaussian
-  L         : int1d;   -- Angular momentum
-  data_rect : rect1d;  -- Gives a range of indices where the number of values
-                       -- is given by (L + 1) * (L + 2) * (L + 3) / 6
-                       -- If `HermiteGaussian` is interpreted as a "bra", then
-                       --`data_rect` refers to the J values. Otherwise, it
-                       -- refers to the density matrix values.
-  bound     : double;  -- TODO
-}
-
-fspace Double {
-  value : double;
-}
-
-require("boys")
-computeR0000 = generateTaskComputeR000(1)
-computeR0001 = generateTaskComputeR000(2)
-computeR0002 = generateTaskComputeR000(3)
-computeR0003 = generateTaskComputeR000(4)
-computeR0004 = generateTaskComputeR000(5)
--- Must import integrals after declaring fspaces and `computeR000*`
-integralTypes = {
-  "SSSS",
-  "SSSP", "SSPP", "SPSS", "SPSP", "SPPP", "PPSS", "PPSP", "PPPP"
+require("fields")
+local integralTypes = {
+  "SSSS", "SSSP", "SSPP", "SPSS", "SPSP", "SPPP", "PPSS", "PPSP", "PPPP"
 }
 for _, type in pairs(integralTypes) do
   require("integrals."..type)
 end
+
+local c = regentlib.c
+local assert = regentlib.assert
 
 -- Computes fancy two-electron repulsion integrals
 --
@@ -136,5 +113,4 @@ do
       end
     end
   end
-
 end

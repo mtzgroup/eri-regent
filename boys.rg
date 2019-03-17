@@ -65,3 +65,9 @@ function generateTaskComputeR000(length)
   end
   return computeR000
 end
+
+computeR0000 = generateTaskComputeR000(1)
+computeR0001 = generateTaskComputeR000(2)
+computeR0002 = generateTaskComputeR000(3)
+computeR0003 = generateTaskComputeR000(4)
+computeR0004 = generateTaskComputeR000(5)
