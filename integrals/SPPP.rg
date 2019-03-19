@@ -21,8 +21,10 @@ where
   r_density * r_boys,
   r_j_values * r_boys
 do
+  var ket_idx_bounds_lo : int = r_ket_gausses.ispace.bounds.lo
+  var ket_idx_bounds_hi : int = r_ket_gausses.ispace.bounds.hi
   for bra_idx in r_bra_gausses.ispace do
-    for ket_idx in r_ket_gausses.ispace do
+    for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do
       var bra = r_bra_gausses[bra_idx]
       var ket = r_ket_gausses[ket_idx]
       -- TODO: Use Gaussian.bound to filter useless loops

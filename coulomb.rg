@@ -12,7 +12,9 @@ local assert = regentlib.assert
 
 -- Computes fancy two-electron repulsion integrals
 --
--- @param r_gausses Region of contracted gaussians.
+-- @param r_gausses Region of contracted gaussians. These are assumed to be
+--                  ordered by angular momentum so that all gaussians of a
+--                  particular angular momentum are contiguous.
 -- @param r_density Region of density matrix values that are referenced
 --                  from r_gausses.
 -- @param r_j_values Region of j values that will be overwritten.
