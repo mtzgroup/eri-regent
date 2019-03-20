@@ -29,15 +29,15 @@ enum {
   DOUBLE_VALUE_ID,
 };
 
-const std::vector<FieldID> hermite_gaussian_fields = {HERMITE_GAUSSIAN_X_ID,
-                                                      HERMITE_GAUSSIAN_Y_ID,
-                                                      HERMITE_GAUSSIAN_Z_ID,
-                                                      HERMITE_GAUSSIAN_ETA_ID,
-                                                      HERMITE_GAUSSIAN_L_ID,
-                                                      HERMITE_GAUSSIAN_DATA_RECT_ID,
-                                                      HERMITE_GAUSSIAN_BOUND_ID};
+const std::vector<FieldID> hermite_gaussian_field = {HERMITE_GAUSSIAN_X_ID,
+                                                     HERMITE_GAUSSIAN_Y_ID,
+                                                     HERMITE_GAUSSIAN_Z_ID,
+                                                     HERMITE_GAUSSIAN_ETA_ID,
+                                                     HERMITE_GAUSSIAN_L_ID,
+                                                     HERMITE_GAUSSIAN_DATA_RECT_ID,
+                                                     HERMITE_GAUSSIAN_BOUND_ID};
 
-const std::vector<FieldID> double_fields = {DOUBLE_VALUE_ID};
+const std::vector<FieldID> double_field = {DOUBLE_VALUE_ID};
 
 void top_level_task(const Task *task,
                     const std::vector<PhysicalRegion> &regions,
@@ -47,9 +47,10 @@ void top_level_task(const Task *task,
   int highest_L = 0;
 
   Rect<1> gausses_rect(0, num_gausses - 1);
+  Rect<1> values_rect(0, num_gausses - 1);
   Rect<2> boys_rect({0, 0}, {120, 10});
   IndexSpace i_gausses = runtime->create_index_space(ctx, gausses_rect);
-  IndexSpace i_values = runtime->create_index_space(ctx, gausses_rect);
+  IndexSpace i_values = runtime->create_index_space(ctx, values_rect);
   IndexSpace i_boys = runtime->create_index_space(ctx, boys_rect);
 
   std::cout << "Create field spaces\n";
@@ -61,7 +62,7 @@ void top_level_task(const Task *task,
     falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_Y_ID);
     falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_Z_ID);
     falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_ETA_ID);
-    falloc.allocate_field(8, HERMITE_GAUSSIAN_L_ID);
+    falloc.allocate_field(sizeof(uint64_t), HERMITE_GAUSSIAN_L_ID);
     falloc.allocate_field(sizeof(legion_rect_1d_t), HERMITE_GAUSSIAN_DATA_RECT_ID);
     falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_BOUND_ID);
   }
@@ -141,14 +142,42 @@ void top_level_task(const Task *task,
 
   std::cout << "Launch task\n";
   coulomb_launcher launcher;
-  launcher.add_argument_r_gausses(lr_gausses, lr_gausses, hermite_gaussian_fields);
-  launcher.add_argument_r_density(lr_density, lr_density, double_fields);
-  launcher.add_argument_r_j_values(lr_j_values, lr_j_values, double_fields);
-  launcher.add_argument_r_boys(lr_boys, lr_boys, double_fields);
+  launcher.add_argument_r_gausses(lr_gausses, lr_gausses, hermite_gaussian_field);
+  launcher.add_argument_r_density(lr_density, lr_density, double_field);
+  launcher.add_argument_r_j_values(lr_j_values, lr_j_values, double_field);
+  launcher.add_argument_r_boys(lr_boys, lr_boys, double_field);
   launcher.add_argument_highest_L(highest_L);
   launcher.execute(runtime, ctx);
 
-  // TODO: Read j values
+
+  RegionRequirement req_j_values(lr_j_values, READ_ONLY, EXCLUSIVE, lr_j_values);
+  req_j_values.add_field(DOUBLE_VALUE_ID);
+  InlineLauncher j_values_launcher(req_j_values);
+  PhysicalRegion pr_j_values = runtime->map_region(ctx, j_values_launcher);
+  pr_j_values.wait_until_valid();
+  const FieldAccessor<READ_ONLY, double, 1> j_values(pr_j_values, DOUBLE_VALUE_ID);
+
+  std::vector<double> host_j_values;
+  for (PointInRectIterator<1> pir(gausses_rect); pir(); pir++) {
+    host_j_values.push_back(j_values[*pir]);
+  }
+  runtime->unmap_region(ctx, pr_j_values);
+
+  for (auto j : host_j_values) {
+    std::cout << j << ", ";
+  }
+  std::cout << std::endl;
+  std::cout << "Finished\n";
+
+  runtime->destroy_logical_region(ctx, lr_gausses);
+  runtime->destroy_logical_region(ctx, lr_density);
+  runtime->destroy_logical_region(ctx, lr_j_values);
+  runtime->destroy_logical_region(ctx, lr_boys);
+  runtime->destroy_field_space(ctx, f_gausses);
+  runtime->destroy_field_space(ctx, f_double);
+  runtime->destroy_index_space(ctx, i_gausses);
+  runtime->destroy_index_space(ctx, i_values);
+  runtime->destroy_index_space(ctx, i_boys);
 }
 
 int main(int argc, char **argv) {

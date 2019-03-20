@@ -9,7 +9,7 @@ INCLUDES = -I$(LG_RT_DIR)
 LFLAGS = -L$(LG_RT_DIR)/../bindings/regent -L .
 LIBS = -lregent -lcoulomb_tasks
 
-SRCS_RG = ../coulomb.rg ../boys.rg ../integrals/*.rg ../generate_lib.rg
+SRCS_RG = ../boys.rg ../coulomb.rg ../fields.rg ../integrals/*.rg
 SRCS_CPP = top.cpp
 TARGET = coulomb_cpp
 
