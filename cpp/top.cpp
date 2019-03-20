@@ -9,6 +9,7 @@
 
 #include <iostream>
 
+using namespace std;
 using namespace Legion;
 
 enum {  // Task IDs
@@ -23,9 +24,6 @@ enum {  // Field IDs
   HERMITE_GAUSSIAN_L_ID,
   HERMITE_GAUSSIAN_DATA_RECT_ID,
   HERMITE_GAUSSIAN_BOUND_ID,
-};
-
-enum {
   DOUBLE_VALUE_ID,
 };
 
@@ -46,14 +44,14 @@ void top_level_task(const Task *task,
   int num_gausses = 10;
   int highest_L = 0;
 
-  Rect<1> gausses_rect(0, num_gausses - 1);
-  Rect<1> values_rect(0, num_gausses - 1);
-  Rect<2> boys_rect({0, 0}, {120, 10});
+  const Rect<1> gausses_rect(0, num_gausses - 1);
+  const Rect<1> values_rect(0, num_gausses - 1);
+  const Rect<1> boys_rect(0, 121*11 - 1);
   IndexSpace i_gausses = runtime->create_index_space(ctx, gausses_rect);
   IndexSpace i_values = runtime->create_index_space(ctx, values_rect);
   IndexSpace i_boys = runtime->create_index_space(ctx, boys_rect);
 
-  std::cout << "Create field spaces\n";
+  cout << "Create field spaces\n";
   FieldSpace f_gausses = runtime->create_field_space(ctx);
   FieldSpace f_double = runtime->create_field_space(ctx);
   {
@@ -114,7 +112,7 @@ void top_level_task(const Task *task,
   const FieldAccessor<READ_WRITE, legion_rect_1d_t, 1> gausses_data_rect(pr_gausses, HERMITE_GAUSSIAN_DATA_RECT_ID);
   const FieldAccessor<READ_WRITE, double, 1> gausses_bound(pr_gausses, HERMITE_GAUSSIAN_BOUND_ID);
   const FieldAccessor<READ_WRITE, double, 1> density_value(pr_density, DOUBLE_VALUE_ID);
-  const FieldAccessor<READ_WRITE, double, 2> boys_value(pr_boys, DOUBLE_VALUE_ID);
+  const FieldAccessor<READ_WRITE, double, 1> boys_value(pr_boys, DOUBLE_VALUE_ID);
 
   int L = 0;
   int idx = 0;
@@ -132,7 +130,7 @@ void top_level_task(const Task *task,
   }
 
   idx = 0;
-  for (PointInRectIterator<2> pir(boys_rect); pir(); pir++) {
+  for (PointInRectIterator<1> pir(boys_rect); pir(); pir++) {
     boys_value[*pir] = _precomputed_boys[idx++];
   }
 
@@ -140,7 +138,7 @@ void top_level_task(const Task *task,
   runtime->unmap_region(ctx, pr_density);
   runtime->unmap_region(ctx, pr_boys);
 
-  std::cout << "Launch task\n";
+  cout << "Launch task\n";
   coulomb_launcher launcher;
   launcher.add_argument_r_gausses(lr_gausses, lr_gausses, hermite_gaussian_field);
   launcher.add_argument_r_density(lr_density, lr_density, double_field);
@@ -157,17 +155,17 @@ void top_level_task(const Task *task,
   pr_j_values.wait_until_valid();
   const FieldAccessor<READ_ONLY, double, 1> j_values(pr_j_values, DOUBLE_VALUE_ID);
 
-  std::vector<double> host_j_values;
+  vector<double> host_j_values;
   for (PointInRectIterator<1> pir(gausses_rect); pir(); pir++) {
     host_j_values.push_back(j_values[*pir]);
   }
   runtime->unmap_region(ctx, pr_j_values);
 
   for (auto j : host_j_values) {
-    std::cout << j << ", ";
+    cout << j << ", ";
   }
-  std::cout << std::endl;
-  std::cout << "Finished\n";
+  cout << endl;
+  cout << "Finished\n";
 
   runtime->destroy_logical_region(ctx, lr_gausses);
   runtime->destroy_logical_region(ctx, lr_density);
@@ -181,7 +179,7 @@ void top_level_task(const Task *task,
 }
 
 int main(int argc, char **argv) {
-  std::cout << "Hello Legion\n";
+  cout << "Hello Legion\n";
   Runtime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
 
   {

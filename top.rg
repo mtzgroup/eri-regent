@@ -6,11 +6,11 @@ local c = regentlib.c
 local assert = regentlib.assert
 local fabs = regentlib.fabs(double)
 local root_dir = arg[0]:match(".*/") or "./"
-local precomputedBoys = terralib.includec("precomputedBoys.h",
+local _precomputedBoys = terralib.includec("precomputedBoys.h",
                                           {"-I", root_dir})._precomputed_boys
 
-terra getPrecomputedBoys(t : int, j : int) : double
-  return precomputedBoys[t * 11 + j]
+terra getPrecomputedBoys(idx : int) : double
+  return _precomputedBoys[idx]
 end
 
 terra fgets(line : &int8, n : int, file : &c.FILE) : bool
@@ -170,10 +170,10 @@ task toplevel()
 
   populateData(r_gausses, r_density, r_true_j_values, config)
 
-  var r_boys = region(ispace(int2d, {121, 11}), Double)
+  var r_boys = region(ispace(int1d, 121 * 11), Double)
   -- TODO: Use legion API to populate this region
   for index in r_boys.ispace do
-    r_boys[index].value = getPrecomputedBoys(index.x, index.y)
+    r_boys[index].value = getPrecomputedBoys(index)
   end
 
   __fence(__execution, __block) -- Make sure we only time the computation

@@ -23,7 +23,7 @@ local assert = regentlib.assert
 task coulomb(r_gausses  : region(ispace(int1d), HermiteGaussian),
              r_density  : region(ispace(int1d), Double),
              r_j_values : region(ispace(int1d), Double),
-             r_boys     : region(ispace(int2d), Double),
+             r_boys     : region(ispace(int1d), Double),
              highest_L  : int)
 where
   reads(r_gausses, r_density, r_boys),

@@ -13,7 +13,7 @@ task coulombSPPP(r_bra_gausses : region(ispace(int1d), HermiteGaussian),
                  r_ket_gausses : region(ispace(int1d), HermiteGaussian),
                  r_density     : region(ispace(int1d), Double),
                  r_j_values    : region(ispace(int1d), Double),
-                 r_boys        : region(ispace(int2d), Double))
+                 r_boys        : region(ispace(int1d), Double))
 where
   reads(r_bra_gausses, r_ket_gausses, r_density, r_boys),
   reduces +(r_j_values),
