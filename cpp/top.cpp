@@ -43,6 +43,7 @@ void top_level_task(const Task *task,
   std::cout << "Hi again from Regent\n";
   int num_gausses = 10;
   int highest_L = 0;
+  int parallelism = 1;
 
   const Rect<1> gausses_rect(0, num_gausses - 1);
   const Rect<1> values_rect(0, num_gausses - 1);
@@ -145,6 +146,7 @@ void top_level_task(const Task *task,
   launcher.add_argument_r_j_values(lr_j_values, lr_j_values, double_field);
   launcher.add_argument_r_boys(lr_boys, lr_boys, double_field);
   launcher.add_argument_highest_L(highest_L);
+  launcher.add_argument_parallelism(parallelism);
   launcher.execute(runtime, ctx);
 
 

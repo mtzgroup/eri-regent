@@ -19,7 +19,7 @@ terra print_usage_and_abort()
   c.printf("  -h              : Print the usage and exit.\n")
   c.printf("  -i {input.dat}  : Use {input.dat} as input data.\n")
   c.printf("  -o {output.dat} : Use {output.dat} as output data.\n")
-  c.printf("  -p {value}      : Set the number of parallel tasks to {value}.\n")
+  c.printf("  -p {value}      : Partition {value} ways.\n")
   c.printf("  -v {true_output.dat} : Use {true_output.dat} to check results.\n")
   c.exit(0)
 end

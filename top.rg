@@ -183,7 +183,7 @@ task toplevel()
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_start = c.legion_get_current_time_in_micros()
 
-  coulomb(r_gausses, r_density, r_j_values, r_boys, config.highest_L)
+  coulomb(r_gausses, r_density, r_j_values, r_boys, config.highest_L, config.parallelism)
 
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_stop = c.legion_get_current_time_in_micros()

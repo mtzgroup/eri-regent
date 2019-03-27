@@ -24,7 +24,7 @@ task coulomb(r_gausses  : region(ispace(int1d), HermiteGaussian),
              r_density  : region(ispace(int1d), Double),
              r_j_values : region(ispace(int1d), Double),
              r_boys     : region(ispace(int1d), Double),
-             highest_L  : int)
+             highest_L : int, parallelism : int)
 where
   reads(r_gausses, r_density, r_boys),
   reads writes(r_j_values),
@@ -43,8 +43,8 @@ do
   for bra_L_color in L_coloring do
     for ket_L_color in L_coloring do
       -- TODO: Need to decide how much parallelism to give to each integral
-      var bra_coloring = ispace(int1d, 2)
-      var ket_coloring = ispace(int1d, 2)
+      var bra_coloring = ispace(int1d, parallelism)
+      var ket_coloring = ispace(int1d, parallelism)
       var p_bra_gausses = partition(equal, p_gausses[bra_L_color], bra_coloring)
       var p_ket_gausses = partition(equal, p_gausses[ket_L_color], ket_coloring)
       var p_density = image(p_density[ket_L_color], p_ket_gausses, r_gausses.data_rect)
