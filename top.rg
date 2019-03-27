@@ -101,6 +101,7 @@ where
   reads(r_gausses, r_j_values)
 do
   if config.output_filename[0] ~= 0 then
+    c.printf("Writing output\n")
     var file = c.fopen(config.output_filename, "w")
     -- c.fprintf(file, "%d\n\n", config.num_gausses)
     for i in r_gausses.ispace do
@@ -125,6 +126,7 @@ do
   if config.true_values_filename[0] == 0 then
     return
   end
+  c.printf("Verifying output\n")
   var max_error : double = 0.0
   var num_incorrect = 0
   for gauss_idx in r_gausses.ispace do
@@ -168,14 +170,16 @@ task toplevel()
   var r_j_values = region(ispace(int1d, config.num_data_values), Double)
   var r_true_j_values = region(ispace(int1d, config.num_data_values), Double)
 
-  populateData(r_gausses, r_density, r_true_j_values, config)
-
   var r_boys = region(ispace(int1d, 121 * 11), Double)
   -- TODO: Use legion API to populate this region
   for index in r_boys.ispace do
     r_boys[index].value = getPrecomputedBoys(index)
   end
 
+  c.printf("Reading input file\n")
+  populateData(r_gausses, r_density, r_true_j_values, config)
+
+  c.printf("Launching integrals\n")
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_start = c.legion_get_current_time_in_micros()
 
