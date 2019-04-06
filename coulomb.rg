@@ -59,7 +59,7 @@ do
             coulombSSSS(p_bra_gausses[bra_color], p_ket_gausses[ket_color],
                         p_density[ket_color], p_j_values[bra_color], r_boys)
           end
-      end
+        end
       elseif block_type == [int2d]{0, 1} then
         for bra_color in bra_coloring do
           __demand(__parallel)
