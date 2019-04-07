@@ -8,7 +8,7 @@ task SSSS(R000   : double[1],
           b      : double,
           c      : double) : double[1]
   var result : double[1]
-  result[0] = [generateRExpression(0, 0, 0, 0, a, b, c, R000)] * P[0]
+  result[0] = [generateRExpression(0, 0, 0, a, b, c, R000)] * P[0]
   return result
 end
 

@@ -11,39 +11,28 @@ for L = 0, 4 do
   computeR000[L] = generateTaskComputeR000(L + 1)
 end
 
-function generateRExpression(N, L, M, j, a, b, c, R000)
-  local e
-  if N == 0 and L == 0 and M == 0 then
-    e = rexpr R000[j] end
-  elseif N == 0 and L == 0 then
-    e = rexpr
-      c * [generateRExpression(0, 0, M-1, j+1, a, b, c, R000)]
-    end
-    if M ~= 1 then
-      e = rexpr
-        e + (M-1) * [generateRExpression(0, 0, M-2, j+1, a, b, c, R000)]
+function generateRExpression(N, L, M, a, b, c, R000)
+  local function aux(N, L, M, j)
+    if N == 0 and L == 0 and M == 0 then
+      return rexpr R000[j] end
+    elseif N == 0 and L == 0 then
+      if M == 1 then
+        return rexpr c * [aux(0, 0, 0, j+1)] end
       end
-    end
-  elseif N == 0 then
-    e = rexpr
-      b * [generateRExpression(0, L-1, M, j+1, a, b, c, R000)]
-    end
-    if L ~= 1 then
-      e = rexpr
-        e + (L-1) * [generateRExpression(0, L-2, M, j+1, a, b, c, R000)]
+      return rexpr c * [aux(0, 0, M-1, j+1)] + (M-1) * [aux(0, 0, M-2, j+1)] end
+    elseif N == 0 then
+      if L == 1 then
+        return rexpr b * [aux(0, 0, M, j+1)] end
       end
-    end
-  else
-    e = rexpr
-      a * [generateRExpression(N-1, L, M, j+1, a, b, c, R000)]
-    end
-    if N ~= 1 then
-      e = rexpr
-        e + (N-1) * [generateRExpression(N-2, L, M, j+1, a, b, c, R000)]
+      return rexpr b * [aux(0, L-1, M, j+1)] + (L-1) * [aux(0, L-2, M, j+1)] end
+    else
+      if N == 1 then
+        return rexpr a * [aux(0, L, M, j+1)] end
       end
+      return rexpr a * [aux(N-1, L, M, j+1)] + (N-1) * [aux(N-2, L, M, j+1)] end
     end
   end
-  return e
+  return aux(N, L, M, 0)
 end
 
 function generateTaskCoulombIntegral(L12, L34, computeJValues)
