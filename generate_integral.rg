@@ -45,8 +45,8 @@ function generateTaskCoulombIntegral(L12, L34)
                                        r_j_values, j_offset,
                                        r_density, d_offset)
     local statements = terralib.newlist()
-    for ket_idx = 0, H34-1 do
-      for bra_idx = 0, H12-1 do
+    for u = 0, H34-1 do
+      for t = 0, H12-1 do
         -- NOTE: This is based on the format of the input data from TeraChem
         local pattern = {
           {0; 0; 0;};
@@ -60,22 +60,22 @@ function generateTaskCoulombIntegral(L12, L34)
           {0; 2; 0;};
           {0; 0; 2;};
         }
-        local N = pattern[bra_idx + 1][1] + pattern[ket_idx + 1][1]
-        local L = pattern[bra_idx + 1][2] + pattern[ket_idx + 1][2]
-        local M = pattern[bra_idx + 1][3] + pattern[ket_idx + 1][3]
+        local N = pattern[t + 1][1] + pattern[u + 1][1]
+        local L = pattern[t + 1][2] + pattern[u + 1][2]
+        local M = pattern[t + 1][3] + pattern[u + 1][3]
         local sign
         -- FIXME: I don't understand when `sign` is negative
-        if ket_idx == 0 or ket_idx > 3 then
+        if u == 0 or u > 3 then
           sign = 1
         else
           sign = -1
         end
 
         statements:insert(rquote
-          r_j_values[j_offset + bra_idx].value += (
+          r_j_values[j_offset + t].value += (
             sign * lambda
             * [generateRExpression(N, L, M, a, b, c, R000)]
-            * r_density[d_offset + ket_idx].value
+            * r_density[d_offset + u].value
           )
         end)
       end
