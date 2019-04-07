@@ -36,7 +36,7 @@ function generateRExpression(N, L, M, a, b, c, R000)
   return aux(N, L, M, 0)
 end
 
-function generateJValueStatements(H12, H34, a, b, c, R000, P, result)
+function generateJValueStatements(H12, H34, a, b, c, R000, lambda, r_j_values, bra_lo, r_density, ket_lo)
 
   local function generateExpression(L12, L34)
     -- NOTE: This is based on the format of the input data from TeraChem
@@ -68,15 +68,10 @@ function generateJValueStatements(H12, H34, a, b, c, R000, P, result)
   local statements = terralib.newlist()
   for ket_idx = 0, H34-1 do
     for bra_idx = 0, H12-1 do
-      if ket_idx == 0 then
-        statements:insert(rquote
-          result[bra_idx] = [generateExpression(bra_idx, ket_idx)] * P[ket_idx]
-        end)
-      else
-        statements:insert(rquote
-          result[bra_idx] += [generateExpression(bra_idx, ket_idx)] * P[ket_idx]
-        end)
-      end
+      statements:insert(rquote
+        r_j_values[bra_lo + bra_idx].value += (lambda * [generateExpression(bra_idx, ket_idx)]
+                                                * r_density[ket_lo + ket_idx].value)
+      end)
     end
   end
   return statements
@@ -116,20 +111,13 @@ function generateTaskCoulombIntegral(L12, L34)
         var t : double = alpha * (a*a+b*b+c*c)
         var R000 : double[L + 1] = __demand(__inline, [computeR000[L]](t, alpha, r_boys))
 
-        var P : double[H34]
-        for i = 0, H34 do
-          P[i] = r_density[ket.data_rect.lo + i].value
-        end
-
-        var result : double[H12]
-        [generateJValueStatements(H12, H34, a, b, c, R000, P, result)]
-
         -- TODO: Precompute `lambda`
         var lambda : double = 2.0*M_PI*M_PI*sqrt(M_PI) / (bra.eta * ket.eta
                                                         * sqrt(bra.eta + ket.eta))
-        for i = 0, H12 do
-          r_j_values[bra.data_rect.lo + i].value += lambda * result[i]
-        end
+
+        var bra_lo = bra.data_rect.lo
+        var ket_lo = ket.data_rect.lo
+        ;[generateJValueStatements(H12, H34, a, b, c, R000, lambda, r_j_values, bra_lo, r_density, ket_lo)];
       end
     end
   end
