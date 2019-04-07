@@ -11,6 +11,41 @@ for L = 0, 4 do
   computeR000[L] = generateTaskComputeR000(L + 1)
 end
 
+function generateRExpression(N, L, M, j, a, b, c, R000)
+  local e
+  if N == 0 and L == 0 and M == 0 then
+    e = rexpr R000[j] end
+  elseif N == 0 and L == 0 then
+    e = rexpr
+      c * [generateRExpression(0, 0, M-1, j+1, a, b, c, R000)]
+    end
+    if M ~= 1 then
+      e = rexpr
+        e + (M-1) * [generateRExpression(0, 0, M-2, j+1, a, b, c, R000)]
+      end
+    end
+  elseif N == 0 then
+    e = rexpr
+      b * [generateRExpression(0, L-1, M, j+1, a, b, c, R000)]
+    end
+    if L ~= 1 then
+      e = rexpr
+        e + (L-1) * [generateRExpression(0, L-2, M, j+1, a, b, c, R000)]
+      end
+    end
+  else
+    e = rexpr
+      a * [generateRExpression(N-1, L, M, j+1, a, b, c, R000)]
+    end
+    if N ~= 1 then
+      e = rexpr
+        e + (N-1) * [generateRExpression(N-2, L, M, j+1, a, b, c, R000)]
+      end
+    end
+  end
+  return e
+end
+
 function generateTaskCoulombIntegral(L12, L34, computeJValues)
   local L = L12 + L34
   local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6

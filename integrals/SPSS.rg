@@ -7,16 +7,12 @@ task SPSS(R000   : double[2],
           a      : double,
           b      : double,
           c      : double) : double[4]
-  var R1000 : double = a * R000[1]
-  var R0100 : double = b * R000[1]
-  var R0010 : double = c * R000[1]
-
   var result : double[4]
 
-  result[0] = R000[0] * P[0]
-  result[1] = R1000 * P[0]
-  result[2] = R0100 * P[0]
-  result[3] = R0010 * P[0]
+  result[0] = [generateRExpression(0, 0, 0, 0, a, b, c, R000)] * P[0]
+  result[1] = [generateRExpression(1, 0, 0, 0, a, b, c, R000)] * P[0]
+  result[2] = [generateRExpression(0, 1, 0, 0, a, b, c, R000)] * P[0]
+  result[3] = [generateRExpression(0, 0, 1, 0, a, b, c, R000)] * P[0]
 
   return result
 end
