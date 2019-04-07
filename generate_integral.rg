@@ -12,6 +12,7 @@ for L = 0, 4 do
 end
 
 function generateRExpression(N, L, M, a, b, c, R000)
+  assert(N >= 0 and L >= 0 and M >= 0)
   local function aux(N, L, M, j)
     if N == 0 and L == 0 and M == 0 then
       return rexpr R000[j] end
@@ -35,7 +36,53 @@ function generateRExpression(N, L, M, a, b, c, R000)
   return aux(N, L, M, 0)
 end
 
-function generateTaskCoulombIntegral(L12, L34, computeJValues)
+function generateJValueStatements(H12, H34, a, b, c, R000, P, result)
+
+  local function generateExpression(L12, L34)
+    -- NOTE: This is based on the format of the input data from TeraChem
+    local pattern = {
+      {0; 0; 0;};
+      {1; 0; 0;};
+      {0; 1; 0;};
+      {0; 0; 1;};
+      {1; 1; 0;};
+      {1; 0; 1;};
+      {0; 1; 1;};
+      {2; 0; 0;};
+      {0; 2; 0;};
+      {0; 0; 2;};
+    }
+    local N = pattern[L12 + 1][1] + pattern[L34 + 1][1]
+    local L = pattern[L12 + 1][2] + pattern[L34 + 1][2]
+    local M = pattern[L12 + 1][3] + pattern[L34 + 1][3]
+    local sign
+    -- FIXME: I don't understand when `sign` is negative
+    if L34 == 0 or L34 > 3 then
+      sign = rexpr 1 end
+    else
+      sign = rexpr -1 end
+    end
+    return rexpr sign * [generateRExpression(N, L, M, a, b, c, R000)] end
+  end
+
+  local statements = terralib.newlist()
+  for ket_idx = 0, H34-1 do
+    for bra_idx = 0, H12-1 do
+      if ket_idx == 0 then
+        statements:insert(rquote
+          result[bra_idx] = [generateExpression(bra_idx, ket_idx)] * P[ket_idx]
+        end)
+      else
+        statements:insert(rquote
+          result[bra_idx] += [generateExpression(bra_idx, ket_idx)] * P[ket_idx]
+        end)
+      end
+    end
+  end
+  return statements
+end
+
+function generateTaskCoulombIntegral(L12, L34)
   local L = L12 + L34
   local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
   local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6
@@ -74,7 +121,8 @@ function generateTaskCoulombIntegral(L12, L34, computeJValues)
           P[i] = r_density[ket.data_rect.lo + i].value
         end
 
-        var result : double[H12] = __demand(__inline, computeJValues(R000, P, a, b, c))
+        var result : double[H12]
+        [generateJValueStatements(H12, H34, a, b, c, R000, P, result)]
 
         -- TODO: Precompute `lambda`
         var lambda : double = 2.0*M_PI*M_PI*sqrt(M_PI) / (bra.eta * ket.eta
