@@ -1,14 +1,34 @@
 import "regent"
 require("fields")
-local integralTypes = {
-  "SSSS", "SSSP", "SSPP", "SPSS", "SPSP", "SPPP", "PPSS", "PPSP", "PPPP"
-}
-for _, type in pairs(integralTypes) do
-  require("integrals."..type)
-end
+require("generate_integral")
 
 local c = regentlib.c
 local assert = regentlib.assert
+
+local function dispatchIntegrals(bra_L_color, ket_L_color,
+                                 bra_coloring, ket_coloring,
+                                 p_bra_gausses, p_ket_gausses,
+                                 p_density, p_j_values, r_boys)
+  local statements = terralib.newlist()
+  for L12 = 0, 2 do -- inclusive
+    for L34 = 0, 2 do -- inclusive
+      statements:insert(rquote
+        if [int](bra_L_color) == L12 and [int](ket_L_color) == L34 then
+          for bra_color in bra_coloring do
+            __demand(__parallel)
+            for ket_color in ket_coloring do
+              [generateTaskCoulombIntegral(L12, L34)](
+                p_bra_gausses[bra_color], p_ket_gausses[ket_color],
+                p_density[ket_color], p_j_values[bra_color], r_boys
+              )
+            end
+          end
+        end
+      end)
+    end
+  end
+  return statements
+end
 
 -- Computes fancy two-electron repulsion integrals
 --
@@ -50,84 +70,10 @@ do
       var p_density = image(p_density[ket_L_color], p_ket_gausses, r_gausses.data_rect)
       var p_j_values = image(p_j_values[bra_L_color], p_bra_gausses, r_gausses.data_rect)
 
-      -- TODO: Metaprogram
-      var block_type = [int2d]{bra_L_color, ket_L_color}
-      if block_type == [int2d]{0, 0} then
-        for bra_color in bra_coloring do
-          __demand(__parallel)
-          for ket_color in ket_coloring do
-            coulombSSSS(p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-                        p_density[ket_color], p_j_values[bra_color], r_boys)
-          end
-        end
-      elseif block_type == [int2d]{0, 1} then
-        for bra_color in bra_coloring do
-          __demand(__parallel)
-          for ket_color in ket_coloring do
-            coulombSSSP(p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-                        p_density[ket_color], p_j_values[bra_color], r_boys)
-          end
-        end
-      elseif block_type == [int2d]{0, 2} then
-        for bra_color in bra_coloring do
-          __demand(__parallel)
-          for ket_color in ket_coloring do
-            coulombSSPP(p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-                        p_density[ket_color], p_j_values[bra_color], r_boys)
-          end
-        end
-      elseif block_type == [int2d]{1, 0} then
-        for bra_color in bra_coloring do
-          __demand(__parallel)
-          for ket_color in ket_coloring do
-            coulombSPSS(p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-                        p_density[ket_color], p_j_values[bra_color], r_boys)
-          end
-        end
-      elseif block_type == [int2d]{1, 1} then
-        for bra_color in bra_coloring do
-          __demand(__parallel)
-          for ket_color in ket_coloring do
-            coulombSPSP(p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-                        p_density[ket_color], p_j_values[bra_color], r_boys)
-          end
-        end
-      elseif block_type == [int2d]{1, 2} then
-        for bra_color in bra_coloring do
-          __demand(__parallel)
-          for ket_color in ket_coloring do
-            coulombSPPP(p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-                        p_density[ket_color], p_j_values[bra_color], r_boys)
-          end
-        end
-      elseif block_type == [int2d]{2, 0} then
-        for bra_color in bra_coloring do
-          __demand(__parallel)
-          for ket_color in ket_coloring do
-            coulombPPSS(p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-                        p_density[ket_color], p_j_values[bra_color], r_boys)
-          end
-        end
-      elseif block_type == [int2d]{2, 1} then
-        for bra_color in bra_coloring do
-          __demand(__parallel)
-          for ket_color in ket_coloring do
-            coulombPPSP(p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-                        p_density[ket_color], p_j_values[bra_color], r_boys)
-          end
-        end
-      elseif block_type == [int2d]{2, 2} then
-        for bra_color in bra_coloring do
-          __demand(__parallel)
-          for ket_color in ket_coloring do
-            coulombPPPP(p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-                        p_density[ket_color], p_j_values[bra_color], r_boys)
-          end
-        end
-      else
-        c.printf("Block type = {%d, %d}\n", block_type.x, block_type.y)
-        assert(false, "Block type not implemented")
-      end
+      ;[dispatchIntegrals(bra_L_color, ket_L_color,
+                          bra_coloring, ket_coloring,
+                          p_bra_gausses, p_ket_gausses,
+                          p_density, p_j_values, r_boys)];
     end
   end
 end
