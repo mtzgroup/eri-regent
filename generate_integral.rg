@@ -47,21 +47,21 @@ function generateTaskCoulombIntegral(L12, L34)
     local result = regentlib.newsymbol(double[H12], "result")
     local P = regentlib.newsymbol(double[H34], "P")
     local statements = terralib.newlist({rquote
-      var [P]
       var [result]
+      var [P]
     end})
-    for i = 0, H12-1 do
+    for i = 0, H12-1 do --inclusive
       statements:insert(rquote
         result[i] = 0
       end)
     end
-    for i = 0, H34-1 do
+    for i = 0, H34-1 do --inclusive
       statements:insert(rquote
         P[i] = r_density[d_offset + i].value
       end)
     end
-    for u = 0, H34-1 do
-      for t = 0, H12-1 do
+    for u = 0, H34-1 do --inclusive
+      for t = 0, H12-1 do -- inclusive
         -- NOTE: This is based on the format of the input data from TeraChem
         local pattern = {
           {0; 0; 0;};
@@ -87,13 +87,11 @@ function generateTaskCoulombIntegral(L12, L34)
         end
 
         statements:insert(rquote
-          result[t] += (
-            sign * P[u] * [generateRExpression(N, L, M, a, b, c, R000)]
-          )
+          result[t] += sign * P[u] * [generateRExpression(N, L, M, a, b, c, R000)]
         end)
       end
     end
-    for i = 0, H12-1 do
+    for i = 0, H12-1 do -- inclusive
       statements:insert(rquote
         r_j_values[j_offset + i].value += lambda * result[i]
       end)
