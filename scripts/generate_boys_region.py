@@ -1,7 +1,12 @@
 import numpy as np
 from scipy import integrate, exp
 
-FILE_NAME = "precomputedBoys.h"
+import sys
+if len(sys.argv) != 2:
+    print("Usage: python " + sys.argv[0] + " precomputedBoys.h")
+    exit(0)
+
+FILE_NAME = sys.argv[1]
 # Add 6 because we use a seven term Taylor expansion
 LARGEST_J = 4 + 6
 
@@ -25,7 +30,7 @@ with open(FILE_NAME, "w") as f:
 """#pragma once
 
 // Row-major order
-// precomputed_boys[t * %d + j] = boys(t / 10.f, j)
+// _precomputed_boys[t * %d + j] = boys(t / 10.f, j)
 const double _precomputed_boys[%d] = {
   %s
 };

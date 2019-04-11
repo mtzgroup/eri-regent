@@ -5,7 +5,7 @@ Calculates two-electron repulsion integrals with Regent
 Use the python script to generate a header file containing values of the Boys function.
 
 ```
-python gen_boys_region.py
+python scrips/generate_boys_region.py precomputedBoys.h
 ```
 
 # Running
