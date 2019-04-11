@@ -5,7 +5,7 @@ Calculates two-electron repulsion integrals with Regent
 Use the python script to generate a header file containing values of the Boys function.
 
 ```
-python scrips/generate_boys_region.py precomputedBoys.h
+python scripts/generate_boys_region.py precomputedBoys.h
 ```
 
 # Running
@@ -22,4 +22,10 @@ cd cpp
 export LG_RT_DIR=[PATH TO LEGION]/runtime
 make all
 make run
+```
+
+# Testing
+
+```
+python scripts/test.py
 ```
