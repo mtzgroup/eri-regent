@@ -1,8 +1,8 @@
 import "regent"
 require("fields")
 require("boys")
+require("generate_spin_pattern")
 
-local cmath = terralib.includec("math.h")
 local sqrt = regentlib.sqrt(double)
 
 local computeR000 = {}
@@ -60,32 +60,18 @@ function generateTaskCoulombIntegral(L12, L34)
         P[i] = r_density[d_offset + i].value
       end)
     end
+    local pattern = generateSpinPattern(math.max(L12, L34))
     for u = 0, H34-1 do --inclusive
       for t = 0, H12-1 do -- inclusive
-        -- NOTE: This is based on the format of the input data from TeraChem
-        local pattern = {
-          {0; 0; 0;};
-          {1; 0; 0;};
-          {0; 1; 0;};
-          {0; 0; 1;};
-          {1; 1; 0;};
-          {1; 0; 1;};
-          {0; 1; 1;};
-          {2; 0; 0;};
-          {0; 2; 0;};
-          {0; 0; 2;};
-        }
         local N = pattern[t + 1][1] + pattern[u + 1][1]
         local L = pattern[t + 1][2] + pattern[u + 1][2]
         local M = pattern[t + 1][3] + pattern[u + 1][3]
         local sign
-        -- FIXME: I don't understand when `sign` is negative
-        if u == 0 or u > 3 then
+        if (pattern[u + 1][1] + pattern[u + 1][2] + pattern[u + 1][3]) % 2 == 0 then
           sign = 1
         else
           sign = -1
         end
-
         statements:insert(rquote
           result[t] += sign * P[u] * [generateRExpression(N, L, M, a, b, c, R000)]
         end)
@@ -99,6 +85,7 @@ function generateTaskCoulombIntegral(L12, L34)
     return statements
   end
 
+  -- FIXME: The name of this task needs to be different for each integral
   local
   __demand(__leaf)
   __demand(__cuda)

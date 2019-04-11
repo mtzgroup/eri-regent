@@ -26,12 +26,12 @@ function generateTaskComputeR000(length)
       var t_est : double = t_idx / 10.0
       R000[length-1] = 0.0
       var factor : double = 1.0
-      for k = 0, 7 do
+      for k = 0, 7 do -- exclusive
         var boys_est : double = r_boys[t_idx * 11 + length-1+k].value
         R000[length-1] = R000[length-1] + factor * boys_est
         factor = factor * (t_est - t) / (k + 1)
       end
-      for j = length-2, -1, -1 do
+      for j = length-2, -1, -1 do -- exclusive
         R000[j] = (2.0 * t * R000[j+1] + exp(-t)) / (2.0 * j + 1.0)
       end
     else
@@ -51,13 +51,13 @@ function generateTaskComputeR000(length)
         R000[0] = R000[0] - exp(-t) * g / t
       end
 
-      for j = 0, length-1 do
+      for j = 0, length-1 do -- exclusive
         R000[j+1] = ((2.0 * j + 1.0) * R000[j] - exp(-t)) / (2.0 * t)
       end
     end
 
     var factor : double = 1.0
-    for j = 0, length do
+    for j = 0, length do -- exclusive
       R000[j] = R000[j] * factor
       factor = factor * -2.0 * alpha
     end
