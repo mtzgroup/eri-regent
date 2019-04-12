@@ -1,6 +1,6 @@
 import "regent"
 require("fields")
-require("generate_integral")
+require("mcmurchie.generate_integral")
 
 local c = regentlib.c
 local assert = regentlib.assert
@@ -17,7 +17,7 @@ local function dispatchIntegrals(bra_L_color, ket_L_color,
           for bra_color in bra_coloring do
             __demand(__parallel)
             for ket_color in ket_coloring do
-              [generateTaskCoulombIntegral(L12, L34)](
+              [generateTaskMcMurchieIntegral(L12, L34)](
                 p_bra_gausses[bra_color], p_ket_gausses[ket_color],
                 p_density[ket_color], p_j_values[bra_color], r_boys
               )

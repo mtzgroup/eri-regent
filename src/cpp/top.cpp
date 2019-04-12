@@ -2,7 +2,7 @@
 // LD_LIBRARY_PATH=[PATH TO legion/bindings/regent]:. ./a.out
 
 #include "coulomb_tasks.h"
-#include "../precomputedBoys.h"
+#include "../mcmurchie/precomputedBoys.h"
 
 #include "legion.h"
 #include "legion/legion_c_util.h"

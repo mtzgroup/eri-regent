@@ -2,6 +2,7 @@ import numpy as np
 from scipy import integrate, exp
 
 import sys
+
 if len(sys.argv) != 2:
     print("Usage: python " + sys.argv[0] + " precomputedBoys.h")
     exit(0)
@@ -27,14 +28,19 @@ with open(FILE_NAME, "w") as f:
     relative_errors = errors / values
 
     f.write(
-"""#pragma once
+        """#pragma once
 
-// Row-major order
-// _precomputed_boys[t * %d + j] = boys(t / 10.f, j)
+/*
+ * Values of the boys function
+ * boys(t, j) = integral from 0 to 1 of u^(2j) exp(-2tu) du
+ * in row-major order such that
+ * _precomputed_boys[t * %d + j] = boys(t / 10.f, j)
+ */
 const double _precomputed_boys[%d] = {
   %s
 };
-""" % (LARGEST_J + 1, values.size, ',\n  '.join(map(str, values.flatten())))
+"""
+        % (LARGEST_J + 1, values.size, ",\n  ".join(map(str, values.flatten())))
     )
 
     print("Wrote Boys values with shape " + str(values.shape) + " to " + FILE_NAME)

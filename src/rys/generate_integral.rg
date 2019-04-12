@@ -1,9 +1,10 @@
 import "regent"
 require("fields")
+require("generate_spin_pattern")
 
 local sqrt = regentlib.sqrt(double)
 
-function generateLightspeedIntegral(L12, L34)
+function generateTaskRysIntegral(L12, L34)
   local nrys = math.floor((L12 + L34) / 2) + 1
   local L = L12 + L34
   local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
@@ -60,19 +61,7 @@ function generateLightspeedIntegral(L12, L34)
         P[i] = r_density[d_offset + i].value
       end)
     end
-    -- NOTE: This is based on the format of the input data from TeraChem
-    local pattern = {
-      {0; 0; 0;};
-      {1; 0; 0;};
-      {0; 1; 0;};
-      {0; 0; 1;};
-      {1; 1; 0;};
-      {1; 0; 1;};
-      {0; 1; 1;};
-      {2; 0; 0;};
-      {0; 2; 0;};
-      {0; 0; 2;};
-    }
+    local pattern = generateSpinPattern(math.max(L12, L34))
     for t = 0, H12-1 do -- inclusive
       for u = 0, H34-1 do -- inclusive
         -- TODO: Need to check if this is correct
@@ -87,6 +76,7 @@ function generateLightspeedIntegral(L12, L34)
     return statements
   end
 
+  local
   __demand(__leaf)
   __demand(__cuda)
   task lightspeed(r_bra_gausses : region(ispace(int1d), HermiteGaussian),
@@ -137,4 +127,4 @@ function generateLightspeedIntegral(L12, L34)
   return lightspeed
 end
 
-mytask = generateLightspeedIntegral(1, 2)
+mytask = generateTaskRysIntegral(1, 2)

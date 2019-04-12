@@ -1,16 +1,19 @@
 import "regent"
 require("fields")
-require("boys")
+require("mcmurchie.boys")
 require("generate_spin_pattern")
 
 local sqrt = regentlib.sqrt(double)
 
+local max_momentum = 2
 local computeR000 = {}
-for L = 0, 4 do
+for L = 0, max_momentum*max_momentum do -- inclusive
   computeR000[L] = generateTaskComputeR000(L + 1)
 end
 
-function generateTaskCoulombIntegral(L12, L34)
+function generateTaskMcMurchieIntegral(L12, L34)
+  assert(L12 <= max_momentum and L34 <= max_momentum)
+
   local L = L12 + L34
   local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
   local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6

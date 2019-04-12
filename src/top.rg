@@ -6,8 +6,8 @@ local c = regentlib.c
 local assert = regentlib.assert
 local fabs = regentlib.fabs(double)
 local root_dir = arg[0]:match(".*/") or "./"
-local _precomputedBoys = terralib.includec("precomputedBoys.h",
-                                          {"-I", root_dir})._precomputed_boys
+local _precomputedBoys = terralib.includec("mcmurchie/precomputedBoys.h",
+                                           {"-I", root_dir})._precomputed_boys
 
 terra getPrecomputedBoys(idx : int) : double
   return _precomputedBoys[idx]
