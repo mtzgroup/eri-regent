@@ -6,11 +6,11 @@ local sqrt = regentlib.sqrt(double)
 local floor = regentlib.floor(double)
 local exp = regentlib.exp(double)
 
+-- Generates a task that computes a list of size `length` of auxiliary values.
+-- R000[j] = (-2*alpha)^j * F_j(t)
+-- where F_j(t) is the Boys function.
+-- Only accurate for j <= 16
 function generateTaskComputeR000(length)
-  -- Computes a list of size `length` of auxiliary values.
-  -- R000[j] = (-2*alpha)^j * F_j(t)
-  -- where F_j(t) is the Boys function.
-  -- Only accurate for j <= 16
   -- TODO: Much of this code can be metaprogrammed if performance is an issue here
   local
   __demand(__inline)

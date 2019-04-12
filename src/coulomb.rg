@@ -5,6 +5,9 @@ require("mcmurchie.generate_integral")
 local c = regentlib.c
 local assert = regentlib.assert
 
+-- Dispatches several kernels to compute a block of BraKets.
+-- All Bras and all Kets are assumed to have the same angular momentum.
+-- TODO: Decide at runtime to run McMurchie or Rys.
 local function dispatchIntegrals(bra_L_color, ket_L_color,
                                  bra_coloring, ket_coloring,
                                  p_bra_gausses, p_ket_gausses,

@@ -11,6 +11,9 @@ for L = 0, max_momentum*max_momentum do -- inclusive
   computeR000[L] = generateTaskComputeR000(L + 1)
 end
 
+-- Given a pair of angular momentums, this returns a task
+-- to compute electron repulsion integrals between BraKets
+-- using the McMurchie algorithm.
 function generateTaskMcMurchieIntegral(L12, L34)
   assert(L12 <= max_momentum and L34 <= max_momentum)
 
@@ -19,6 +22,10 @@ function generateTaskMcMurchieIntegral(L12, L34)
   local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6
   local PI_5_2 = math.pow(math.pi, 2.5)
 
+  -- Returns an expression to recursively compute Hermite polynomials given by
+  -- R00MJ = cR00(M-1)(J+1) + (M-1)R00(M-2)(J+1)
+  -- R0LMJ = bR0(L-1)M(J+1) + (L-1)R0(L-2)M(J+1)
+  -- RNLMJ = cR(N-1)LM(J+1) + (N-1)R(N-2)LM(J+1)
   local function generateRExpression(N, L, M, a, b, c, R000)
     assert(N >= 0 and L >= 0 and M >= 0)
     local function aux(N, L, M, j)
@@ -44,6 +51,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
     return aux(N, L, M, 0)
   end
 
+  -- Returns a list of regent statements that implements the McMurchie algorithm
   local function generateSumStatements(a, b, c, R000, lambda,
                                        r_j_values, j_offset,
                                        r_density, d_offset)
