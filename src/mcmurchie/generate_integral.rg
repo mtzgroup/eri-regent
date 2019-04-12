@@ -96,7 +96,6 @@ function generateTaskMcMurchieIntegral(L12, L34)
     return statements
   end
 
-  -- FIXME: The name of this task needs to be different for each integral
   local
   __demand(__leaf)
   __demand(__cuda)
@@ -138,5 +137,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
       end
     end
   end
+  local LToStr = {"SS", "SP", "PP"}
+  integral:set_name(LToStr[L12+1]..LToStr[L34+1])
   return integral
 end
