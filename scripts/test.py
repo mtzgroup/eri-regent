@@ -15,11 +15,26 @@ data_files = [
     # for i in range(2, 5)
 ]
 
+RED   = "\033[1;31m"
+GREEN = "\033[0;32m"
+RESET = "\033[0;0m"
+
 if __name__ == "__main__":
     # TODO: If possible, compile regent code once and run all tests
     import subprocess
+    import sys
 
     for (infile, outfile) in data_files:
         # TODO: Test multiple cpu's and partitions
         # TODO: Test gpu and cuda
-        subprocess.check_call(["regent", "top.rg", "-i", infile, "-v", outfile], cwd="src/")
+        try:
+            subprocess.check_call(["regent", "top.rg", "-i", infile, "-v", outfile], cwd="src/")
+        except:
+            sys.stdout.write(RED)
+            print("Failed on input " + infile)
+            sys.stdout.write(RESET)
+            sys.exit(1)
+
+    sys.stdout.write(GREEN)
+    print("All tests passed!")
+    sys.stdout.write(RESET)
