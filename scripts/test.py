@@ -12,7 +12,7 @@ data_files = [
     ("data/small-water/h2o_4_6-311g.dat", "data/small-water/h2o_4_6-311g_out.dat"),
 ]
 
-RED   = "\033[1;31m"
+RED = "\033[1;31m"
 GREEN = "\033[0;32m"
 RESET = "\033[0;0m"
 
@@ -25,7 +25,9 @@ if __name__ == "__main__":
         # TODO: Test multiple cpu's and partitions
         # TODO: Test gpu and cuda
         try:
-            subprocess.check_call(["regent", "top.rg", "-i", infile, "-v", outfile], cwd="src/")
+            subprocess.check_call(
+                ["regent", "top.rg", "-i", infile, "-v", outfile], cwd="src/"
+            )
         except:
             sys.stdout.write(RED)
             print("Failed on input " + infile)

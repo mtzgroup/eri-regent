@@ -19,11 +19,19 @@ if __name__ == "__main__":
     for file in data_files:
         regent_args = ["-i", file]
         legion_args = [
-            "-fcuda", "0", "-ll:cpu", "1", "-ll:gpu", "0",
-            "-ll:csize", "1024",
+            "-fcuda",
+            "0",
+            "-ll:cpu",
+            "1",
+            "-ll:gpu",
+            "0",
+            "-ll:csize",
+            "1024",
             # "-ll:fsize", "1024",
         ]
-        output = subprocess.check_output(["regent", "top.rg"] + regent_args + legion_args, cwd="src/")
+        output = subprocess.check_output(
+            ["regent", "top.rg"] + regent_args + legion_args, cwd="src/"
+        )
         result = re.search("Coulomb operator: [0-9.]+ sec", output).group()
         time = float(re.search("[0-9.]+", result).group())
 
