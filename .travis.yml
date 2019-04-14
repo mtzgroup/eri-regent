@@ -7,9 +7,9 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install -y clang-3.5 libclang-3.5-dev llvm-3.5-dev python-numpy python-scipy
   # Compile Regent
-  - git clone -b master https://github.com/StanfordLegion/legion.git /home/travis/legion
-  - /home/travis/legion/language/install.py --rdir auto
-  - sudo ln -s /home/travis/legion/language/regent.py /usr/local/bin/regent
+  - if [ -d $HOME/legion ]; then git -C $HOME/legion pull; else git clone -b master https://github.com/StanfordLegion/legion.git $HOME/legion; fi
+  - $HOME/legion/language/install.py --rdir auto
+  - sudo ln -s $HOME/legion/language/regent.py /usr/local/bin/regent
   # Generate precomputed Boys values
   - python scripts/generate_boys_region.py src/mcmurchie/precomputedBoys.h
 
@@ -20,4 +20,4 @@ dist: trusty
 
 cache:
   directories:
-    /home/travis/legion
+    $HOME/legion
