@@ -133,7 +133,7 @@ do
     var gaussian = r_gausses[gauss_idx]
     for i = [int](gaussian.data_rect.lo), [int](gaussian.data_rect.hi + 1) do
       var error : double = fabs(r_j_values[i].value - r_true_j_values[i].value)
-      if error > 1e-10 then
+      if error > 1e-8 then
         c.printf("Value differs at gaussian = %d, L = %d, i = %d: actual = %.12f, expected = %.12f\n",
                  gauss_idx, gaussian.L, i - [int](gaussian.data_rect.lo),
                  r_j_values[i].value, r_true_j_values[i].value)
@@ -146,6 +146,9 @@ do
   end
   c.printf("%d/%d incorrect values found\n", num_incorrect, r_j_values.ispace.volume)
   c.printf("Max error = %.12f\n", max_error)
+  if num_incorrect > 0 then
+    c.exit(1)
+  end
 end
 
 task toplevel()
