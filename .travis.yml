@@ -4,20 +4,21 @@ os:
   - linux
 
 before_install:
-  # Compile Regent
   - sudo apt-get update
-  - sudo apt-get install -y clang-3.5 libclang-3.5-dev llvm-3.5-dev
-  - git clone -b master https://github.com/StanfordLegion/legion.git
-  - ./legion/language/install.py --rdir auto
-  - sudo ln -s "$PWD/legion/language/regent.py" /usr/local/bin/regent
+  - sudo apt-get install python-numpy python-scipy
   # Generate precomputed Boys values
   - python scripts/generate_boys_region.py src/mcmurchie/precomputedBoys.h
+  # Compile Regent
+  - sudo apt-get install -y clang-3.5 libclang-3.5-dev llvm-3.5-dev
+  - git clone -b master https://github.com/StanfordLegion/legion.git /home/travis
+  - /home/travis/legion/language/install.py --rdir auto
+  - sudo ln -s /home/travis/legion/language/regent.py /usr/local/bin/regent
 
 script:
   - python scripts/test.py
 
-branches:
-  only:
-    - metaprogram
-
 dist: trusty
+
+cache:
+  directories:
+    /home/travis/legion
