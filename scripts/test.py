@@ -7,12 +7,9 @@ data_files = [
     ("data/o2_6-311g.dat", "data/o2_6-311g_out.dat"),
     ("data/h2o_6-311g.dat", "data/h2o_6-311g_out.dat"),
     ("data/mg2_6-311g.dat", "data/mg2_6-311g_out.dat"),
-] + [
-    # (
-    #     "data/small-water/h2o_%d_6-311g_reord.dat" % i,
-    #     "data/small-water/h2o_%d_6-311g_reord_out.dat" % i,
-    # )
-    # for i in range(2, 5)
+    ("data/small-water/h2o_2_6-311g.dat", "data/small-water/h2o_2_6-311g_out.dat"),
+    ("data/small-water/h2o_3_6-311g.dat", "data/small-water/h2o_3_6-311g_out.dat"),
+    ("data/small-water/h2o_4_6-311g.dat", "data/small-water/h2o_4_6-311g_out.dat"),
 ]
 
 RED   = "\033[1;31m"
