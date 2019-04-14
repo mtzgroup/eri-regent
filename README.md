@@ -1,4 +1,5 @@
 # eri-regent
+[![Build Status]]
 Calculates two-electron repulsion integrals with Regent
 
 # Precomputed Boys Function Values
