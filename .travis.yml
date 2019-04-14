@@ -4,6 +4,8 @@ os:
   - linux
 
 before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y clang-3.5 libclang-3.5-dev llvm-3.5-dev python-numpy python-scipy
   # Compile Regent
   - if [ -d $HOME/legion ]; then git -C $HOME/legion pull; else git clone -b master https://github.com/StanfordLegion/legion.git $HOME/legion; fi
   - $HOME/legion/language/install.py --rdir auto
@@ -15,17 +17,6 @@ script:
   - python scripts/test.py
 
 dist: trusty
-
-addon:
-  apt:
-    update: true
-    packages:
-      clang-3.5
-      libclang-3.5-dev
-      llvm-3.5-dev
-      python-numpy
-      python-scipy
-
 
 cache:
   directories:
