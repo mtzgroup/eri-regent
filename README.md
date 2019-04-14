@@ -1,5 +1,6 @@
 # eri-regent
 [![Build Status](https://travis-ci.com/sparkasaurusRex/eri-regent.svg?token=g46Mfub8GMWqdPYXVqEs&branch=master)](https://travis-ci.com/sparkasaurusRex/eri-regent)
+
 Calculates two-electron repulsion integrals with Regent
 
 # Precomputed Boys Function Values
