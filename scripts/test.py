@@ -1,5 +1,4 @@
 data_files = [
-    # TODO: Actually include files in repo
     # ("data/h2_6-311g.dat", "data/h2_6-311g_out.dat"),
     # ("data/b2_6-311g.dat", "data/b2_6-311g_out.dat"),
     # ("data/cl2_6-311g.dat", "data/cl2_6-311g_out.dat"),
