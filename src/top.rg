@@ -101,7 +101,7 @@ where
   reads(r_gausses, r_j_values)
 do
   if config.output_filename[0] ~= 0 then
-    c.printf("Writing output\n")
+    if config.verbose then c.printf("Writing output\n") end
     var file = c.fopen(config.output_filename, "w")
     -- c.fprintf(file, "%d\n\n", config.num_gausses)
     for i in r_gausses.ispace do
@@ -126,7 +126,7 @@ do
   if config.true_values_filename[0] == 0 then
     return
   end
-  c.printf("Verifying output\n")
+  if config.verbose then c.printf("Verifying output\n") end
   var max_error : double = 0.0
   var num_incorrect = 0
   for gauss_idx in r_gausses.ispace do
@@ -144,8 +144,10 @@ do
       end
     end
   end
-  c.printf("%d/%d incorrect values found\n", num_incorrect, r_j_values.ispace.volume)
-  c.printf("Max error = %.12f\n", max_error)
+  if config.verbose or num_incorrect > 0 then
+    c.printf("%d/%d incorrect values found\n", num_incorrect, r_j_values.ispace.volume)
+    c.printf("Max error = %.12f\n", max_error)
+  end
   if num_incorrect > 0 then
     c.exit(1)
   end
@@ -179,18 +181,21 @@ task toplevel()
     r_boys[index].value = getPrecomputedBoys(index)
   end
 
-  c.printf("Reading input file\n")
+  if config.verbose then c.printf("Reading input file\n") end
   populateData(r_gausses, r_density, r_true_j_values, config)
 
-  c.printf("Launching integrals\n")
-  __fence(__execution, __block) -- Make sure we only time the computation
-  var ts_start = c.legion_get_current_time_in_micros()
+  if config.verbose then c.printf("Launching integrals\n") end
+  for trial = 0, config.num_trials do -- exclusive
+    if config.num_trials > 1 then c.printf("Running trial %d\n", trial) end
+    __fence(__execution, __block) -- Make sure we only time the computation
+    var ts_start = c.legion_get_current_time_in_micros()
 
-  coulomb(r_gausses, r_density, r_j_values, r_boys, config.highest_L, config.parallelism)
+    coulomb(r_gausses, r_density, r_j_values, r_boys, config.highest_L, config.parallelism)
 
-  __fence(__execution, __block) -- Make sure we only time the computation
-  var ts_stop = c.legion_get_current_time_in_micros()
-  c.printf("Coulomb operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
+    __fence(__execution, __block) -- Make sure we only time the computation
+    var ts_stop = c.legion_get_current_time_in_micros()
+    c.printf("Coulomb operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
+  end
 
   write_output(r_gausses, r_j_values, config)
   verify_output(r_gausses, r_j_values, r_true_j_values, config)

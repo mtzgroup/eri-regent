@@ -1,26 +1,31 @@
 import "regent"
 
 local c = regentlib.c
+local assert = regentlib.assert
 local cstring = terralib.includec("string.h")
 
 struct Config {
-  num_gausses        : int;       -- Number of Hermite Gaussians
-  num_data_values    : int;       -- Number of J values and size of density matrix
-  highest_L          : int;       -- Highest angular momentum over all Gaussians
-  parallelism        : int;
-  input_filename     : int8[512];
-  output_filename    : int8[512];
+  num_gausses          : int;       -- Number of Hermite Gaussians
+  num_data_values      : int;       -- Number of J values and size of density matrix
+  highest_L            : int;       -- Highest angular momentum over all Gaussians
+  parallelism          : int;
+  input_filename       : int8[512];
+  output_filename      : int8[512];
   true_values_filename : int8[512];
+  num_trials           : int;
+  verbose              : bool;
 }
 
 terra print_usage_and_abort()
   c.printf("Usage: regent coulomb.rg [OPTIONS]\n")
   c.printf("OPTIONS\n")
-  c.printf("  -h              : Print the usage and exit.\n")
-  c.printf("  -i {input.dat}  : Use {input.dat} as input data.\n")
-  c.printf("  -o {output.dat} : Use {output.dat} as output data.\n")
-  c.printf("  -p {value}      : Partition {value} ways.\n")
+  c.printf("  -h                   : Print the usage and exit.\n")
+  c.printf("  -i {input.dat}       : Use {input.dat} as input data.\n")
+  c.printf("  -o {output.dat}      : Use {output.dat} as output data.\n")
+  c.printf("  -p {value}           : Partition {value} ways.\n")
   c.printf("  -v {true_output.dat} : Use {true_output.dat} to check results.\n")
+  c.printf("  --trials {value}     : Run {value} times.\n")
+  c.printf("  --verbose            : Verbose printing.\n")
   c.exit(0)
 end
 
@@ -29,6 +34,8 @@ terra Config:initialize_from_command()
   self.input_filename[0] = 0
   self.output_filename[0] = 0
   self.true_values_filename[0] = 0
+  self.num_trials = 1
+  self.verbose = false
 
   var args = c.legion_runtime_get_input_args()
   var i = 1
@@ -90,6 +97,12 @@ terra Config:initialize_from_command()
         c.abort()
       end
       cstring.strncpy(self.true_values_filename, args.argv[i], 512)
+    elseif cstring.strcmp(args.argv[i], "--trials") == 0 then
+      i = i + 1
+      self.num_trials = c.atoi(args.argv[i])
+      assert(self.num_trials > 0, "Number of trials must be positive.")
+    elseif cstring.strcmp(args.argv[i], "--verbose") == 0 then
+      self.verbose = true
     else
       c.printf("Warning: Unknown option %s\n", args.argv[i])
     end
