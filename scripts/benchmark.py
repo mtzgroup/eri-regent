@@ -13,22 +13,33 @@ data_files = [
     # "data/water-boxes/h2o_1000_6-311g.dat",
 ]
 
-if __name__ == "__main__":
+def time_regent(file, num_cpus, num_gpus, num_trials):
     import subprocess, re
+    regent_args = (
+        "-i %s " % file
+        + "--trials %d " % num_trials
+    )
+    legion_args = (
+        "-ll:cpu %d " % num_cpus
+        + "-ll:gpu %d " % num_gpus
+        + "-ll:csize 1024 "
+        + "-ll:fsize 1024 "
+    )
+    output = subprocess.check_output(
+        "regent top.rg " + regent_args + legion_args, cwd="src/", shell=True
+    )
+    pattern = re.compile("Coulomb operator: ([0-9.]+) sec")
+    return map(float, pattern.findall(output))
+
+if __name__ == "__main__":
+    import numpy as np
 
     # TODO: Read in options
     # TODO: Iterate over number of gpus
+    # TODO: Pickle results to plot later
+    num_cpus = 1
+    num_gpus = 0
+    num_trials = 2
     for file in data_files:
-        legion_args = (
-            "-ll:cpu 1 "
-            + "-ll:gpu 0 "
-            + "-ll:csize 1024 "
-            + "-ll:fsize 1024 "
-        )
-        output = subprocess.check_output(
-            "regent top.rg -i " + file + " " + legion_args, cwd="src/", shell=True
-        )
-        result = re.search("Coulomb operator: [0-9.]+ sec", output).group()
-        time = float(re.search("[0-9.]+", result).group())
-
-        print("File %s took %f seconds" % (file, time))
+        times = time_regent(file, num_cpus, num_gpus, num_trials)
+        print("File %s took %f seconds" % (file, np.mean(times)))
