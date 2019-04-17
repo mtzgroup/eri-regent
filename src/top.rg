@@ -8,6 +8,7 @@ local fabs = regentlib.fabs(double)
 local root_dir = arg[0]:match(".*/") or "./"
 local _precomputedBoys = terralib.includec("mcmurchie/precomputedBoys.h",
                                            {"-I", root_dir})._precomputed_boys
+-- TODO: Read in `_precomputed_boys_largest_j` to get size of region
 
 terra getPrecomputedBoys(idx : int) : double
   return _precomputedBoys[idx]

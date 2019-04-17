@@ -30,6 +30,8 @@ with open(FILE_NAME, "w") as f:
     f.write(
         """#pragma once
 
+const unsigned _precomputed_boys_largest_j = %d;
+
 /*
  * Values of the boys function
  * boys(t, j) = integral from 0 to 1 of u^(2j) exp(-2tu) du
@@ -40,7 +42,12 @@ const double _precomputed_boys[%d] = {
   %s
 };
 """
-        % (LARGEST_J + 1, values.size, ",\n  ".join(map(str, values.flatten())))
+        % (
+            LARGEST_J,
+            LARGEST_J + 1,
+            values.size,
+            ",\n  ".join(map(str, values.flatten())),
+        )
     )
 
     print("Wrote Boys values with shape " + str(values.shape) + " to " + FILE_NAME)

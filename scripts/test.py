@@ -10,6 +10,8 @@ data_files = [
     ("data/small-water/h2o_2_6-311g.dat", "data/small-water/h2o_2_6-311g_out.dat"),
     ("data/small-water/h2o_3_6-311g.dat", "data/small-water/h2o_3_6-311g_out.dat"),
     ("data/small-water/h2o_4_6-311g.dat", "data/small-water/h2o_4_6-311g_out.dat"),
+    # ("data/ti2_crenbl.dat", "data/ti2_crenbl_out.dat"),
+    # ("data/li2_cc-pvtz.dat", "data/li2_cc-pvtz_out.dat"),
 ]
 
 RED = "\033[1;31m"

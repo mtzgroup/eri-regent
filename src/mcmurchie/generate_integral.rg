@@ -137,7 +137,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
       end
     end
   end
-  local LToStr = {"SS", "SP", "PP"}
-  integral:set_name(LToStr[L12+1]..LToStr[L34+1])
+  local LToStr = {"SS", "SP", "PP", "PD", "DD", "FD", "FF"}
+  integral:set_name("McMurchie"..LToStr[L12+1]..LToStr[L34+1])
   return integral
 end

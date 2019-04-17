@@ -4,6 +4,8 @@ require("mcmurchie.generate_integral")
 
 local c = regentlib.c
 local assert = regentlib.assert
+-- TODO: Consolidate all variables like this into one location
+local max_momentum = 2
 
 -- Dispatches several kernels to compute a block of BraKets.
 -- All Bras and all Kets are assumed to have the same angular momentum.
@@ -13,8 +15,8 @@ local function dispatchIntegrals(bra_L_color, ket_L_color,
                                  p_bra_gausses, p_ket_gausses,
                                  p_density, p_j_values, r_boys)
   local statements = terralib.newlist()
-  for L12 = 0, 2 do -- inclusive
-    for L34 = 0, 2 do -- inclusive
+  for L12 = 0, max_momentum do -- inclusive
+    for L34 = 0, max_momentum do -- inclusive
       statements:insert(rquote
         if [int](bra_L_color) == L12 and [int](ket_L_color) == L34 then
           for bra_color in bra_coloring do
@@ -56,8 +58,8 @@ where
   r_j_values * r_boys
 do
   fill(r_j_values.value, 0.0)
+  regentlib.assert(highest_L <= max_momentum, "Please compile for higher angular momentum.")
 
-  -- First partition by angular momentum
   var L_coloring = ispace(int1d, highest_L + 1)
   var p_gausses = partition(r_gausses.L, L_coloring)
   var p_density = image(r_density, p_gausses, r_gausses.data_rect)
