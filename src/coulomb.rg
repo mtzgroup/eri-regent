@@ -56,8 +56,11 @@ where
   r_density * r_boys,
   r_j_values * r_boys
 do
+  regentlib.assert(highest_L <= max_momentum,
+                   "Please compile for higher angular momentum.")
+  regentlib.assert(r_boys.volume >= 121 * (2*highest_L+7),
+                   "Please generate more precomputed boys values.")
   fill(r_j_values.value, 0.0)
-  regentlib.assert(highest_L <= max_momentum, "Please compile for higher angular momentum.")
 
   var L_coloring = ispace(int1d, highest_L + 1)
   var p_gausses = partition(r_gausses.L, L_coloring)

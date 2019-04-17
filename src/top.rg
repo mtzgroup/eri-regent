@@ -6,9 +6,13 @@ local c = regentlib.c
 local assert = regentlib.assert
 local fabs = regentlib.fabs(double)
 local root_dir = arg[0]:match(".*/") or "./"
-local _precomputedBoys = terralib.includec("mcmurchie/precomputedBoys.h",
-                                           {"-I", root_dir})._precomputed_boys
--- TODO: Read in `_precomputed_boys_largest_j` to get size of region
+local boysHeader = terralib.includec("mcmurchie/precomputedBoys.h", {"-I", root_dir})
+local _precomputedBoys = boysHeader._precomputed_boys
+local _precomputed_boys_largest_j = boysHeader._precomputed_boys_largest_j
+
+terra getNumBoysValues() : int
+  return 121 * (_precomputed_boys_largest_j + 1)
+end
 
 terra getPrecomputedBoys(idx : int) : double
   return _precomputedBoys[idx]
@@ -176,7 +180,8 @@ task toplevel()
   var r_j_values = region(ispace(int1d, config.num_data_values), Double)
   var r_true_j_values = region(ispace(int1d, config.num_data_values), Double)
 
-  var r_boys = region(ispace(int1d, 121 * 11), Double)
+  var r_boys_volume = getNumBoysValues()
+  var r_boys = region(ispace(int1d, r_boys_volume), Double)
   -- TODO: Use legion API to populate this region
   for index in r_boys.ispace do
     r_boys[index].value = getPrecomputedBoys(index)
