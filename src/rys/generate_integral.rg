@@ -4,6 +4,20 @@ require("generate_spin_pattern")
 
 local sqrt = regentlib.sqrt(double)
 
+function generateSetPatternStatements(L, r_spin_pattern)
+  local H = (L + 1) * (L + 2) * (L + 3) / 6
+  local statements = terralib.newlist()
+  local pattern_lua = generateSpinPattern(L)
+  for i = 0, H-1 do -- inclusive
+    statements:insert(rquote
+      r_spin_pattern[{i, 0}] = [pattern_lua[i+1][1]]
+      r_spin_pattern[{i, 1}] = [pattern_lua[i+1][2]]
+      r_spin_pattern[{i, 2}] = [pattern_lua[i+1][3]]
+    end)
+  end
+  return statements
+end
+
 function generateTaskRysIntegral(L12, L34)
   local nrys = math.floor((L12 + L34) / 2) + 1
   local L = L12 + L34
@@ -20,73 +34,21 @@ function generateTaskRysIntegral(L12, L34)
   local
   __demand(__inline)
   task interpolate_w(T : double, i : int) : double
-    return 1.0
-  end
-
-  local function generateSumStatements(a, b, c, U, lambda,
-                                       r_j_values, j_offset,
-                                       r_density, d_offset)
-    local Hx = regentlib.newsymbol(double[L + 1], "Hx")
-    local Hy = regentlib.newsymbol(double[L + 1], "Hy")
-    local Hz = regentlib.newsymbol(double[L + 1], "Hz")
-    local statements = terralib.newlist({rquote
-      var [Hx]
-      var [Hy]
-      var [Hz]
-      Hx[0] = lambda
-      Hy[0] = 1.0
-      Hz[0] = 1.0
-    end})
-    if L > 0 then
-      statements:insert(rquote
-        Hx[1] = U * a * Hx[0] -- Hx[0] holds an extra constant
-        Hy[1] = U * b
-        Hz[1] = U * c
-      end)
-    end
-    for i = 2, L do -- inclusive
-      statements:insert(rquote
-        Hx[i] = U * (a * Hx[i-1] + (i-1) * Hx[i-2])
-        Hy[i] = U * (b * Hy[i-1] + (i-1) * Hy[i-2])
-        Hz[i] = U * (c * Hz[i-1] + (i-1) * Hz[i-2])
-      end)
-    end
-
-    local P = regentlib.newsymbol(double[H34], "P")
-    statements:insert(rquote
-      var [P]
-    end)
-    for i = 0, H34-1 do --inclusive
-      statements:insert(rquote
-        P[i] = r_density[d_offset + i].value
-      end)
-    end
-    local pattern = generateSpinPattern(math.max(L12, L34))
-    for t = 0, H12-1 do -- inclusive
-      for u = 0, H34-1 do -- inclusive
-        -- TODO: Need to check if this is correct
-        local N = pattern[t + 1][1] + pattern[u + 1][1]
-        local L = pattern[t + 1][2] + pattern[u + 1][2]
-        local M = pattern[t + 1][3] + pattern[u + 1][3]
-        statements:insert(rquote
-          r_j_values[j_offset + t].value += Hx[N] * Hy[L] * Hz[M] * P[u]
-        end)
-      end
-    end
-    return statements
+    return 1.0 -- TODO
   end
 
   local
   __demand(__leaf)
   __demand(__cuda)
-  task lightspeed(r_bra_gausses : region(ispace(int1d), HermiteGaussian),
-                  r_ket_gausses : region(ispace(int1d), HermiteGaussian),
-                  r_density     : region(ispace(int1d), Double),
-                  r_j_values    : region(ispace(int1d), Double),
-                  alpha         : double,
-                  omega         : double)
+  task integral(r_bra_gausses  : region(ispace(int1d), HermiteGaussian),
+                r_ket_gausses  : region(ispace(int1d), HermiteGaussian),
+                r_density      : region(ispace(int1d), Double),
+                r_j_values     : region(ispace(int1d), Double),
+                r_spin_pattern : region(ispace(int2d), int),
+                alpha          : double,
+                omega          : double)
   where
-    reads(r_bra_gausses, r_ket_gausses, r_density),
+    reads(r_bra_gausses, r_ket_gausses, r_density, r_spin_pattern),
     reduces +(r_j_values),
     r_density * r_j_values
   do
@@ -114,17 +76,49 @@ function generateTaskRysIntegral(L12, L34)
           var t : double = __demand(__inline, interpolate_t(T, i))
           var w : double = __demand(__inline, interpolate_w(T, i))
           var U : double = -2.0 * rho * d2 * t * t
-          var lambda_w : double = lambda * w
+          var Hx : double[L+1]
+          var Hy : double[L+1]
+          var Hz : double[L+1]
+          Hx[0] = lambda * w
+          Hy[0] = 1.0
+          Hz[0] = 1.0
+          if L > 0 then
+            Hx[1] = U * a * Hx[0]
+            Hy[1] = U * b
+            Hz[1] = U * c
+          end
+          for i = 1, L do -- exclusive
+            Hx[i+1] = U * (a * Hx[i] + i * Hx[i-1])
+            Hy[i+1] = U * (b * Hy[i] + i * Hy[i-1])
+            Hz[i+1] = U * (c * Hz[i] + i * Hz[i-1])
+          end
           var j_offset = bra.data_rect.lo
           var d_offset = ket.data_rect.lo
-          ;[generateSumStatements(a, b, c, U, lambda_w,
-                                  r_j_values, j_offset,
-                                  r_density, d_offset)];
+          var P : double[H34]
+          for i = 0, H34 do -- exclusive
+            P[i] = r_density[ket.data_rect.lo + i].value
+          end
+          for t_index = 0, H12 do -- exclusive
+            for u_index = 0, H34 do -- exclusive
+              var N = r_spin_pattern[{t_index, 0}] + r_spin_pattern[{u_index, 0}]
+              var L = r_spin_pattern[{t_index, 1}] + r_spin_pattern[{u_index, 1}]
+              var M = r_spin_pattern[{t_index, 2}] + r_spin_pattern[{u_index, 2}]
+              -- TODO: Maybe accumulate into array before storing into `r_j_values`
+              r_j_values[bra.data_rect.lo + t_index].value += Hx[N] * Hy[L] * Hz[M] * P[u_index]
+            end
+          end
         end
       end
     end
   end
-  return lightspeed
+  local LToStr = {"SS", "SP", "PP", "PD", "DD", "FD", "FF"}
+  integral:set_name("Rys"..LToStr[L12+1]..LToStr[L34+1])
+  return integral
 end
 
-mytask = generateTaskRysIntegral(1, 2)
+-- mytask = generateTaskRysIntegral(6, 6)
+--
+-- task top()
+--   var r_spin_pattern = region(ispace(int2d, {10, 3}), int)
+--   ;[generateSetPatternStatements(2, r_spin_pattern)];
+-- end
