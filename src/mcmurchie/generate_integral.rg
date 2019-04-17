@@ -5,18 +5,10 @@ require("generate_spin_pattern")
 
 local sqrt = regentlib.sqrt(double)
 
-local max_momentum = 2
-local computeR000 = {}
-for L = 0, max_momentum*max_momentum do -- inclusive
-  computeR000[L] = generateTaskComputeR000(L + 1)
-end
-
 -- Given a pair of angular momentums, this returns a task
 -- to compute electron repulsion integrals between BraKets
 -- using the McMurchie algorithm.
 function generateTaskMcMurchieIntegral(L12, L34)
-  assert(L12 <= max_momentum and L34 <= max_momentum)
-
   local L = L12 + L34
   local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
   local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6
@@ -124,7 +116,10 @@ function generateTaskMcMurchieIntegral(L12, L34)
 
         var alpha : double = bra.eta * ket.eta / (bra.eta + ket.eta)
         var t : double = alpha * (a*a+b*b+c*c)
-        var R000 : double[L + 1] = __demand(__inline, [computeR000[L]](t, alpha, r_boys))
+        var R000 : double[L + 1] = __demand(
+          __inline,
+          [generateTaskComputeR000(L+1)](t, alpha, r_boys)
+        )
 
         -- TODO: Precompute `lambda`
         var lambda : double = 2.0 * PI_5_2 / (bra.eta * ket.eta * sqrt(bra.eta + ket.eta))

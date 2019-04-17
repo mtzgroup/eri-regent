@@ -4,7 +4,6 @@ require("mcmurchie.generate_integral")
 
 local c = regentlib.c
 local assert = regentlib.assert
--- TODO: Consolidate all variables like this into one location
 local max_momentum = 2
 
 -- Dispatches several kernels to compute a block of BraKets.

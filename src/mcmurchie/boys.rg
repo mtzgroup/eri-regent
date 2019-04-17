@@ -1,4 +1,5 @@
 import "regent"
+require("fields")
 
 local cmath = terralib.includec("math.h")
 local M_PI = cmath.M_PI
@@ -10,7 +11,7 @@ local exp = regentlib.exp(double)
 -- R000[j] = (-2*alpha)^j * F_j(t)
 -- where F_j(t) is the Boys function.
 function generateTaskComputeR000(length)
-  assert(length <= 16) -- Only accurate for j <= 16
+  assert(length <= 16, "Only accurate for j <= 16")
   -- TODO: Much of this code can be metaprogrammed if performance is an issue here
   local
   __demand(__inline)
