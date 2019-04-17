@@ -13,12 +13,11 @@ data_files = [
     # "data/water-boxes/h2o_1000_6-311g.dat",
 ]
 
+
 def time_regent(file, num_cpus, num_gpus, num_trials):
     import subprocess, re
-    regent_args = (
-        "-i %s " % file
-        + "--trials %d " % num_trials
-    )
+
+    regent_args = "-i %s " % file + "--trials %d " % num_trials
     legion_args = (
         "-ll:cpu %d " % num_cpus
         + "-ll:gpu %d " % num_gpus
@@ -30,6 +29,7 @@ def time_regent(file, num_cpus, num_gpus, num_trials):
     )
     pattern = re.compile("Coulomb operator: ([0-9.]+) sec")
     return map(float, pattern.findall(output))
+
 
 if __name__ == "__main__":
     import numpy as np
