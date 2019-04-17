@@ -31,7 +31,7 @@ if __name__ == "__main__":
         exit(0)
 
     data_files = test_files
-    if sys.argv[1] == "--quick":
+    if len(sys.argv) > 1 and sys.argv[1] == "--quick":
         data_files = quick_test_files
 
     for (infile, outfile) in data_files:
