@@ -33,13 +33,16 @@ def time_regent(file, num_cpus, num_gpus, num_trials):
 
 if __name__ == "__main__":
     import numpy as np
+    import argparse
 
-    # TODO: Read in options
+    parser = argparse.ArgumentParser(description='Benchmark code.')
+    parser.add_argument('--num_cpus', default=1, help='The number of compute CPUs to use.')
+    parser.add_argument('--num_gpus', default=1, help='The number of GPUs to use.')
+    parser.add_argument('--num_trials', default=1, help='Repeat each test NUM_TRIALS times.')
+    args = parser.parse_args()
+
     # TODO: Iterate over number of gpus
     # TODO: Pickle results to plot later
-    num_cpus = 1
-    num_gpus = 0
-    num_trials = 2
     for file in data_files:
-        times = time_regent(file, num_cpus, num_gpus, num_trials)
+        times = time_regent(file, args.num_cpus, args.num_gpus, args.num_trials)
         print("File %s took %f seconds" % (file, np.mean(times)))

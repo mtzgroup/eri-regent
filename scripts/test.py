@@ -24,15 +24,14 @@ RESET = "\033[0;0m"
 
 if __name__ == "__main__":
     # TODO: If possible, compile regent code once and run all tests
-    import sys, subprocess
+    import sys, subprocess, argparse
 
-    if len(sys.argv) > 2:
-        print("Usage: python %s [--quick]" % sys.argv[0])
-        exit(0)
+    parser = argparse.ArgumentParser(description='Test for correctness.')
+    parser.add_argument('--quick', action='store_true',
+                        help='Run only one test case')
+    args = parser.parse_args()
 
-    data_files = test_files
-    if len(sys.argv) > 1 and sys.argv[1] == "--quick":
-        data_files = quick_test_files
+    data_files = quick_test_files if args.quick else test_files
 
     for (infile, outfile) in data_files:
         # TODO: Test multiple cpu's and partitions
