@@ -1,34 +1,53 @@
 import "regent"
 require("fields")
 require("mcmurchie.generate_integral")
+require("rys.generate_integral")
 
-local c = regentlib.c
-local assert = regentlib.assert
 local max_momentum = 2
+local lua_spin_pattern = generateSpinPatternRegion(max_momentum)
 
 -- Dispatches several kernels to compute a block of BraKets.
 -- All Bras and all Kets are assumed to have the same angular momentum.
--- TODO: Decide at runtime to run McMurchie or Rys.
 local function dispatchIntegrals(bra_L_color, ket_L_color,
                                  bra_coloring, ket_coloring,
                                  p_bra_gausses, p_ket_gausses,
-                                 p_density, p_j_values, r_boys)
+                                 p_density, p_j_values,
+                                 r_boys, r_spin_pattern)
   local statements = terralib.newlist()
   for L12 = 0, max_momentum do -- inclusive
     for L34 = 0, max_momentum do -- inclusive
-      statements:insert(rquote
-        if [int](bra_L_color) == L12 and [int](ket_L_color) == L34 then
-          for bra_color in bra_coloring do
-            __demand(__parallel)
-            for ket_color in ket_coloring do
-              [generateTaskMcMurchieIntegral(L12, L34)](
-                p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-                p_density[ket_color], p_j_values[bra_color], r_boys
-              )
+      -- TODO: Decide to run McMurchie or Rys.
+      local use_mcmurchie = true
+      if use_mcmurchie then
+        statements:insert(rquote
+          if [int](bra_L_color) == L12 and [int](ket_L_color) == L34 then
+            for bra_color in bra_coloring do
+              __demand(__parallel)
+              for ket_color in ket_coloring do
+                [generateTaskMcMurchieIntegral(L12, L34)](
+                  p_bra_gausses[bra_color], p_ket_gausses[ket_color],
+                  p_density[ket_color], p_j_values[bra_color], r_boys
+                )
+              end
             end
           end
-        end
-      end)
+        end)
+      else -- Use Rys
+        statements:insert(rquote
+          if [int](bra_L_color) == L12 and [int](ket_L_color) == L34 then
+            for bra_color in bra_coloring do
+              __demand(__parallel)
+              for ket_color in ket_coloring do
+                [generateTaskRysIntegral(L12, L34)](
+                  p_bra_gausses[bra_color], p_ket_gausses[ket_color],
+                  p_density[ket_color], p_j_values[bra_color],
+                  r_spin_pattern, 1, 1
+                )
+              end
+            end
+          end
+        end)
+      end
     end
   end
   return statements
@@ -61,6 +80,7 @@ do
   regentlib.assert(r_boys.volume >= 121 * (2*highest_L+7),
                    "Please generate more precomputed boys values.")
   fill(r_j_values.value, 0.0)
+  ;[lua_spin_pattern.initialize];
 
   var L_coloring = ispace(int1d, highest_L + 1)
   var p_gausses = partition(r_gausses.L, L_coloring)
@@ -80,7 +100,8 @@ do
       ;[dispatchIntegrals(bra_L_color, ket_L_color,
                           bra_coloring, ket_coloring,
                           p_bra_gausses, p_ket_gausses,
-                          p_density, p_j_values, r_boys)];
+                          p_density, p_j_values, r_boys,
+                          lua_spin_pattern.r_spin_pattern)];
     end
   end
 end

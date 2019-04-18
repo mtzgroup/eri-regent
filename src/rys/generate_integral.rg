@@ -4,9 +4,16 @@ require("generate_spin_pattern")
 
 local sqrt = regentlib.sqrt(double)
 
-function generateSetPatternStatements(L, r_spin_pattern)
+-- Generates the statements to produce a constant region needed for the Rys
+-- algorithm.
+function generateSpinPatternRegion(L)
   local H = (L + 1) * (L + 2) * (L + 3) / 6
-  local statements = terralib.newlist()
+  local r_spin_pattern = regentlib.newsymbol("r_spin_pattern")
+  -- TODO: Since the largest value is `L`, we can significantly reduce the size
+  --       of `r_spin_pattern` if needed.
+  local statements = terralib.newlist({rquote
+    var [r_spin_pattern] = region(ispace(int2d, {H, 3}), int)
+  end})
   local pattern_lua = generateSpinPattern(L)
   for i = 0, H-1 do -- inclusive
     statements:insert(rquote
@@ -15,9 +22,12 @@ function generateSetPatternStatements(L, r_spin_pattern)
       r_spin_pattern[{i, 2}] = [pattern_lua[i+1][3]]
     end)
   end
-  return statements
+  return {initialize=statements, r_spin_pattern=r_spin_pattern}
 end
 
+-- Given a pair of angular momentums, this returns a task
+-- to compute electron repulsion integrals between BraKets
+-- using the Rys algorithm.
 function generateTaskRysIntegral(L12, L34)
   local nrys = math.floor((L12 + L34) / 2) + 1
   local L = L12 + L34
@@ -92,20 +102,19 @@ function generateTaskRysIntegral(L12, L34)
             Hy[i+1] = U * (b * Hy[i] + i * Hy[i-1])
             Hz[i+1] = U * (c * Hz[i] + i * Hz[i-1])
           end
-          var j_offset = bra.data_rect.lo
-          var d_offset = ket.data_rect.lo
           var P : double[H34]
           for i = 0, H34 do -- exclusive
             P[i] = r_density[ket.data_rect.lo + i].value
           end
           for t_index = 0, H12 do -- exclusive
+            var sum : double = 0.0
             for u_index = 0, H34 do -- exclusive
               var N = r_spin_pattern[{t_index, 0}] + r_spin_pattern[{u_index, 0}]
               var L = r_spin_pattern[{t_index, 1}] + r_spin_pattern[{u_index, 1}]
               var M = r_spin_pattern[{t_index, 2}] + r_spin_pattern[{u_index, 2}]
-              -- TODO: Maybe accumulate into array before storing into `r_j_values`
-              r_j_values[bra.data_rect.lo + t_index].value += Hx[N] * Hy[L] * Hz[M] * P[u_index]
+              sum += Hx[N] * Hy[L] * Hz[M] * P[u_index]
             end
+            r_j_values[bra.data_rect.lo + t_index].value += sum
           end
         end
       end
@@ -115,10 +124,3 @@ function generateTaskRysIntegral(L12, L34)
   integral:set_name("Rys"..LToStr[L12+1]..LToStr[L34+1])
   return integral
 end
-
--- mytask = generateTaskRysIntegral(6, 6)
---
--- task top()
---   var r_spin_pattern = region(ispace(int2d, {10, 3}), int)
---   ;[generateSetPatternStatements(2, r_spin_pattern)];
--- end
