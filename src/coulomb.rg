@@ -9,7 +9,7 @@ local lua_spin_pattern = generateSpinPatternRegion(max_momentum)
 -- Dispatches several kernels to compute a block of BraKets.
 -- All Bras and all Kets are assumed to have the same angular momentum.
 local function dispatchIntegrals(bra_L_color, ket_L_color,
-                                 bra_coloring, ket_coloring,
+                                 -- bra_coloring, ket_coloring,
                                  p_bra_gausses, p_ket_gausses,
                                  p_density, p_j_values,
                                  r_boys, r_spin_pattern)
@@ -21,32 +21,32 @@ local function dispatchIntegrals(bra_L_color, ket_L_color,
       if use_mcmurchie then
         statements:insert(rquote
           if [int](bra_L_color) == L12 and [int](ket_L_color) == L34 then
-            for bra_color in bra_coloring do
-              __demand(__parallel)
-              for ket_color in ket_coloring do
+            -- for bra_color in bra_coloring do
+            --   __demand(__parallel)
+            --   for ket_color in ket_coloring do
                 [generateTaskMcMurchieIntegral(L12, L34)](
-                  p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-                  p_density[ket_color], p_j_values[bra_color], r_boys
+                  p_bra_gausses[bra_L_color], p_ket_gausses[ket_L_color],
+                  p_density[ket_L_color], p_j_values[bra_L_color], r_boys
                 )
-              end
-            end
+            --   end
+            -- end
           end
         end)
       else -- Use Rys
-        statements:insert(rquote
-          if [int](bra_L_color) == L12 and [int](ket_L_color) == L34 then
-            for bra_color in bra_coloring do
-              __demand(__parallel)
-              for ket_color in ket_coloring do
-                [generateTaskRysIntegral(L12, L34)](
-                  p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-                  p_density[ket_color], p_j_values[bra_color],
-                  r_spin_pattern, 1, 1
-                )
-              end
-            end
-          end
-        end)
+        -- statements:insert(rquote
+        --   if [int](bra_L_color) == L12 and [int](ket_L_color) == L34 then
+        --     for bra_color in bra_coloring do
+        --       __demand(__parallel)
+        --       for ket_color in ket_coloring do
+        --         [generateTaskRysIntegral(L12, L34)](
+        --           p_bra_gausses[bra_color], p_ket_gausses[ket_color],
+        --           p_density[ket_color], p_j_values[bra_color],
+        --           r_spin_pattern, 1, 1
+        --         )
+        --       end
+        --     end
+        --   end
+        -- end)
       end
     end
   end
@@ -89,17 +89,19 @@ do
 
   for bra_L_color in L_coloring do
     for ket_L_color in L_coloring do
+      -- Temporary fix for Realm bug
       -- TODO: Need to decide how much parallelism to give to each integral
-      var bra_coloring = ispace(int1d, parallelism)
-      var ket_coloring = ispace(int1d, parallelism)
-      var p_bra_gausses = partition(equal, p_gausses[bra_L_color], bra_coloring)
-      var p_ket_gausses = partition(equal, p_gausses[ket_L_color], ket_coloring)
-      var p_density = image(p_density[ket_L_color], p_ket_gausses, r_gausses.data_rect)
-      var p_j_values = image(p_j_values[bra_L_color], p_bra_gausses, r_gausses.data_rect)
+      -- var bra_coloring = ispace(int1d, parallelism)
+      -- var ket_coloring = ispace(int1d, parallelism)
+      -- var p_bra_gausses = partition(equal, p_gausses[bra_L_color], bra_coloring)
+      -- var p_ket_gausses = partition(equal, p_gausses[ket_L_color], ket_coloring)
+      -- var p_density = image(p_density[ket_L_color], p_ket_gausses, r_gausses.data_rect)
+      -- var p_j_values = image(p_j_values[bra_L_color], p_bra_gausses, r_gausses.data_rect)
 
-      ;[dispatchIntegrals(bra_L_color, ket_L_color,
-                          bra_coloring, ket_coloring,
-                          p_bra_gausses, p_ket_gausses,
+      [dispatchIntegrals(bra_L_color, ket_L_color,
+                          -- bra_coloring, ket_coloring,
+                          -- p_bra_gausses, p_ket_gausses,
+                          p_gausses, p_gausses,
                           p_density, p_j_values, r_boys,
                           lua_spin_pattern.r_spin_pattern)];
     end
