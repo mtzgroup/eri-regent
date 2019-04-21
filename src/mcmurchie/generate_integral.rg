@@ -1,7 +1,10 @@
 import "regent"
-require("fields")
-require("mcmurchie.boys")
-require("generate_spin_pattern")
+require "fields"
+require "mcmurchie.boys"
+require "generate_spin_pattern"
+
+local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="FD", [6]="FF"}
+local customKernels = require "mcmurchie.kernels.import"
 
 local sqrt = regentlib.sqrt(double)
 
@@ -44,9 +47,12 @@ function generateTaskMcMurchieIntegral(L12, L34)
   end
 
   -- Returns a list of regent statements that implements the McMurchie algorithm
-  local function generateSumStatements(a, b, c, R000, lambda,
-                                       r_j_values, j_offset,
-                                       r_density, d_offset)
+  local function generateKernel(a, b, c, R000, lambda, r_j_values, j_offset, r_density, d_offset)
+    local customKernel = customKernels[LToStr[L12]..LToStr[L34]]
+    if customKernel ~= nil then
+      return customKernel(a, b, c, R000, lambda, r_j_values, j_offset, r_density, d_offset)
+    end
+
     local result = regentlib.newsymbol(double[H12], "result")
     local P = regentlib.newsymbol(double[H34], "P")
     local statements = terralib.newlist({rquote
@@ -121,18 +127,14 @@ function generateTaskMcMurchieIntegral(L12, L34)
           [generateTaskComputeR000(L+1)](t, alpha, r_boys)
         )
 
-        -- TODO: Precompute `lambda`
         var lambda : double = 2.0 * PI_5_2 / (bra.eta * ket.eta * sqrt(bra.eta + ket.eta))
 
         var j_offset = bra.data_rect.lo
         var d_offset = ket.data_rect.lo
-        ;[generateSumStatements(a, b, c, R000, lambda,
-                                r_j_values, j_offset,
-                                r_density, d_offset)];
+        ;[generateKernel(a, b, c, R000, lambda, r_j_values, j_offset, r_density, d_offset)];
       end
     end
   end
-  local LToStr = {"SS", "SP", "PP", "PD", "DD", "FD", "FF"}
-  integral:set_name("McMurchie"..LToStr[L12+1]..LToStr[L34+1])
+  integral:set_name("McMurchie"..LToStr[L12]..LToStr[L34])
   return integral
 end
