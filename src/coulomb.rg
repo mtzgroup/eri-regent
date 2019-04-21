@@ -1,7 +1,7 @@
 import "regent"
-require("fields")
-require("mcmurchie.generate_integral")
-require("rys.generate_integral")
+require "fields"
+require "mcmurchie.generate_integral"
+require "rys.generate_integral"
 
 local max_momentum = 2
 local lua_spin_pattern = generateSpinPatternRegion(max_momentum)
@@ -80,7 +80,7 @@ do
   regentlib.assert(r_boys.volume >= 121 * (2*highest_L+7),
                    "Please generate more precomputed boys values.")
   fill(r_j_values.value, 0.0)
-  ;[lua_spin_pattern.initialize];
+  -- ;[lua_spin_pattern.initialize];
 
   var L_coloring = ispace(int1d, highest_L + 1)
   var p_gausses = partition(r_gausses.L, L_coloring)
