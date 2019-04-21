@@ -3,15 +3,18 @@ ifndef LG_RT_DIR
 $(error LG_RT_DIR is not set)
 endif
 
-CC = c++
-CFLAGS = -O2 -Wall -Werror
-INCLUDES = -I$(LG_RT_DIR)
-LFLAGS = -L$(LG_RT_DIR)/../bindings/regent -L .
-LIBS = -lregent -lcoulomb_tasks
+CC := c++
+CFLAGS := -O2 -Wall -Werror
+INCLUDES := -I$(LG_RT_DIR)
+LFLAGS := -L$(LG_RT_DIR)/../bindings/regent -L .
+LIBS := -lregent -lcoulomb_tasks
 
-SRCS_RG = ../mcmurchie/boys.rg ../coulomb.rg ../fields.rg ../mcmurchie/generate_integral.rg ../generate_spin_pattern.rg
-SRCS_CPP = top.cpp
-TARGET = coulomb_cpp
+SRCS_RG := ../coulomb.rg ../fields.rg ../generate_spin_pattern.rg ../generate_lib.rg
+SRCS_RG += ../mcmurchie/generate_integral.rg ../mcmurchie/boys.rg $(wildcard ../mcmurchie/kernels/*.rg)
+SRCS_RG += ../rys/generate_integral.rg
+
+SRCS_CPP := top.cpp
+TARGET := coulomb_cpp
 
 .PHONY: run clean
 
