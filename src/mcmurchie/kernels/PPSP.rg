@@ -46,66 +46,76 @@ local function PPSP(a, b, c, R000, lambda,
     var R0300 : double = b * R0201 + R0101 + R0101
     var R0030 : double = c * R0021 + R0011 + R0011
 
-    var P0 : double = r_density[d_offset].value
-    var P1 : double = r_density[d_offset + 1].value
-    var P2 : double = r_density[d_offset + 2].value
-    var P3 : double = r_density[d_offset + 3].value
+    var P : double
+    var result0 : double
+    var result1 : double
+    var result2 : double
+    var result3 : double
+    var result4 : double
+    var result5 : double
+    var result6 : double
+    var result7 : double
+    var result8 : double
+    var result9 : double
 
-    var result : double[10]
-    result[0] = R000[0] * P0
-    result[1] = R1000 * P0
-    result[2] = R0100 * P0
-    result[3] = R0010 * P0
-    result[4] = R1100 * P0
-    result[5] = R1010 * P0
-    result[6] = R0110 * P0
-    result[7] = R2000 * P0
-    result[8] = R0200 * P0
-    result[9] = R0020 * P0
+    P = r_density[d_offset].value
+    result0 = R000[0] * P
+    result1 = R1000 * P
+    result2 = R0100 * P
+    result3 = R0010 * P
+    result4 = R1100 * P
+    result5 = R1010 * P
+    result6 = R0110 * P
+    result7 = R2000 * P
+    result8 = R0200 * P
+    result9 = R0020 * P
 
-    result[0] -= R1000 * P1
-    result[1] -= R2000 * P1
-    result[2] -= R1100 * P1
-    result[3] -= R1010 * P1
-    result[4] -= R2100 * P1
-    result[5] -= R2010 * P1
-    result[6] -= R1110 * P1
-    result[7] -= R3000 * P1
-    result[8] -= R1200 * P1
-    result[8] -= R1020 * P1
+    P = r_density[d_offset + 1].value
+    result0 -= R1000 * P
+    result1 -= R2000 * P
+    result2 -= R1100 * P
+    result3 -= R1010 * P
+    result4 -= R2100 * P
+    result5 -= R2010 * P
+    result6 -= R1110 * P
+    result7 -= R3000 * P
+    result8 -= R1200 * P
+    result8 -= R1020 * P
 
-    result[0] -= R0100 * P2
-    result[1] -= R1100 * P2
-    result[2] -= R0200 * P2
-    result[3] -= R0110 * P2
-    result[4] -= R1200 * P2
-    result[5] -= R1110 * P2
-    result[6] -= R0210 * P2
-    result[7] -= R2100 * P2
-    result[8] -= R0300 * P2
-    result[9] -= R0120 * P2
+    P = r_density[d_offset + 2].value
+    result0 -= R0100 * P
+    result1 -= R1100 * P
+    result2 -= R0200 * P
+    result3 -= R0110 * P
+    result4 -= R1200 * P
+    result5 -= R1110 * P
+    result6 -= R0210 * P
+    result7 -= R2100 * P
+    result8 -= R0300 * P
+    result9 -= R0120 * P
 
-    result[0] -= R0010 * P3
-    result[1] -= R1010 * P3
-    result[2] -= R0110 * P3
-    result[3] -= R0020 * P3
-    result[4] -= R1110 * P3
-    result[5] -= R1020 * P3
-    result[6] -= R0120 * P3
-    result[7] -= R2010 * P3
-    result[8] -= R0210 * P3
-    result[9] -= R0030 * P3
+    P = r_density[d_offset + 3].value
+    result0 -= R0010 * P
+    result1 -= R1010 * P
+    result2 -= R0110 * P
+    result3 -= R0020 * P
+    result4 -= R1110 * P
+    result5 -= R1020 * P
+    result6 -= R0120 * P
+    result7 -= R2010 * P
+    result8 -= R0210 * P
+    result9 -= R0030 * P
 
-    r_j_values[j_offset].value += lambda * result[0]
-    r_j_values[j_offset + 1].value += lambda * result[1]
-    r_j_values[j_offset + 2].value += lambda * result[2]
-    r_j_values[j_offset + 3].value += lambda * result[3]
-    r_j_values[j_offset + 4].value += lambda * result[4]
-    r_j_values[j_offset + 5].value += lambda * result[5]
-    r_j_values[j_offset + 6].value += lambda * result[6]
-    r_j_values[j_offset + 7].value += lambda * result[7]
-    r_j_values[j_offset + 8].value += lambda * result[8]
-    r_j_values[j_offset + 9].value += lambda * result[9]
+    r_j_values[j_offset].value += lambda * result0
+    r_j_values[j_offset + 1].value += lambda * result1
+    r_j_values[j_offset + 2].value += lambda * result2
+    r_j_values[j_offset + 3].value += lambda * result3
+    r_j_values[j_offset + 4].value += lambda * result4
+    r_j_values[j_offset + 5].value += lambda * result5
+    r_j_values[j_offset + 6].value += lambda * result6
+    r_j_values[j_offset + 7].value += lambda * result7
+    r_j_values[j_offset + 8].value += lambda * result8
+    r_j_values[j_offset + 9].value += lambda * result9
   end
 end
 

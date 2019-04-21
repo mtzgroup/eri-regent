@@ -78,149 +78,159 @@ local function PPPP(a, b, c, R000, lambda,
     var R0400 : double = b * R0301 + R0201 + R0201 + R0201
     var R0040 : double = c * R0031 + R0021 + R0021 + R0021
 
-    var P0 : double = r_density[d_offset].value
-    var P1 : double = r_density[d_offset + 1].value
-    var P2 : double = r_density[d_offset + 2].value
-    var P3 : double = r_density[d_offset + 3].value
-    var P4 : double = r_density[d_offset + 4].value
-    var P5 : double = r_density[d_offset + 5].value
-    var P6 : double = r_density[d_offset + 6].value
-    var P7 : double = r_density[d_offset + 7].value
-    var P8 : double = r_density[d_offset + 8].value
-    var P9 : double = r_density[d_offset + 9].value
+    var P : double
+    var result0 : double
+    var result1 : double
+    var result2 : double
+    var result3 : double
+    var result4 : double
+    var result5 : double
+    var result6 : double
+    var result7 : double
+    var result8 : double
+    var result9 : double
 
-    var result : double[10]
-    result[0] = R000[0] * P0
-    result[1] = R1000 * P0
-    result[2] = R0100 * P0
-    result[3] = R0010 * P0
-    result[4] = R1100 * P0
-    result[5] = R1010 * P0
-    result[6] = R0110 * P0
-    result[7] = R2000 * P0
-    result[8] = R0200 * P0
-    result[9] = R0020 * P0
+    P = r_density[d_offset].value
+    result0 = R000[0] * P
+    result1 = R1000 * P
+    result2 = R0100 * P
+    result3 = R0010 * P
+    result4 = R1100 * P
+    result5 = R1010 * P
+    result6 = R0110 * P
+    result7 = R2000 * P
+    result8 = R0200 * P
+    result9 = R0020 * P
 
-    result[0] -= R1000 * P1
-    result[1] -= R2000 * P1
-    result[2] -= R1100 * P1
-    result[3] -= R1010 * P1
-    result[4] -= R2100 * P1
-    result[5] -= R2010 * P1
-    result[6] -= R1110 * P1
-    result[7] -= R3000 * P1
-    result[8] -= R1200 * P1
-    result[9] -= R1020 * P1
+    P = r_density[d_offset + 1].value
+    result0 -= R1000 * P
+    result1 -= R2000 * P
+    result2 -= R1100 * P
+    result3 -= R1010 * P
+    result4 -= R2100 * P
+    result5 -= R2010 * P
+    result6 -= R1110 * P
+    result7 -= R3000 * P
+    result8 -= R1200 * P
+    result9 -= R1020 * P
 
-    result[0] -= R0100 * P2
-    result[1] -= R1100 * P2
-    result[2] -= R0200 * P2
-    result[3] -= R0110 * P2
-    result[4] -= R1200 * P2
-    result[5] -= R1110 * P2
-    result[6] -= R0210 * P2
-    result[7] -= R2100 * P2
-    result[8] -= R0300 * P2
-    result[9] -= R0120 * P2
+    P = r_density[d_offset + 2].value
+    result0 -= R0100 * P
+    result1 -= R1100 * P
+    result2 -= R0200 * P
+    result3 -= R0110 * P
+    result4 -= R1200 * P
+    result5 -= R1110 * P
+    result6 -= R0210 * P
+    result7 -= R2100 * P
+    result8 -= R0300 * P
+    result9 -= R0120 * P
 
-    result[0] -= R0010 * P3
-    result[1] -= R1010 * P3
-    result[2] -= R0110 * P3
-    result[3] -= R0020 * P3
-    result[4] -= R1110 * P3
-    result[5] -= R1020 * P3
-    result[6] -= R0120 * P3
-    result[7] -= R2010 * P3
-    result[8] -= R0210 * P3
-    result[9] -= R0030 * P3
+    P = r_density[d_offset + 3].value
+    result0 -= R0010 * P
+    result1 -= R1010 * P
+    result2 -= R0110 * P
+    result3 -= R0020 * P
+    result4 -= R1110 * P
+    result5 -= R1020 * P
+    result6 -= R0120 * P
+    result7 -= R2010 * P
+    result8 -= R0210 * P
+    result9 -= R0030 * P
 
-    result[0] += R1100 * P4
-    result[1] += R2100 * P4
-    result[2] += R1200 * P4
-    result[3] += R1110 * P4
-    result[4] += R2200 * P4
-    result[5] += R2110 * P4
-    result[6] += R1210 * P4
-    result[7] += R3100 * P4
-    result[8] += R1300 * P4
-    result[9] += R1120 * P4
+    P = r_density[d_offset + 4].value
+    result0 += R1100 * P
+    result1 += R2100 * P
+    result2 += R1200 * P
+    result3 += R1110 * P
+    result4 += R2200 * P
+    result5 += R2110 * P
+    result6 += R1210 * P
+    result7 += R3100 * P
+    result8 += R1300 * P
+    result9 += R1120 * P
 
-    result[0] += R1010 * P5
-    result[1] += R2010 * P5
-    result[2] += R1110 * P5
-    result[3] += R1020 * P5
-    result[4] += R2110 * P5
-    result[5] += R2020 * P5
-    result[6] += R1120 * P5
-    result[7] += R3010 * P5
-    result[8] += R1210 * P5
-    result[9] += R1030 * P5
+    P = r_density[d_offset + 5].value
+    result0 += R1010 * P
+    result1 += R2010 * P
+    result2 += R1110 * P
+    result3 += R1020 * P
+    result4 += R2110 * P
+    result5 += R2020 * P
+    result6 += R1120 * P
+    result7 += R3010 * P
+    result8 += R1210 * P
+    result9 += R1030 * P
 
-    result[0] += R0110 * P6
-    result[1] += R1110 * P6
-    result[2] += R0210 * P6
-    result[3] += R0120 * P6
-    result[4] += R1210 * P6
-    result[5] += R1120 * P6
-    result[6] += R0220 * P6
-    result[7] += R2110 * P6
-    result[8] += R0310 * P6
-    result[9] += R0130 * P6
+    P = r_density[d_offset + 6].value
+    result0 += R0110 * P
+    result1 += R1110 * P
+    result2 += R0210 * P
+    result3 += R0120 * P
+    result4 += R1210 * P
+    result5 += R1120 * P
+    result6 += R0220 * P
+    result7 += R2110 * P
+    result8 += R0310 * P
+    result9 += R0130 * P
 
-    result[0] += R2000 * P7
-    result[1] += R3000 * P7
-    result[2] += R2100 * P7
-    result[3] += R2010 * P7
-    result[4] += R3100 * P7
-    result[5] += R3010 * P7
-    result[6] += R2110 * P7
-    result[7] += R4000 * P7
-    result[8] += R2200 * P7
-    result[9] += R2020 * P7
+    P = r_density[d_offset + 7].value
+    result0 += R2000 * P
+    result1 += R3000 * P
+    result2 += R2100 * P
+    result3 += R2010 * P
+    result4 += R3100 * P
+    result5 += R3010 * P
+    result6 += R2110 * P
+    result7 += R4000 * P
+    result8 += R2200 * P
+    result9 += R2020 * P
 
-    result[0] += R0200 * P8
-    result[1] += R1200 * P8
-    result[2] += R0300 * P8
-    result[3] += R0210 * P8
-    result[4] += R1300 * P8
-    result[5] += R1210 * P8
-    result[6] += R0310 * P8
-    result[7] += R2200 * P8
-    result[8] += R0400 * P8
-    result[9] += R0220 * P8
+    P = r_density[d_offset + 8].value
+    result0 += R0200 * P
+    result1 += R1200 * P
+    result2 += R0300 * P
+    result3 += R0210 * P
+    result4 += R1300 * P
+    result5 += R1210 * P
+    result6 += R0310 * P
+    result7 += R2200 * P
+    result8 += R0400 * P
+    result9 += R0220 * P
 
-    result[0] += R0020 * P9
-    result[1] += R1020 * P9
-    result[2] += R0120 * P9
-    result[3] += R0030 * P9
-    result[4] += R1120 * P9
-    result[5] += R1030 * P9
-    result[6] += R0130 * P9
-    result[7] += R2020 * P9
-    result[8] += R0220 * P9
-    result[9] += R0040 * P9
+    P = r_density[d_offset + 9].value
+    result0 += R0020 * P
+    result1 += R1020 * P
+    result2 += R0120 * P
+    result3 += R0030 * P
+    result4 += R1120 * P
+    result5 += R1030 * P
+    result6 += R0130 * P
+    result7 += R2020 * P
+    result8 += R0220 * P
+    result9 += R0040 * P
 
-    result[0] *= lambda
-    result[1] *= lambda
-    result[2] *= lambda
-    result[3] *= lambda
-    result[4] *= lambda
-    result[5] *= lambda
-    result[6] *= lambda
-    result[7] *= lambda
-    result[8] *= lambda
-    result[9] *= lambda
+    result0 *= lambda
+    result1 *= lambda
+    result2 *= lambda
+    result3 *= lambda
+    result4 *= lambda
+    result5 *= lambda
+    result6 *= lambda
+    result7 *= lambda
+    result8 *= lambda
+    result9 *= lambda
 
-    r_j_values[j_offset].value += result[0]
-    r_j_values[j_offset + 1].value += result[1]
-    r_j_values[j_offset + 2].value += result[2]
-    r_j_values[j_offset + 3].value += result[3]
-    r_j_values[j_offset + 4].value += result[4]
-    r_j_values[j_offset + 5].value += result[5]
-    r_j_values[j_offset + 6].value += result[6]
-    r_j_values[j_offset + 7].value += result[7]
-    r_j_values[j_offset + 8].value += result[8]
-    r_j_values[j_offset + 9].value += result[9]
+    r_j_values[j_offset].value += result0
+    r_j_values[j_offset + 1].value += result1
+    r_j_values[j_offset + 2].value += result2
+    r_j_values[j_offset + 3].value += result3
+    r_j_values[j_offset + 4].value += result4
+    r_j_values[j_offset + 5].value += result5
+    r_j_values[j_offset + 6].value += result6
+    r_j_values[j_offset + 7].value += result7
+    r_j_values[j_offset + 8].value += result8
+    r_j_values[j_offset + 9].value += result9
   end
 end
 

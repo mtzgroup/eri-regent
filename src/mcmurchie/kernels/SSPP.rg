@@ -20,29 +20,32 @@ local function SSPP(a, b, c, R000, lambda,
     var R0200 : double = b * R0101 + R000[1]
     var R0020 : double = c * R0011 + R000[1]
 
-    var P0 : double = r_density[d_offset].value
-    var P1 : double = r_density[d_offset + 1].value
-    var P2 : double = r_density[d_offset + 2].value
-    var P3 : double = r_density[d_offset + 3].value
-    var P4 : double = r_density[d_offset + 4].value
-    var P5 : double = r_density[d_offset + 5].value
-    var P6 : double = r_density[d_offset + 6].value
-    var P7 : double = r_density[d_offset + 7].value
-    var P8 : double = r_density[d_offset + 8].value
-    var P9 : double = r_density[d_offset + 9].value
-
+    var P : double
     var result : double
-    result = R000[0] * P0
-    result -= R1000 * P1
-    result -= R0100 * P2
-    result -= R0010 * P3
-    result += R1100 * P4
-    result += R1010 * P5
-    result += R0110 * P6
-    result += R2000 * P7
-    result += R0200 * P8
-    result += R0020 * P9
+    
+    P = r_density[d_offset].value
+    result = R000[0] * P
+    P = r_density[d_offset + 1].value
+    result -= R1000 * P
+    P = r_density[d_offset + 2].value
+    result -= R0100 * P
+    P = r_density[d_offset + 3].value
+    result -= R0010 * P
+    P = r_density[d_offset + 4].value
+    result += R1100 * P
+    P = r_density[d_offset + 5].value
+    result += R1010 * P
+    P = r_density[d_offset + 6].value
+    result += R0110 * P
+    P = r_density[d_offset + 7].value
+    result += R2000 * P
+    P = r_density[d_offset + 8].value
+    result += R0200 * P
+    P = r_density[d_offset + 9].value
+    result += R0020 * P
+
     result *= lambda
+
     r_j_values[j_offset].value += result
   end
 end
