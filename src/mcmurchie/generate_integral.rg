@@ -18,9 +18,9 @@ function generateTaskMcMurchieIntegral(L12, L34)
   local PI_5_2 = math.pow(math.pi, 2.5)
 
   -- Returns an expression to recursively compute Hermite polynomials given by
-  -- R00MJ = cR00(M-1)(J+1) + (M-1)R00(M-2)(J+1)
-  -- R0LMJ = bR0(L-1)M(J+1) + (L-1)R0(L-2)M(J+1)
-  -- RNLMJ = cR(N-1)LM(J+1) + (N-1)R(N-2)LM(J+1)
+  -- R00MJ = c * R00(M-1)(J+1) + (M-1) * R00(M-2)(J+1)
+  -- R0LMJ = b * R0(L-1)M(J+1) + (L-1) * R0(L-2)M(J+1)
+  -- RNLMJ = a * R(N-1)LM(J+1) + (N-1) * R(N-2)LM(J+1)
   local function generateRExpression(N, L, M, a, b, c, R000)
     assert(N >= 0 and L >= 0 and M >= 0)
     local function aux(N, L, M, j)
