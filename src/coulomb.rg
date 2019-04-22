@@ -6,7 +6,7 @@ require "rys.generate_integral"
 local max_momentum = 2
 
 -- Generate code to dispatch two-electron repulsion integrals
-local function dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_boys, parallelism)
+local function dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_boys, highest_L, parallelism)
   -- local lua_spin_pattern = generateSpinPatternRegion(max_momentum)
   local statements = terralib.newlist({rquote
     -- [lua_spin_pattern.initialize]
@@ -16,41 +16,45 @@ local function dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_
       local use_mcmurchie = true
       if use_mcmurchie then
         statements:insert(rquote
-          -- var bra_coloring = ispace(int1d, parallelism)
-          -- var ket_coloring = ispace(int1d, parallelism)
-          -- var p_bra_gausses = partition(equal, p_gausses[L12], bra_coloring)
-          -- var p_ket_gausses = partition(equal, p_gausses[L34], ket_coloring)
-          -- var p_density = image(p_density[L34], p_ket_gausses, r_gausses.data_rect)
-          -- var p_j_values = image(p_j_values[L12], p_bra_gausses, r_gausses.data_rect)
-          -- for bra_color in bra_coloring do
-          --   __demand(__parallel)
-          --   for ket_color in ket_coloring do
-          --     [generateTaskMcMurchieIntegral(L12, L34)](
-          --       p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-          --       p_density[ket_color], p_j_values[bra_color], r_boys
-          --     )
-          --   end
-          -- end
-          [generateTaskMcMurchieIntegral(L12, L34)](p_gausses[L12], p_gausses[L34],
-                                                    p_density[L34], p_j_values[L12],
-                                                    r_boys)
+          if L12 <= highest_L and L34 <= highest_L then
+            -- var bra_coloring = ispace(int1d, parallelism)
+            -- var ket_coloring = ispace(int1d, parallelism)
+            -- var p_bra_gausses = partition(equal, p_gausses[L12], bra_coloring)
+            -- var p_ket_gausses = partition(equal, p_gausses[L34], ket_coloring)
+            -- var p_density = image(p_density[L34], p_ket_gausses, r_gausses.data_rect)
+            -- var p_j_values = image(p_j_values[L12], p_bra_gausses, r_gausses.data_rect)
+            -- for bra_color in bra_coloring do
+            --   __demand(__parallel)
+            --   for ket_color in ket_coloring do
+            --     [generateTaskMcMurchieIntegral(L12, L34)](
+            --       p_bra_gausses[bra_color], p_ket_gausses[ket_color],
+            --       p_density[ket_color], p_j_values[bra_color], r_boys
+            --     )
+            --   end
+            -- end
+            [generateTaskMcMurchieIntegral(L12, L34)](p_gausses[L12], p_gausses[L34],
+                                                      p_density[L34], p_j_values[L12],
+                                                      r_boys)
+          end
         end)
       else -- use Rys
         statements:insert(rquote
-          -- var bra_coloring = ispace(int1d, parallelism)
-          -- var ket_coloring = ispace(int1d, parallelism)
-          -- var p_bra_gausses = partition(equal, p_gausses[L12], bra_coloring)
-          -- var p_ket_gausses = partition(equal, p_gausses[L34], ket_coloring)
-          -- var p_density = image(p_density[L34], p_ket_gausses, r_gausses.data_rect)
-          -- var p_j_values = image(p_j_values[L12], p_bra_gausses, r_gausses.data_rect)
-          -- for bra_color in bra_coloring do
-          --   __demand(__parallel)
-          --   for ket_color in ket_coloring do
-          --     [generateTaskRysIntegral(L12, L34)](
-          --       p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-          --       p_density[ket_color], p_j_values[bra_color],
-          --       [lua_spin_pattern.r_spin_pattern], 1, 1
-          --     )
+          -- if L12 <= highest_L and L34 <= highest_L then
+          --   var bra_coloring = ispace(int1d, parallelism)
+          --   var ket_coloring = ispace(int1d, parallelism)
+          --   var p_bra_gausses = partition(equal, p_gausses[L12], bra_coloring)
+          --   var p_ket_gausses = partition(equal, p_gausses[L34], ket_coloring)
+          --   var p_density = image(p_density[L34], p_ket_gausses, r_gausses.data_rect)
+          --   var p_j_values = image(p_j_values[L12], p_bra_gausses, r_gausses.data_rect)
+          --   for bra_color in bra_coloring do
+          --     __demand(__parallel)
+          --     for ket_color in ket_coloring do
+          --       [generateTaskRysIntegral(L12, L34)](
+          --         p_bra_gausses[bra_color], p_ket_gausses[ket_color],
+          --         p_density[ket_color], p_j_values[bra_color],
+          --         [lua_spin_pattern.r_spin_pattern], 1, 1
+          --       )
+          --     end
           --   end
           -- end
         end)
@@ -94,5 +98,5 @@ do
   var p_density = image(r_density, p_gausses, r_gausses.data_rect)
   var p_j_values = image(r_j_values, p_gausses, r_gausses.data_rect)
 
-  ;[dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_boys, parallelism)];
+  ;[dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_boys, highest_L, parallelism)];
 end
