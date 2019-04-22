@@ -195,6 +195,7 @@ task toplevel()
     if config.num_trials > 1 then c.printf("Running trial %d\n", trial) end
     __fence(__execution, __block) -- Make sure we only time the computation
     var ts_start = c.legion_get_current_time_in_micros()
+    __fence(__execution, __block) -- Make sure we only time the computation
 
     coulomb(r_gausses, r_density, r_j_values, r_boys, config.highest_L, config.parallelism)
 
