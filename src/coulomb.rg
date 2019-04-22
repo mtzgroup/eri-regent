@@ -4,54 +4,62 @@ require "mcmurchie.generate_integral"
 require "rys.generate_integral"
 
 local max_momentum = 2
-local lua_spin_pattern = generateSpinPatternRegion(max_momentum)
 
--- Dispatches several kernels to compute a block of BraKets.
--- All Bras and all Kets are assumed to have the same angular momentum.
-local function dispatchIntegrals(bra_L_color, ket_L_color,
-                                 -- bra_coloring, ket_coloring,
-                                 p_bra_gausses, p_ket_gausses,
-                                 p_density, p_j_values,
-                                 r_boys, r_spin_pattern)
-  local statements = terralib.newlist()
+-- Generate code to dispatch two-electron repulsion integrals
+local function dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_boys, parallelism)
+  -- local lua_spin_pattern = generateSpinPatternRegion(max_momentum)
+  local statements = terralib.newlist({rquote
+    -- [lua_spin_pattern.initialize]
+  end})
   for L12 = 0, max_momentum do -- inclusive
     for L34 = 0, max_momentum do -- inclusive
-      -- TODO: Decide to run McMurchie or Rys.
       local use_mcmurchie = true
       if use_mcmurchie then
         statements:insert(rquote
-          if [int](bra_L_color) == L12 and [int](ket_L_color) == L34 then
-            -- for bra_color in bra_coloring do
-            --   __demand(__parallel)
-            --   for ket_color in ket_coloring do
-                [generateTaskMcMurchieIntegral(L12, L34)](
-                  p_bra_gausses[bra_L_color], p_ket_gausses[ket_L_color],
-                  p_density[ket_L_color], p_j_values[bra_L_color], r_boys
-                )
-            --   end
-            -- end
-          end
+          -- var bra_coloring = ispace(int1d, parallelism)
+          -- var ket_coloring = ispace(int1d, parallelism)
+          -- var p_bra_gausses = partition(equal, p_gausses[L12], bra_coloring)
+          -- var p_ket_gausses = partition(equal, p_gausses[L34], ket_coloring)
+          -- var p_density = image(p_density[L34], p_ket_gausses, r_gausses.data_rect)
+          -- var p_j_values = image(p_j_values[L12], p_bra_gausses, r_gausses.data_rect)
+          -- for bra_color in bra_coloring do
+          --   __demand(__parallel)
+          --   for ket_color in ket_coloring do
+          --     [generateTaskMcMurchieIntegral(L12, L34)](
+          --       p_bra_gausses[bra_color], p_ket_gausses[ket_color],
+          --       p_density[ket_color], p_j_values[bra_color], r_boys
+          --     )
+          --   end
+          -- end
+          [generateTaskMcMurchieIntegral(L12, L34)](p_gausses[L12], p_gausses[L34],
+                                                    p_density[L34], p_j_values[L12],
+                                                    r_boys)
         end)
-      else -- Use Rys
-        -- statements:insert(rquote
-        --   if [int](bra_L_color) == L12 and [int](ket_L_color) == L34 then
-        --     for bra_color in bra_coloring do
-        --       __demand(__parallel)
-        --       for ket_color in ket_coloring do
-        --         [generateTaskRysIntegral(L12, L34)](
-        --           p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-        --           p_density[ket_color], p_j_values[bra_color],
-        --           r_spin_pattern, 1, 1
-        --         )
-        --       end
-        --     end
-        --   end
-        -- end)
+      else -- use Rys
+        statements:insert(rquote
+          -- var bra_coloring = ispace(int1d, parallelism)
+          -- var ket_coloring = ispace(int1d, parallelism)
+          -- var p_bra_gausses = partition(equal, p_gausses[L12], bra_coloring)
+          -- var p_ket_gausses = partition(equal, p_gausses[L34], ket_coloring)
+          -- var p_density = image(p_density[L34], p_ket_gausses, r_gausses.data_rect)
+          -- var p_j_values = image(p_j_values[L12], p_bra_gausses, r_gausses.data_rect)
+          -- for bra_color in bra_coloring do
+          --   __demand(__parallel)
+          --   for ket_color in ket_coloring do
+          --     [generateTaskRysIntegral(L12, L34)](
+          --       p_bra_gausses[bra_color], p_ket_gausses[ket_color],
+          --       p_density[ket_color], p_j_values[bra_color],
+          --       [lua_spin_pattern.r_spin_pattern], 1, 1
+          --     )
+          --   end
+          -- end
+        end)
       end
     end
   end
   return statements
 end
+
 
 -- Computes fancy two-electron repulsion integrals
 --
@@ -80,30 +88,11 @@ do
   regentlib.assert(r_boys.volume >= 121 * (2*highest_L+7),
                    "Please generate more precomputed boys values.")
   fill(r_j_values.value, 0.0)
-  -- ;[lua_spin_pattern.initialize];
 
   var L_coloring = ispace(int1d, highest_L + 1)
   var p_gausses = partition(r_gausses.L, L_coloring)
   var p_density = image(r_density, p_gausses, r_gausses.data_rect)
   var p_j_values = image(r_j_values, p_gausses, r_gausses.data_rect)
 
-  for bra_L_color in L_coloring do
-    for ket_L_color in L_coloring do
-      -- Temporary fix for Realm bug
-      -- TODO: Need to decide how much parallelism to give to each integral
-      -- var bra_coloring = ispace(int1d, parallelism)
-      -- var ket_coloring = ispace(int1d, parallelism)
-      -- var p_bra_gausses = partition(equal, p_gausses[bra_L_color], bra_coloring)
-      -- var p_ket_gausses = partition(equal, p_gausses[ket_L_color], ket_coloring)
-      -- var p_density = image(p_density[ket_L_color], p_ket_gausses, r_gausses.data_rect)
-      -- var p_j_values = image(p_j_values[bra_L_color], p_bra_gausses, r_gausses.data_rect)
-
-      [dispatchIntegrals(bra_L_color, ket_L_color,
-                          -- bra_coloring, ket_coloring,
-                          -- p_bra_gausses, p_ket_gausses,
-                          p_gausses, p_gausses,
-                          p_density, p_j_values, r_boys,
-                          lua_spin_pattern.r_spin_pattern)];
-    end
-  end
+  ;[dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_boys, parallelism)];
 end

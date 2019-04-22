@@ -3,14 +3,14 @@
 
 Calculates two-electron repulsion integrals with Regent
 
-# Precomputed Boys Function Values
+## Precomputed Boys Function Values
 Use the python script in `scripts/` to generate a header file containing values of the Boys function.
 
 ```
 python scripts/generate_boys_region.py src/mcmurchie/precomputedBoys.h
 ```
 
-# Running
+## Running
 Run in Regent using `top.rg` inside `src/` for testing.
 
 ```
@@ -27,7 +27,7 @@ make all
 make run
 ```
 
-# Testing
+## Testing
 
 ```
 python scripts/test.py
