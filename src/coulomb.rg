@@ -99,5 +99,4 @@ do
   var p_j_values = image(r_j_values, p_gausses, r_gausses.data_rect)
 
   ;[dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_boys, highest_L, parallelism)];
-  __fence(__execution, __block) -- Temporary fix for https://github.com/StanfordLegion/legion/issues/525
 end
