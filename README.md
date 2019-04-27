@@ -16,6 +16,7 @@ Run in Regent using `top.rg` inside `src/` for testing.
 ```
 cd src
 regent top.rg -i data/h2_6-311g.dat -o output.dat
+# Use option `-fflow 0` to compile Regent faster
 ```
 
 Use the Makefile in `src/cpp/` to compile and run inside C++. This will generate a header file and a library for the Coulomb tasks so they can be called within C++. The Makefile assumes the `$LG_RT_DIR` environment variable has been set.

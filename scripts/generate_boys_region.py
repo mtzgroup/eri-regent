@@ -9,7 +9,7 @@ if len(sys.argv) != 2:
 
 FILE_NAME = sys.argv[1]
 # Add 6 because we use a seven term Taylor expansion
-LARGEST_J = 4 + 6
+LARGEST_J = 9 + 6
 
 
 def integrand(u, t, j):

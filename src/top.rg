@@ -1,7 +1,7 @@
 import "regent"
 
-require("coulomb")
-local Config = require("config")
+require "coulomb"
+local Config = require "config"
 local c = regentlib.c
 local assert = regentlib.assert
 local fabs = regentlib.fabs(double)
@@ -44,11 +44,11 @@ where
   r_density * r_true_j_values
 do
   var file = c.fopen(config.input_filename, "r")
-  var line : int8[512]
-  fgets(line, 512, file)  -- Skip first line
+  var line : int8[1024]
+  fgets(line, 1024, file)  -- Skip first line
   var i : int1d = 0
   var density_idx : int1d = 0
-  while fgets(line, 512, file) do
+  while fgets(line, 1024, file) do
     if c.strncmp(line, "\n", 1) ~= 0 and c.strncmp(line, "\r\n", 2) ~= 0 then
       var data : int[1]
       c.sscanf([&int8](line), "%d", data)
@@ -75,11 +75,11 @@ do
 
   if config.true_values_filename[0] ~= 0 then
     var file = c.fopen(config.true_values_filename, "r")
-    var line : int8[512]
-    fgets(line, 512, file)  -- Skip first line
+    var line : int8[1024]
+    fgets(line, 1024, file)  -- Skip first line
     var i : int1d = 0
     var j_idx: int1d = 0
-    while fgets(line, 512, file) do
+    while fgets(line, 1024, file) do
       if c.strncmp(line, "\n", 1) ~= 0 and c.strncmp(line, "\r\n", 2) ~= 0 then
         var data : int[1]
         c.sscanf([&int8](line), "%d", data)

@@ -28,7 +28,8 @@ function generateTaskComputeR000(length)
       R000[length-1] = 0.0
       var factor : double = 1.0
       for k = 0, 7 do -- exclusive
-        var boys_est : double = r_boys[t_idx * 11 + length-1+k].value
+        -- TODO: assert _precomputed_boys_largest_j == 16
+        var boys_est : double = r_boys[t_idx * 16 + length-1+k].value
         R000[length-1] = R000[length-1] + factor * boys_est
         factor = factor * (t_est - t) / (k + 1)
       end
