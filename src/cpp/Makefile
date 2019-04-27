@@ -21,7 +21,7 @@ TARGET := coulomb_cpp
 all: $(TARGET)
 
 libcoulomb_tasks.so coulomb_tasks.h: $(SRCS_RG)
-	regent ../generate_lib.rg ./
+	regent ../generate_lib.rg ./ -fflow 0
 
 $(TARGET): $(SRCS_CPP) libcoulomb_tasks.so coulomb_tasks.h
 	$(CC) $(CFLAGS) $(INCLUDES) $(SRCS_CPP) -o $@ $(LFLAGS) $(LIBS)
