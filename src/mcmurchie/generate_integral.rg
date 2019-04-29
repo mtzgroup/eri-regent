@@ -122,8 +122,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
 
         var alpha : double = bra.eta * ket.eta / (bra.eta + ket.eta)
         var t : double = alpha * (a*a+b*b+c*c)
-        var R000 : double[L + 1] = __demand(
-          __inline,
+        var R000 : double[L + 1] = __demand(__inline,
           [generateTaskComputeR000(L+1)](t, alpha, r_boys)
         )
 
