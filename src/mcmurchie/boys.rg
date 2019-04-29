@@ -1,5 +1,6 @@
+-- TODO: Rename this file
 import "regent"
-require("fields")
+require "fields"
 
 local cmath = terralib.includec("math.h")
 local M_PI = cmath.M_PI

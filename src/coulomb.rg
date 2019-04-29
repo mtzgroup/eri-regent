@@ -1,7 +1,7 @@
 import "regent"
 require "fields"
 require "mcmurchie.generate_integral"
-require "mcmurchie.get_boys_region"
+require "mcmurchie.populate_boys_region"
 require "rys.generate_integral"
 
 local max_momentum = 2
