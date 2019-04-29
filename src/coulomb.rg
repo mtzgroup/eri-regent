@@ -89,8 +89,7 @@ where
 do
   regentlib.assert(highest_L <= max_momentum,
                    "Please compile for higher angular momentum.")
-  -- TODO: We should be able to handle having too many `r_boys` values
-  regentlib.assert(r_boys.volume == 121 * (2*highest_L+7),
+  regentlib.assert(r_boys.volume >= 121 * (2*highest_L+7),
                    "Please generate more precomputed boys values.")
   fill(r_j_values.value, 0.0)
 
