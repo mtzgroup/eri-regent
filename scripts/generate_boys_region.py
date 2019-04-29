@@ -37,7 +37,7 @@ const unsigned _precomputed_boys_largest_j = %d;
  * Values of the boys function
  * boys(t, j) = integral from 0 to 1 of u^(2j) exp(-2tu) du
  * in row-major order such that
- * _precomputed_boys[t * %d + j] = boys(t / 10.f, j)
+ * _precomputed_boys[t * (_precomputed_boys_largest_j+1) + j] = boys(t/10.f, j)
  */
 const double _precomputed_boys[%d] = {
   %s
@@ -45,7 +45,6 @@ const double _precomputed_boys[%d] = {
 """
         % (
             LARGEST_J,
-            LARGEST_J + 1,
             values.size,
             ",\n  ".join(map(str, values.flatten())),
         )

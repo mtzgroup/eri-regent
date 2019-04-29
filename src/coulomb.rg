@@ -1,6 +1,7 @@
 import "regent"
 require "fields"
 require "mcmurchie.generate_integral"
+require "mcmurchie.get_boys_region"
 require "rys.generate_integral"
 
 local max_momentum = 2
@@ -9,6 +10,7 @@ local max_momentum = 2
 local function dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_boys, highest_L, parallelism)
   -- local lua_spin_pattern = generateSpinPatternRegion(max_momentum)
   local statements = terralib.newlist({rquote
+    -- TODO: Spin pattern region should not be initialized here.
     -- [lua_spin_pattern.initialize]
   end})
   for L12 = 0, max_momentum do -- inclusive
@@ -78,18 +80,18 @@ end
 task coulomb(r_gausses  : region(ispace(int1d), HermiteGaussian),
              r_density  : region(ispace(int1d), Double),
              r_j_values : region(ispace(int1d), Double),
-             r_boys     : region(ispace(int1d), Double),
              highest_L : int, parallelism : int)
 where
-  reads(r_gausses, r_density, r_boys),
+  reads(r_gausses, r_density),
   reads writes(r_j_values),
-  r_density * r_j_values,
-  r_density * r_boys,
-  r_j_values * r_boys
+  r_density * r_j_values
 do
   regentlib.assert(highest_L <= max_momentum,
                    "Please compile for higher angular momentum.")
-  regentlib.assert(r_boys.volume >= 121 * (2*highest_L+7),
+  -- TODO: Eventually populating r_boys should be done outside `coulomb`.
+  var r_boys = region(ispace(int2d, {121, getBoysLargestJ() + 1}), double)
+  populateBoysRegion(r_boys)
+  regentlib.assert(r_boys.bounds.hi.y - r_boys.bounds.lo.y + 1 >= (2*highest_L+7),
                    "Please generate more precomputed boys values.")
   fill(r_j_values.value, 0.0)
 

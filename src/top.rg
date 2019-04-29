@@ -5,18 +5,6 @@ local Config = require "config"
 local c = regentlib.c
 local assert = regentlib.assert
 local fabs = regentlib.fabs(double)
-local root_dir = arg[0]:match(".*/") or "./"
-local boysHeader = terralib.includec("mcmurchie/precomputedBoys.h", {"-I", root_dir})
-local _precomputedBoys = boysHeader._precomputed_boys
-local _precomputed_boys_largest_j = boysHeader._precomputed_boys_largest_j
-
-terra getNumBoysValues() : int
-  return 121 * (_precomputed_boys_largest_j + 1)
-end
-
-terra getPrecomputedBoys(idx : int) : double
-  return _precomputedBoys[idx]
-end
 
 terra fgets(line : &int8, n : int, file : &c.FILE) : bool
   return c.fgets(line, n, file) ~= nil
@@ -99,9 +87,9 @@ do
   end
 end
 
-task write_output(r_gausses  : region(ispace(int1d), HermiteGaussian),
-                  r_j_values : region(ispace(int1d), Double),
-                  config     : Config)
+task writeOutput(r_gausses  : region(ispace(int1d), HermiteGaussian),
+                 r_j_values : region(ispace(int1d), Double),
+                 config     : Config)
 where
   reads(r_gausses, r_j_values)
 do
@@ -121,10 +109,10 @@ do
   end
 end
 
-task verify_output(r_gausses       : region(ispace(int1d), HermiteGaussian),
-                   r_j_values      : region(ispace(int1d), Double),
-                   r_true_j_values : region(ispace(int1d), Double),
-                   config          : Config)
+task verifyOutput(r_gausses       : region(ispace(int1d), HermiteGaussian),
+                  r_j_values      : region(ispace(int1d), Double),
+                  r_true_j_values : region(ispace(int1d), Double),
+                  config          : Config)
 where
   reads(r_gausses, r_j_values, r_true_j_values)
 do
@@ -180,13 +168,6 @@ task toplevel()
   var r_j_values = region(ispace(int1d, config.num_data_values), Double)
   var r_true_j_values = region(ispace(int1d, config.num_data_values), Double)
 
-  var r_boys_volume = getNumBoysValues()
-  var r_boys = region(ispace(int1d, r_boys_volume), Double)
-  -- TODO: Use legion API to populate this region
-  for index in r_boys.ispace do
-    r_boys[index].value = getPrecomputedBoys(index)
-  end
-
   if config.verbose then c.printf("Reading input file\n") end
   populateData(r_gausses, r_density, r_true_j_values, config)
 
@@ -197,15 +178,15 @@ task toplevel()
     var ts_start = c.legion_get_current_time_in_micros()
     __fence(__execution, __block) -- Make sure we only time the computation
 
-    coulomb(r_gausses, r_density, r_j_values, r_boys, config.highest_L, config.parallelism)
+    coulomb(r_gausses, r_density, r_j_values, config.highest_L, config.parallelism)
 
     __fence(__execution, __block) -- Make sure we only time the computation
     var ts_stop = c.legion_get_current_time_in_micros()
     c.printf("Coulomb operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
   end
 
-  write_output(r_gausses, r_j_values, config)
-  verify_output(r_gausses, r_j_values, r_true_j_values, config)
+  writeOutput(r_gausses, r_j_values, config)
+  verifyOutput(r_gausses, r_j_values, r_true_j_values, config)
 end
 
 regentlib.start(toplevel)

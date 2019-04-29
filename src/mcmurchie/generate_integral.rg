@@ -101,13 +101,11 @@ function generateTaskMcMurchieIntegral(L12, L34)
                 r_ket_gausses : region(ispace(int1d), HermiteGaussian),
                 r_density     : region(ispace(int1d), Double),
                 r_j_values    : region(ispace(int1d), Double),
-                r_boys        : region(ispace(int1d), Double))
+                r_boys        : region(ispace(int2d), double))
   where
     reads(r_bra_gausses, r_ket_gausses, r_density, r_boys),
     reduces +(r_j_values),
-    r_density * r_j_values,
-    r_density * r_boys,
-    r_j_values * r_boys
+    r_density * r_j_values
   do
     var ket_idx_bounds_lo : int = r_ket_gausses.ispace.bounds.lo
     var ket_idx_bounds_hi : int = r_ket_gausses.ispace.bounds.hi
