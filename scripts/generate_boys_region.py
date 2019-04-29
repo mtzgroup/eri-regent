@@ -8,8 +8,9 @@ if len(sys.argv) != 2:
     exit(0)
 
 FILE_NAME = sys.argv[1]
+MAX_MOMENTUM = 6
 # Add 6 because we use a seven term Taylor expansion
-LARGEST_J = 9 + 6
+LARGEST_J = (2 * MAX_MOMENTUM + 1) + 6
 
 
 def integrand(u, t, j):
