@@ -88,11 +88,11 @@ where
 do
   regentlib.assert(highest_L <= max_momentum,
                    "Please compile for higher angular momentum.")
+  regentlib.assert(getBoysLargestJ() >= 2 * highest_L + 1 + 6,
+                   "Please generate more precomputed boys values.")
   -- TODO: Eventually populating r_boys should be done outside `coulomb`.
   var r_boys = region(ispace(int2d, {121, getBoysLargestJ() + 1}), double)
   populateBoysRegion(r_boys)
-  regentlib.assert(r_boys.bounds.hi.y - r_boys.bounds.lo.y + 1 >= (2*highest_L+7),
-                   "Please generate more precomputed boys values.")
   fill(r_j_values.value, 0.0)
 
   var L_coloring = ispace(int1d, highest_L + 1)

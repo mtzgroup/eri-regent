@@ -75,15 +75,15 @@ function generateTaskMcMurchieIntegral(L12, L34)
         local N = pattern[t + 1][1] + pattern[u + 1][1]
         local L = pattern[t + 1][2] + pattern[u + 1][2]
         local M = pattern[t + 1][3] + pattern[u + 1][3]
-        local sign
         if (pattern[u + 1][1] + pattern[u + 1][2] + pattern[u + 1][3]) % 2 == 0 then
-          sign = 1
+          statements:insert(rquote
+            result[t] += P[u] * [generateRExpression(N, L, M, a, b, c, R000)]
+          end)
         else
-          sign = -1
+          statements:insert(rquote
+            result[t] -= P[u] * [generateRExpression(N, L, M, a, b, c, R000)]
+          end)
         end
-        statements:insert(rquote
-          result[t] += sign * P[u] * [generateRExpression(N, L, M, a, b, c, R000)]
-        end)
       end
     end
     for i = 0, H12-1 do -- inclusive
