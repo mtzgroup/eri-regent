@@ -37,7 +37,7 @@ if __name__ == "__main__":
         # TODO: Test gpu and cuda
         try:
             subprocess.check_call(
-                ["regent", "top.rg", "--max_momentum", L, "-i", infile, "-v", outfile, "-fflow", "0"],
+                ["regent", "top.rg", "--max_momentum", str(L), "-i", infile, "-v", outfile, "-fflow", "0"],
                 cwd="src/",
             )
         except:
