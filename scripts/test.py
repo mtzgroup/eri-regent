@@ -10,7 +10,7 @@ test_files = [
     ("data/small-water/h2o_2_6-311g.dat", "data/small-water/h2o_2_6-311g_out.dat", 2),
     ("data/small-water/h2o_3_6-311g.dat", "data/small-water/h2o_3_6-311g_out.dat", 2),
     ("data/small-water/h2o_4_6-311g.dat", "data/small-water/h2o_4_6-311g_out.dat", 2),
-    ("data/ti2_crenbl.dat", "data/ti2_crenbl_out.dat", 4),
+    # ("data/ti2_crenbl.dat", "data/ti2_crenbl_out.dat", 4),
     # ("data/li2_cc-pvtz.dat", "data/li2_cc-pvtz_out.dat", 6),
 ]
 
