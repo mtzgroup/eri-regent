@@ -125,11 +125,12 @@ do
   for gauss_idx in r_gausses.ispace do
     var gaussian = r_gausses[gauss_idx]
     for i = [int](gaussian.data_rect.lo), [int](gaussian.data_rect.hi + 1) do
-      var error : double = fabs(r_j_values[i].value - r_true_j_values[i].value)
-      if error > 1e-8 then
+      var actual : double = r_j_values[i].value
+      var expected : double = r_true_j_values[i].value
+      var error : double = fabs(actual - expected)
+      if [bool](c.isnan(actual)) or [bool](c.isinf(actual)) or error > 1e-8 then
         c.printf("Value differs at gaussian = %d, L = %d, i = %d: actual = %.12f, expected = %.12f\n",
-                 gauss_idx, gaussian.L, i - [int](gaussian.data_rect.lo),
-                 r_j_values[i].value, r_true_j_values[i].value)
+                 gauss_idx, gaussian.L, i - [int](gaussian.data_rect.lo), actual, expected)
         num_incorrect += 1
       end
       if error > max_error then
