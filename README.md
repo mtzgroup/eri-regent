@@ -36,7 +36,7 @@ The default maximum angular momentum is `2` for systems with P orbitals (the Bra
 |:-------:|:----------------:|:----------:|:----------:|
 | P       | 2                | Negligible | Negligible |
 | D       | 4                | 1.5 GB     | 1 Minute   |
-| F       | 6                | >100 GB    | >1.5 Hours |
+| F       | 6                | ?? GB      | ?? Hours   |
 | G       | 8                | ?? GB      | ?? Hours   |
 
 

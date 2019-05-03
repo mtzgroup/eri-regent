@@ -1,6 +1,5 @@
 import "regent"
-local rootDir = arg[0]:match(".*/") or "./"
-local boysHeader = terralib.includec("mcmurchie/precomputedBoys.h", {"-I", rootDir})
+local boysHeader = terralib.includec("mcmurchie/precomputedBoys.h", {"-I", "./"})
 
 
 terra getBoysLargestJ() : int

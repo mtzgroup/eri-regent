@@ -23,41 +23,12 @@ function generateTaskMcMurchieIntegral(L12, L34)
       R[N][L] = {}
       for M = 0, L12+L34-N-L do -- inclusive
         R[N][L][M] = {}
-        for j = 0, L12+L34 do -- inclusive
+        for j = 0, L12+L34-N-L-M do -- inclusive
           R[N][L][M][j] = regentlib.newsymbol(double, "R"..N..L..M..j)
         end
       end
     end
   end
-
-  -- Returns an expression to recursively compute Hermite polynomials given by
-  -- R00MJ = c * R00(M-1)(J+1) + (M-1) * R00(M-2)(J+1)
-  -- R0LMJ = b * R0(L-1)M(J+1) + (L-1) * R0(L-2)M(J+1)
-  -- RNLMJ = a * R(N-1)LM(J+1) + (N-1) * R(N-2)LM(J+1)
-  -- local function generateRExpression(N, L, M, a, b, c)
-  --   assert(N >= 0 and L >= 0 and M >= 0)
-  --   local function aux(N, L, M, j)
-  --     if N == 0 and L == 0 and M == 0 then
-  --       return R000[j]
-  --     elseif N == 0 and L == 0 then
-  --       if M == 1 then
-  --         return rexpr c * [aux(0, 0, 0, j+1)] end
-  --       end
-  --       return rexpr c * [aux(0, 0, M-1, j+1)] + (M-1) * [aux(0, 0, M-2, j+1)] end
-  --     elseif N == 0 then
-  --       if L == 1 then
-  --         return rexpr b * [aux(0, 0, M, j+1)] end
-  --       end
-  --       return rexpr b * [aux(0, L-1, M, j+1)] + (L-1) * [aux(0, L-2, M, j+1)] end
-  --     else
-  --       if N == 1 then
-  --         return rexpr a * [aux(0, L, M, j+1)] end
-  --       end
-  --       return rexpr a * [aux(N-1, L, M, j+1)] + (N-1) * [aux(N-2, L, M, j+1)] end
-  --     end
-  --   end
-  --   return aux(N, L, M, 0)
-  -- end
 
 
   -- Returns a list of regent statements that implements the McMurchie algorithm
@@ -107,6 +78,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
     end
     return statements
   end
+
 
   local
   __demand(__leaf)
