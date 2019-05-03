@@ -22,7 +22,6 @@ function generateTaskMcMurchieIntegral(L12, L34)
   -- R0LMJ = b * R0(L-1)M(J+1) + (L-1) * R0(L-2)M(J+1)
   -- RNLMJ = a * R(N-1)LM(J+1) + (N-1) * R(N-2)LM(J+1)
   local function generateRExpression(N, L, M, a, b, c)
-    -- TODO: Memoize to help optimizer with common subexpression.
     assert(N >= 0 and L >= 0 and M >= 0)
     local function aux(N, L, M, j)
       if N == 0 and L == 0 and M == 0 then
@@ -47,6 +46,78 @@ function generateTaskMcMurchieIntegral(L12, L34)
     return aux(N, L, M, 0)
   end
 
+  -- Returns an expression to compute a table of Hermite polynomials given by
+  -- R00MJ = c * R00(M-1)(J+1) + (M-1) * R00(M-2)(J+1)
+  -- R0LMJ = b * R0(L-1)M(J+1) + (L-1) * R0(L-2)M(J+1)
+  -- RNLMJ = a * R(N-1)LM(J+1) + (N-1) * R(N-2)LM(J+1)
+  local function generateRTable(a, b, c, statements)
+    local levels = L12 + L34 + 1
+    -- Create a 4D Lua table. Once populated this will be dim = levels^4
+    -- TODO: rewrite for 0-indexed
+    -- need to initialize otherwise Lua complains that values are 'nil'
+    local R = {}
+    for i = 1,levels do
+      R[i] = {}
+      for j=1,levels do
+        R[i][j] = {}
+        for k=1,levels do
+          R[i][j][k] = {}
+          for l=1,levels do
+            R[i][j][k][l] = regentlib.newsymbol(double, "R"..i..j..k..l)
+          end
+        end
+      end
+    end 
+    -- add base cases to j dimension of R table
+    for j = 0, levels-1 do -- inclusive
+      statements:insert(rquote var [R[1][1][1][j+1]] = [R000[j]] end)
+    end
+    -- loop through number of recursive steps needed
+    for s = 1, levels-1 do -- inclusive
+      for j = 0, levels-s-1 do -- inclusive
+
+        -- Use first recursion formula to move down in N dim (skipped if s=1)
+        for N = 1, s-1 do -- inclusive
+          for L = 0, s-N do -- inclusive  
+            local M = s-N-L
+            -- use if b/c Lua doesn't realize you don't access [N-1] when N=1
+            if N > 1 then
+              statements:insert(rquote var [R[N+1][L+1][M+1][j+1]] = a * [R[N][L+1][M+1][j+2]] + (N-1) * [R[N-1][L+1][M+1][j+2]] end)
+            else 
+              statements:insert(rquote var [R[N+1][L+1][M+1][j+1]] = a * [R[N][L+1][M+1][j+2]] end)
+            end
+          end
+        end
+
+        -- Use second recursion formula to move down in L dim (skipped if s=1)
+        for L = 1, s-1 do -- inclusive
+          local M = s-L
+          -- use if b/c Lua doesn't realize you don't access [L-1] when L=1
+          if L > 1 then
+            statements:insert(rquote var [R[1][L+1][M+1][j+1]] = b * [R[1][L][M+1][j+2]] + (L-1) * [R[1][L-1][M+1][j+2]] end)
+          else
+            statements:insert(rquote var [R[1][L+1][M+1][j+1]] = b * [R[1][L][M+1][j+2]] end)
+          end
+        end
+
+        -- for all s
+        -- use if b/c Lua doesn't realize you don't access [s-1] when s=1
+        if s > 1 then
+          statements:insert(rquote var [R[s+1][1][1][j+1]] = a * [R[s][1][1][j+2]] + (s-1) * [R[s-1][1][1][j+2]] end)
+          statements:insert(rquote var [R[1][s+1][1][j+1]] = b * [R[1][s][1][j+2]] + (s-1) * [R[1][s-1][1][j+2]] end) 
+          statements:insert(rquote var [R[1][1][s+1][j+1]] = c * [R[1][1][s][j+2]] + (s-1) * [R[1][1][s-1][j+2]] end)
+        else
+          statements:insert(rquote var [R[s+1][1][1][j+1]] = a * [R[s][1][1][j+2]] end)
+          statements:insert(rquote var [R[1][s+1][1][j+1]] = b * [R[1][s][1][j+2]] end)
+          statements:insert(rquote var [R[1][1][s+1][j+1]] = c * [R[1][1][s][j+2]] end)
+        end
+
+      end
+    end
+
+    return R
+  end
+
   -- Returns a list of regent statements that implements the McMurchie algorithm
   local function generateKernel(a, b, c, lambda, r_j_values, j_offset, r_density, d_offset)
     local customKernel = customKernels[LToStr[L12]..LToStr[L34]]
@@ -68,6 +139,9 @@ function generateTaskMcMurchieIntegral(L12, L34)
         var [P[i]] = r_density[d_offset + i].value
       end)
     end
+
+    local R = generateRTable(a, b, c, statements)
+
     local pattern12 = generateSpinPattern(L12)
     local pattern34 = generateSpinPattern(L34)
     for u = 0, H34-1 do --inclusive
@@ -77,11 +151,13 @@ function generateTaskMcMurchieIntegral(L12, L34)
         local N, L, M = Nt + Nu, Lt + Lu, Mt + Mu
         if (Nu + Lu + Mu) % 2 == 0 then
           statements:insert(rquote
-            [result[t]] += [P[u]] * [generateRExpression(N, L, M, a, b, c)]
+            --[result[t]] += [P[u]] * [generateRExpression(N, L, M, a, b, c)]
+            [result[t]] += [P[u]] * [R[N+1][L+1][M+1][1]]
           end)
         else
           statements:insert(rquote
-            [result[t]] -= [P[u]] * [generateRExpression(N, L, M, a, b, c)]
+            --[result[t]] -= [P[u]] * [generateRExpression(N, L, M, a, b, c)]
+            [result[t]] -= [P[u]] * [R[N+1][L+1][M+1][1]]
           end)
         end
       end
