@@ -10,7 +10,7 @@ before_install:
   - sudo apt-get install -y clang-3.5 libclang-3.5-dev llvm-3.5-dev python-numpy python-scipy
   # Compile Regent
   - git clone -b master https://github.com/StanfordLegion/legion.git $HOME/legion
-  - $HOME/legion/language/scripts/setup_env.py
+  - CC=gcc CXX=g++ USE_GASNET=0 $HOME/legion/language/scripts/setup_env.py
   - sudo ln -s $HOME/legion/language/regent.py /usr/local/bin/regent
   # Generate precomputed Boys values
   - python scripts/generate_boys_region.py src/mcmurchie/precomputedBoys.h
