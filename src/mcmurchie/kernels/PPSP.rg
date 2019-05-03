@@ -4,17 +4,17 @@ local function PPSP(a, b, c, R000, lambda,
                     r_j_values, j_offset,
                     r_density, d_offset)
   return rquote
-    var R1000 : double = a * R000[1]
-    var R0100 : double = b * R000[1]
-    var R0010 : double = c * R000[1]
+    var R1000 : double = a * [R000[1]]
+    var R0100 : double = b * [R000[1]]
+    var R0010 : double = c * [R000[1]]
 
-    var R1001 : double = a * R000[2]
-    var R0101 : double = b * R000[2]
-    var R0011 : double = c * R000[2]
+    var R1001 : double = a * [R000[2]]
+    var R0101 : double = b * [R000[2]]
+    var R0011 : double = c * [R000[2]]
 
-    var R1002 : double = a * R000[3]
-    var R0102 : double = b * R000[3]
-    var R0012 : double = c * R000[3]
+    var R1002 : double = a * [R000[3]]
+    var R0102 : double = b * [R000[3]]
+    var R0012 : double = c * [R000[3]]
 
     var R1100 : double = a * R0101
     var R1010 : double = a * R0011
@@ -24,13 +24,13 @@ local function PPSP(a, b, c, R000, lambda,
     var R1011 : double = a * R0012
     var R0111 : double = b * R0012
 
-    var R2000 : double = a * R1001 + R000[1]
-    var R0200 : double = b * R0101 + R000[1]
-    var R0020 : double = c * R0011 + R000[1]
+    var R2000 : double = a * R1001 + [R000[1]]
+    var R0200 : double = b * R0101 + [R000[1]]
+    var R0020 : double = c * R0011 + [R000[1]]
 
-    var R2001 : double = a * R1002 + R000[2]
-    var R0201 : double = b * R0102 + R000[2]
-    var R0021 : double = c * R0012 + R000[2]
+    var R2001 : double = a * R1002 + [R000[2]]
+    var R0201 : double = b * R0102 + [R000[2]]
+    var R0021 : double = c * R0012 + [R000[2]]
 
     var R2100 : double = a * R1101 + R0101
     var R1200 : double = a * R0201
@@ -59,7 +59,7 @@ local function PPSP(a, b, c, R000, lambda,
     var result9 : double
 
     P = r_density[d_offset].value
-    result0 = R000[0] * P
+    result0 = [R000[0]] * P
     result1 = R1000 * P
     result2 = R0100 * P
     result3 = R0010 * P
