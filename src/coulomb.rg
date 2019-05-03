@@ -4,7 +4,12 @@ require "mcmurchie.generate_integral"
 require "mcmurchie.populate_boys_region"
 require "rys.generate_integral"
 
-local max_momentum = 2
+local max_momentum
+if arg[1] == "--max_momentum" then
+  max_momentum = tonumber(arg[2])
+else
+  max_momentum = 2
+end
 
 -- Generate code to dispatch two-electron repulsion integrals
 local function dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_boys, highest_L, parallelism)

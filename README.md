@@ -15,7 +15,7 @@ Run in Regent using `top.rg` inside `src/` for testing.
 
 ```
 cd src
-regent top.rg -i data/h2_6-311g.dat -o output.dat
+regent top.rg -i data/h2_6-311g.dat -v data/h2_6-311g_out.dat
 # Use option `-fflow 0` to compile Regent faster
 ```
 
@@ -35,8 +35,9 @@ The default maximum angular momentum is `2` for systems with P orbitals (the Bra
 | Orbital | Angular Momentum | Memory     | Wall-time  |
 |:-------:|:----------------:|:----------:|:----------:|
 | P       | 2                | Negligible | Negligible |
-| D       | 4                | 12 GB      | 10 Minutes |
+| D       | 4                | 1.5 GB     | 1 Minute   |
 | F       | 6                | >100 GB    | >1.5 Hours |
+| G       | 8                | ?? GB      | ?? Hours   |
 
 
 ## Testing

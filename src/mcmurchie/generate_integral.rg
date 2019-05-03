@@ -3,7 +3,7 @@ require "fields"
 require "mcmurchie.generate_R_table"
 require "generate_spin_pattern"
 
-local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="FD", [6]="FF"}
+local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]="FF", [7]="FG", [8]="GG"}
 local customKernels = require "mcmurchie.kernels.import"
 
 local sqrt = regentlib.sqrt(double)

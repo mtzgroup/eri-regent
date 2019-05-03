@@ -57,7 +57,6 @@ local function generateStatementsComputeR000(R000, length, t, alpha, r_boys)
 
   local statements = terralib.newlist()
   for j = 0, length-1 do -- inclusive
-    R000[j] = regentlib.newsymbol(double, "R000"..j)
     statements:insert(rquote var [R000[j]] end)
   end
   statements:insert(rquote
@@ -105,10 +104,18 @@ end
 function generateStatementsComputeRTable(R, length, t, alpha, r_boys, a, b, c)
   local statements = generateStatementsComputeR000(R[0][0][0], length, t, alpha, r_boys)
 
-  for sum = 1, length-1 do -- inclusive
+  for j = 0, length-2 do -- inclusive
+    statements:insert(rquote
+      var [R[1][0][0][j]] = a * [R[0][0][0][j+1]]
+      var [R[0][1][0][j]] = b * [R[0][0][0][j+1]]
+      var [R[0][0][1][j]] = c * [R[0][0][0][j+1]]
+    end)
+  end
+
+  for sum = 2, length-1 do -- inclusive
     for j = 0, length-1-sum do -- inclusive
 
-      -- Use first recursion formula to move down in N dim (skipped if sum=1)
+      -- Use first recursion formula to move down in N dim
       for N = 1, sum-1 do -- inclusive
         for L = 0, sum-N do -- inclusive
           local M = sum-N-L
@@ -124,7 +131,7 @@ function generateStatementsComputeRTable(R, length, t, alpha, r_boys, a, b, c)
         end
       end
 
-      -- Use second recursion formula to move down in L dim (skipped if sum=1)
+      -- Use second recursion formula to move down in L dim
       for L = 1, sum-1 do -- inclusive
         local M = sum-L
         if L > 1 then
@@ -138,20 +145,11 @@ function generateStatementsComputeRTable(R, length, t, alpha, r_boys, a, b, c)
         end
       end
 
-      if sum > 1 then
-        statements:insert(rquote
-          var [R[sum][0][0][j]] = a * [R[sum-1][0][0][j+1]] + (sum-1) * [R[sum-2][0][0][j+1]]
-          var [R[0][sum][0][j]] = b * [R[0][sum-1][0][j+1]] + (sum-1) * [R[0][sum-2][0][j+1]]
-          var [R[0][0][sum][j]] = c * [R[0][0][sum-1][j+1]] + (sum-1) * [R[0][0][sum-2][j+1]]
-        end)
-      else
-        statements:insert(rquote
-          var [R[sum][0][0][j]] = a * [R[sum-1][0][0][j+1]]
-          var [R[0][sum][0][j]] = b * [R[0][sum-1][0][j+1]]
-          var [R[0][0][sum][j]] = c * [R[0][0][sum-1][j+1]]
-        end)
-      end
-
+      statements:insert(rquote
+        var [R[sum][0][0][j]] = a * [R[sum-1][0][0][j+1]] + (sum-1) * [R[sum-2][0][0][j+1]]
+        var [R[0][sum][0][j]] = b * [R[0][sum-1][0][j+1]] + (sum-1) * [R[0][sum-2][0][j+1]]
+        var [R[0][0][sum][j]] = c * [R[0][0][sum-1][j+1]] + (sum-1) * [R[0][0][sum-2][j+1]]
+      end)
     end
   end
 
