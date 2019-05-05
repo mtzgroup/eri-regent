@@ -25,7 +25,7 @@ if __name__ == "__main__":
         actual = np.array([float(v) for _, v in parsed])
         expected = np.array([(-2.0 * alpha) ** int(j) * boys(t, int(j))[0] for j, _ in parsed])
         # TODO: Find a resonable tolerance
-        if not np.allclose(actual, expected, rtol=1e-7):
+        if not np.allclose(actual, expected, rtol=1e-6):
             error = np.max(np.absolute(actual - expected) / np.absolute(expected))
             sys.stdout.write(RED)
             print("Error in Boys computation")
