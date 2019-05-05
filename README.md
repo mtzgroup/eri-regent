@@ -30,14 +30,14 @@ make run
 
 ### Higher Angular Momentum Systems
 
-The default maximum angular momentum is `2` for systems with P orbitals (the Bra PP has an angular momentum of `2`). To compute with higher systems, change `max_momentum` in `src/coulomb.rg`. Also, make sure there are enough Boys values generated with `scripts/generate_boys_region.py`. The table below lists the current compile times and memory usage for each `max_momentum` on Sherlock. Compile time is when Lua generates code before Regent starts executing it.
+The default maximum angular momentum is `2` for systems with P orbitals (the Bra PP has an angular momentum of `2`). To compute with higher systems, use the option `--max_momentum L` (must be the first option). Also, make sure there are enough Boys values generated with `scripts/generate_boys_region.py`. The table below lists the current compile times and memory usage for each `max_momentum`. Compile time is when Lua generates code before Regent starts executing it.
 
 | Orbital | Angular Momentum | Memory     | Wall-time  |
 |:-------:|:----------------:|:----------:|:----------:|
 | P       | 2                | Negligible | Negligible |
 | D       | 4                | 1.5 GB     | 1 Minute   |
-| F       | 6                | ?? GB      | ?? Hours   |
-| G       | 8                | ?? GB      | ?? Hours   |
+| F       | 6                | 7 GB       | 7 Minutes  |
+| G       | 8                | 31 GB      | 1 Hour     |
 
 
 ## Testing

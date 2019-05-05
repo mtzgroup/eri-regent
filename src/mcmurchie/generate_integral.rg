@@ -96,6 +96,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
     var ket_idx_bounds_lo : int = r_ket_gausses.ispace.bounds.lo
     var ket_idx_bounds_hi : int = r_ket_gausses.ispace.bounds.hi
     for bra_idx in r_bra_gausses.ispace do
+      -- FIXME: This region is assumed to be contiguous.
       for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do
         var bra = r_bra_gausses[bra_idx]
         var ket = r_ket_gausses[ket_idx]
