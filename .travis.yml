@@ -16,6 +16,7 @@ before_install:
   - python scripts/generate_boys_region.py src/mcmurchie/precomputedBoys.h
 
 script:
+  - python scripts/test_boys.py
   - python scripts/test.py
 
 cache:

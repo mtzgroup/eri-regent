@@ -18,12 +18,14 @@ if __name__ == "__main__":
     RESET = "\033[0;0m"
     pattern = re.compile("R000([0-9]+) = (.+)")
     alpha = 12.34
-    for t in np.linspace(0.1234, 50.5678, 100):
+    # TODO: Find a resonable range to test
+    for t in np.linspace(0.0012, 18.5678, 100):
         output = subprocess.check_output(["regent", "mcmurchie/test_boys.rg", str(t), str(alpha)], cwd="src/")
         parsed = pattern.findall(output)
         actual = np.array([float(v) for _, v in parsed])
         expected = np.array([(-2.0 * alpha) ** int(j) * boys(t, int(j))[0] for j, _ in parsed])
-        if not np.allclose(actual, expected, rtol=1e-4):
+        # TODO: Find a resonable tolerance
+        if not np.allclose(actual, expected, rtol=1e-7):
             error = np.max(np.absolute(actual - expected) / np.absolute(expected))
             sys.stdout.write(RED)
             print("Error in Boys computation")
@@ -33,7 +35,7 @@ if __name__ == "__main__":
             print(actual)
             print("Expected:")
             print(expected)
-            # sys.exit(1)
+            sys.exit(1)
 
     sys.stdout.write(GREEN)
     print("All tests passed!")
