@@ -12,7 +12,7 @@ before_install:
   # - if [ -d $HOME/legion/.git ]; then git -C $HOME/legion pull; else git clone -b master https://github.com/StanfordLegion/legion.git $HOME/legion; fi
   # - CC=gcc CXX=g++ USE_GASNET=0 $HOME/legion/language/scripts/setup_env.py --llvm-version 35
   - git clone -b master https://github.com/StanfordLegion/legion.git $HOME/legion
-  - $HOME/legion/language/install --rdir auto --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
+  - $HOME/legion/language/install.py --rdir auto --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
   - sudo ln -s $HOME/legion/language/regent.py /usr/local/bin/regent
   # Generate precomputed Boys values
   - python scripts/generate_boys_region.py src/mcmurchie/precomputedBoys.h
