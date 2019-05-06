@@ -4,7 +4,8 @@ require "mcmurchie.generate_R_table"
 require "generate_spin_pattern"
 
 local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]="FF", [7]="FG", [8]="GG"}
-local customKernels = require "mcmurchie.kernels.import"
+-- TODO: These custom kernels may no longer be necessary
+-- local customKernels = require "mcmurchie.kernels.import"
 
 local sqrt = regentlib.sqrt(double)
 
@@ -32,19 +33,17 @@ function generateTaskMcMurchieIntegral(L12, L34)
 
 
   -- Returns a list of regent statements that implements the McMurchie algorithm
-  local function generateKernel(a, b, c, lambda, r_j_values, j_offset, r_density, d_offset)
-    local customKernel = customKernels[LToStr[L12]..LToStr[L34]]
-    if customKernel ~= nil then
-      return customKernel(a, b, c, R[0][0][0], lambda, r_j_values, j_offset, r_density, d_offset)
-    end
+  local function generateKernel(a, b, c, lambda, r_density, d_offset, accumulators)
+    -- local customKernel = customKernels[LToStr[L12]..LToStr[L34]]
+    -- if customKernel ~= nil then
+    --   return customKernel(a, b, c, R[0][0][0], lambda, r_j_values, j_offset, r_density, d_offset)
+    -- end
 
     local statements = terralib.newlist()
-    local result, P = {}, {}
+    local results, P = {}, {}
     for i = 0, H12-1 do --inclusive
-      result[i] = regentlib.newsymbol(double, "result"..i)
-      statements:insert(rquote
-        var [result[i]] = 0.0
-      end)
+      results[i] = regentlib.newsymbol(double, "result"..i)
+      statements:insert(rquote var [results[i]] = 0.0 end)
     end
     for i = 0, H34-1 do --inclusive
       P[i] = regentlib.newsymbol(double, "P"..i)
@@ -62,18 +61,44 @@ function generateTaskMcMurchieIntegral(L12, L34)
         local N, L, M = Nt + Nu, Lt + Lu, Mt + Mu
         if (Nu + Lu + Mu) % 2 == 0 then
           statements:insert(rquote
-            [result[t]] += [P[u]] * [R[N][L][M][0]]
+            [results[t]] += [P[u]] * [R[N][L][M][0]]
           end)
         else
           statements:insert(rquote
-            [result[t]] -= [P[u]] * [R[N][L][M][0]]
+            [results[t]] -= [P[u]] * [R[N][L][M][0]]
           end)
         end
       end
     end
     for i = 0, H12-1 do -- inclusive
       statements:insert(rquote
-        r_j_values[j_offset + i].value += lambda * [result[i]]
+        [accumulators[i]] += lambda * [results[i]]
+      end)
+    end
+    return statements
+  end
+
+
+  local accumulators = {}
+  for i = 0, H12-1 do -- inclusive
+    accumulators[i] = regentlib.newsymbol(double, "accumulator"..i)
+  end
+
+
+  local function clearAccumulators()
+    local statements = terralib.newlist()
+    for i = 0, H12-1 do -- inclusive
+      statements:insert(rquote var [accumulators[i]] = 0.0 end)
+    end
+    return statements
+  end
+
+
+  local function addAccumulators(r_j_values, offset)
+    local statements = terralib.newlist()
+    for i = 0, H12-1 do -- inclusive
+      statements:insert(rquote
+        r_j_values[offset + i].value += [accumulators[i]]
       end)
     end
     return statements
@@ -96,9 +121,12 @@ function generateTaskMcMurchieIntegral(L12, L34)
     var ket_idx_bounds_lo : int = r_ket_gausses.ispace.bounds.lo
     var ket_idx_bounds_hi : int = r_ket_gausses.ispace.bounds.hi
     for bra_idx in r_bra_gausses.ispace do
+
+      var bra = r_bra_gausses[bra_idx];
+      [clearAccumulators()]
+
       -- FIXME: This region is assumed to be contiguous.
       for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do
-        var bra = r_bra_gausses[bra_idx]
         var ket = r_ket_gausses[ket_idx]
         -- TODO: Use Gaussian.bound to filter useless loops
         var a : double = bra.x - ket.x
@@ -112,10 +140,11 @@ function generateTaskMcMurchieIntegral(L12, L34)
 
         var lambda : double = 2.0 * PI_5_2 / (bra.eta * ket.eta * sqrt(bra.eta + ket.eta))
 
-        var j_offset = bra.data_rect.lo
         var d_offset = ket.data_rect.lo;
-        [generateKernel(a, b, c, lambda, r_j_values, j_offset, r_density, d_offset)]
+        [generateKernel(a, b, c, lambda, r_density, d_offset, accumulators)]
       end
+
+      [addAccumulators(r_j_values, rexpr bra.data_rect.lo end)]
     end
   end
   integral:set_name("McMurchie"..LToStr[L12]..LToStr[L34])
