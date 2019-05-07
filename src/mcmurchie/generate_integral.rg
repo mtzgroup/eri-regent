@@ -5,8 +5,6 @@ require "generate_spin_pattern"
 
 local sqrt = regentlib.sqrt(double)
 local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]="FF", [7]="FG", [8]="GG"}
--- TODO: These custom kernels may no longer be necessary
--- local customKernels = require "mcmurchie.kernels.import"
 
 
 -- Returns a list of regent statements that implements the McMurchie algorithm
@@ -14,10 +12,6 @@ local function generateKernelStatements(L12, L34, a, b, c, lambda, R,
                                         r_density, d_offset, accumulators)
   local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
   local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6
-  -- local customKernel = customKernels[LToStr[L12]..LToStr[L34]]
-  -- if customKernel ~= nil then
-  --   return customKernel(a, b, c, R[0][0][0], lambda, r_j_values, j_offset, r_density, d_offset)
-  -- end
 
   local statements = terralib.newlist()
   local results, P = {}, {}

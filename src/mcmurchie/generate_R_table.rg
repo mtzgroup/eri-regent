@@ -116,6 +116,8 @@ function generateStatementsComputeRTable(R, length, t, alpha, r_boys, a, b, c)
             end)
           elseif N == 0 and L == 0 then
             statements:insert(rquote
+              -- TODO: These small integer multiplications can be replaced
+              --       with repeated additions
               var [R[0][0][M][j]] = c * [R[0][0][M-1][j+1]] + (M-1) * [R[0][0][M-2][j+1]]
             end)
           elseif N == 0 and L == 1 then
