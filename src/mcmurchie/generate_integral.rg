@@ -126,7 +126,6 @@ function generateTaskMcMurchieIntegral(L12, L34)
 
         var alpha : double = bra.eta * ket.eta / (bra.eta + ket.eta)
         var t : double = alpha * (a*a + b*b + c*c);
-        -- TODO: Don't emit full R table if there is a custom kernel.
         [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, r_boys, a, b, c)]
 
         var lambda : double = (
