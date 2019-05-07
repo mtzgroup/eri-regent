@@ -3,11 +3,61 @@ require "fields"
 require "mcmurchie.generate_R_table"
 require "generate_spin_pattern"
 
+local sqrt = regentlib.sqrt(double)
 local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]="FF", [7]="FG", [8]="GG"}
 -- TODO: These custom kernels may no longer be necessary
 -- local customKernels = require "mcmurchie.kernels.import"
 
-local sqrt = regentlib.sqrt(double)
+
+-- Returns a list of regent statements that implements the McMurchie algorithm
+local function generateKernelStatements(L12, L34, a, b, c, lambda, R,
+                                        r_density, d_offset, accumulators)
+  local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
+  local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6
+  -- local customKernel = customKernels[LToStr[L12]..LToStr[L34]]
+  -- if customKernel ~= nil then
+  --   return customKernel(a, b, c, R[0][0][0], lambda, r_j_values, j_offset, r_density, d_offset)
+  -- end
+
+  local statements = terralib.newlist()
+  local results, P = {}, {}
+  for i = 0, H12-1 do --inclusive
+    results[i] = regentlib.newsymbol(double, "result"..i)
+    statements:insert(rquote var [results[i]] = 0.0 end)
+  end
+  for i = 0, H34-1 do --inclusive
+    P[i] = regentlib.newsymbol(double, "P"..i)
+    statements:insert(rquote
+      var [P[i]] = r_density[d_offset + i].value
+    end)
+  end
+
+  local pattern12 = generateSpinPattern(L12)
+  local pattern34 = generateSpinPattern(L34)
+  for u = 0, H34-1 do --inclusive
+    for t = 0, H12-1 do -- inclusive
+      local Nt, Lt, Mt = unpack(pattern12[t+1])
+      local Nu, Lu, Mu = unpack(pattern34[u+1])
+      local N, L, M = Nt + Nu, Lt + Lu, Mt + Mu
+      if (Nu + Lu + Mu) % 2 == 0 then
+        statements:insert(rquote
+          [results[t]] += [P[u]] * [R[N][L][M][0]]
+        end)
+      else
+        statements:insert(rquote
+          [results[t]] -= [P[u]] * [R[N][L][M][0]]
+        end)
+      end
+    end
+  end
+  for i = 0, H12-1 do -- inclusive
+    statements:insert(rquote
+      [accumulators[i]] += lambda * [results[i]]
+    end)
+  end
+  return statements
+end
+
 
 -- Given a pair of angular momentums, this returns a task
 -- to compute electron repulsion integrals between BraKets
@@ -31,66 +81,13 @@ function generateTaskMcMurchieIntegral(L12, L34)
     end
   end
 
-
-  -- Returns a list of regent statements that implements the McMurchie algorithm
-  local function generateKernel(a, b, c, lambda, r_density, d_offset, accumulators)
-    -- local customKernel = customKernels[LToStr[L12]..LToStr[L34]]
-    -- if customKernel ~= nil then
-    --   return customKernel(a, b, c, R[0][0][0], lambda, r_j_values, j_offset, r_density, d_offset)
-    -- end
-
-    local statements = terralib.newlist()
-    local results, P = {}, {}
-    for i = 0, H12-1 do --inclusive
-      results[i] = regentlib.newsymbol(double, "result"..i)
-      statements:insert(rquote var [results[i]] = 0.0 end)
-    end
-    for i = 0, H34-1 do --inclusive
-      P[i] = regentlib.newsymbol(double, "P"..i)
-      statements:insert(rquote
-        var [P[i]] = r_density[d_offset + i].value
-      end)
-    end
-
-    local pattern12 = generateSpinPattern(L12)
-    local pattern34 = generateSpinPattern(L34)
-    for u = 0, H34-1 do --inclusive
-      for t = 0, H12-1 do -- inclusive
-        local Nt, Lt, Mt = unpack(pattern12[t+1])
-        local Nu, Lu, Mu = unpack(pattern34[u+1])
-        local N, L, M = Nt + Nu, Lt + Lu, Mt + Mu
-        if (Nu + Lu + Mu) % 2 == 0 then
-          statements:insert(rquote
-            [results[t]] += [P[u]] * [R[N][L][M][0]]
-          end)
-        else
-          statements:insert(rquote
-            [results[t]] -= [P[u]] * [R[N][L][M][0]]
-          end)
-        end
-      end
-    end
-    for i = 0, H12-1 do -- inclusive
-      statements:insert(rquote
-        [accumulators[i]] += lambda * [results[i]]
-      end)
-    end
-    return statements
-  end
-
-
   local accumulators = {}
+  local initializeAccumulatorStatements = terralib.newlist()
   for i = 0, H12-1 do -- inclusive
     accumulators[i] = regentlib.newsymbol(double, "accumulator"..i)
-  end
-
-
-  local function clearAccumulators()
-    local statements = terralib.newlist()
-    for i = 0, H12-1 do -- inclusive
-      statements:insert(rquote var [accumulators[i]] = 0.0 end)
-    end
-    return statements
+    initializeAccumulatorStatements:insert(rquote
+      var [accumulators[i]] = 0.0
+    end)
   end
 
 
@@ -123,7 +120,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
     for bra_idx in r_bra_gausses.ispace do
 
       var bra = r_bra_gausses[bra_idx];
-      [clearAccumulators()]
+      [initializeAccumulatorStatements]
 
       -- FIXME: This region is assumed to be contiguous.
       for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do
@@ -138,13 +135,17 @@ function generateTaskMcMurchieIntegral(L12, L34)
         -- TODO: Don't emit full R table if there is a custom kernel.
         [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, r_boys, a, b, c)]
 
-        var lambda : double = 2.0 * PI_5_2 / (bra.eta * ket.eta * sqrt(bra.eta + ket.eta))
+        var lambda : double = (
+          2.0 * PI_5_2 / (bra.eta * ket.eta * sqrt(bra.eta + ket.eta))
+        )
 
-        var d_offset = ket.data_rect.lo;
-        [generateKernel(a, b, c, lambda, r_density, d_offset, accumulators)]
+        var offset = ket.data_rect.lo;
+        [generateKernelStatements(L12, L34, a, b, c, lambda, R,
+                                  r_density, offset, accumulators)]
       end
 
-      [addAccumulators(r_j_values, rexpr bra.data_rect.lo end)]
+      var offset = bra.data_rect.lo;
+      [addAccumulators(r_j_values, offset)]
     end
   end
   integral:set_name("McMurchie"..LToStr[L12]..LToStr[L34])
