@@ -13,22 +13,30 @@ local function printValues()
   local statements = terralib.newlist()
   for j, v in pairs(R000) do
     statements:insert(rquote
-      regentlib.c.printf("R000%d = %.16g\n", j, v)
+      regentlib.c.printf("R000%d=%.16g ", j, v)
     end)
   end
   return statements
 end
 
 
+terra readInput(t : &float, alpha : &float) : bool
+  return regentlib.c.scanf("%f %f", t, alpha) == 2
+end
+
+
 task toplevel()
-  var args = regentlib.c.legion_runtime_get_input_args()
-  regentlib.assert(args.argc == 3, "Usage: regent mcmurchie/test_boys.rg t alpha")
-  var t : double = regentlib.c.atof(args.argv[1])
-  var alpha : double = regentlib.c.atof(args.argv[2])
   var r_boys = region(ispace(int2d, {121, getBoysLargestJ() + 1}), double)
-  populateBoysRegion(r_boys);
-  [generateStatementsComputeR000(R000, 16, t, alpha, r_boys)];
-  [printValues()]
+  populateBoysRegion(r_boys)
+  var data : float[2]
+  while readInput(data, data+1) do
+    var t : float = data[0]
+    var alpha : float = data[1];
+    [generateStatementsComputeR000(R000, 16, t, alpha, r_boys)]
+    regentlib.c.printf("t=%.16g alpha=%.16g ", t, alpha);
+    [printValues()]
+    regentlib.c.printf("\n")
+  end
 end
 
 regentlib.start(toplevel)
