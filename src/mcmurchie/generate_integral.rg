@@ -8,7 +8,7 @@ local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]=
 
 
 -- Returns a list of regent statements that implements the McMurchie algorithm
-local function generateKernelStatements(L12, L34, a, b, c, R, r_density, d_offset, accumulators)
+local function generateKernelStatements(L12, L34, a, b, c, R, r_ket_gausses, ket_idx, accumulator)
   local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
   local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6
 
@@ -21,7 +21,7 @@ local function generateKernelStatements(L12, L34, a, b, c, R, r_density, d_offse
   for i = 0, H34-1 do --inclusive
     P[i] = regentlib.newsymbol(double, "P"..i)
     statements:insert(rquote
-      var [P[i]] = r_density[d_offset + i].value
+      var [P[i]] = r_ket_gausses[ket_idx].density[i]
     end)
   end
 
@@ -45,7 +45,7 @@ local function generateKernelStatements(L12, L34, a, b, c, R, r_density, d_offse
   end
   for i = 0, H12-1 do -- inclusive
     statements:insert(rquote
-      [accumulators[i]] += [results[i]]
+      accumulator[i] += [results[i]]
     end)
   end
   return statements
@@ -73,67 +73,55 @@ function generateTaskMcMurchieIntegral(L12, L34)
     end
   end
 
-  local accumulators = {}
-  local initializeAccumulatorStatements = terralib.newlist()
-  for i = 0, H12-1 do -- inclusive
-    accumulators[i] = regentlib.newsymbol(double, "accumulator"..i)
-    initializeAccumulatorStatements:insert(rquote
-      var [accumulators[i]] = 0.0
-    end)
-  end
-
-
-  local function addAccumulators(r_j_values, offset)
-    local statements = terralib.newlist()
-    for i = 0, H12-1 do -- inclusive
-      statements:insert(rquote
-        r_j_values[offset + i].value += [accumulators[i]]
-      end)
-    end
-    return statements
-  end
-
 
   local
   __demand(__leaf)
   __demand(__cuda)
-  task integral(r_bra_gausses : region(ispace(int1d), HermiteGaussian),
-                r_ket_gausses : region(ispace(int1d), HermiteGaussian),
-                r_density     : region(ispace(int1d), Double),
-                r_j_values    : region(ispace(int1d), Double),
+  task integral(r_bra_gausses : region(ispace(int1d), getHermiteGaussian(L12)),
+                r_ket_gausses : region(ispace(int1d), getHermiteGaussian(L34)),
                 r_gamma_table : region(ispace(int2d), double[5]))
   where
-    reads(r_bra_gausses, r_ket_gausses, r_density, r_gamma_table),
-    reduces +(r_j_values),
-    r_density * r_j_values
+    reads(r_bra_gausses.{x, y, z, eta, C}, r_ket_gausses.{x, y, z, eta, C, density}),
+    reads(r_gamma_table),
+    reduces +(r_bra_gausses.j)
   do
     var ket_idx_bounds_lo : int = r_ket_gausses.ispace.bounds.lo
     var ket_idx_bounds_hi : int = r_ket_gausses.ispace.bounds.hi
     for bra_idx in r_bra_gausses.ispace do
 
-      var bra = r_bra_gausses[bra_idx];
-      [initializeAccumulatorStatements]
-
-      -- FIXME: This region is assumed to be contiguous.
-      for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do
-        var ket = r_ket_gausses[ket_idx]
-        -- TODO: Use Gaussian.bound to filter useless loops
-        var a : double = bra.x - ket.x
-        var b : double = bra.y - ket.y
-        var c : double = bra.z - ket.z
-
-        var rsqrt_etas : double = rsqrt(bra.eta + ket.eta)
-        var lambda : double = bra.C * ket.C * rsqrt_etas
-        var alpha : double = bra.eta * ket.eta * rsqrt_etas * rsqrt_etas
-        var t : double = alpha * (a*a + b*b + c*c);
-        [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda, a, b, c, r_gamma_table)]
-
-        var offset = ket.data_rect.lo;
-        [generateKernelStatements(L12, L34, a, b, c, R, r_density, offset, accumulators)]
+      var bra_x : double = r_bra_gausses[bra_idx].x
+      var bra_y : double = r_bra_gausses[bra_idx].y
+      var bra_z : double = r_bra_gausses[bra_idx].z
+      var bra_eta : double = r_bra_gausses[bra_idx].eta
+      var bra_C : double = r_bra_gausses[bra_idx].C
+      var accumulator : double[H12]
+      for i = 0, H12 do -- exclusive
+        accumulator[i] = 0.0
       end
 
-      var offset = bra.data_rect.lo;
-      [addAccumulators(r_j_values, offset)]
+      -- FIXME: This region is assumed to be contiguous.
+      for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do -- exclusive
+        var ket_x : double = r_ket_gausses[ket_idx].x
+        var ket_y : double = r_ket_gausses[ket_idx].y
+        var ket_z : double = r_ket_gausses[ket_idx].z
+        var ket_eta : double = r_ket_gausses[ket_idx].eta
+        var ket_C : double = r_ket_gausses[ket_idx].C
+
+        -- TODO: Use Gaussian.bound to filter useless loops
+        var a : double = bra_x - ket_x
+        var b : double = bra_y - ket_y
+        var c : double = bra_z - ket_z
+
+        var rsqrt_etas : double = rsqrt(bra_eta + ket_eta)
+        var lambda : double = bra_C * ket_C * rsqrt_etas
+        var alpha : double = bra_eta * ket_eta * rsqrt_etas * rsqrt_etas
+        var t : double = alpha * (a*a + b*b + c*c);
+        [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda, a, b, c, r_gamma_table)];
+
+        [generateKernelStatements(L12, L34, a, b, c, R, r_ket_gausses, ket_idx, accumulator)]
+      end
+
+      r_bra_gausses[bra_idx].j += accumulator
     end
   end
   integral:set_name("McMurchie"..LToStr[L12]..LToStr[L34])
