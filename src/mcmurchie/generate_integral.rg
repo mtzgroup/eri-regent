@@ -8,7 +8,7 @@ local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]=
 
 
 -- Returns a list of regent statements that implements the McMurchie algorithm
-local function generateKernelStatements(L12, L34, a, b, c, lambda, R,
+local function generateKernelStatements(L12, L34, a, b, c, R,
                                         r_density, d_offset, accumulators)
   local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
   local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6
@@ -46,7 +46,7 @@ local function generateKernelStatements(L12, L34, a, b, c, lambda, R,
   end
   for i = 0, H12-1 do -- inclusive
     statements:insert(rquote
-      [accumulators[i]] += lambda * [results[i]]
+      [accumulators[i]] += [results[i]]
     end)
   end
   return statements
@@ -125,15 +125,13 @@ function generateTaskMcMurchieIntegral(L12, L34)
         var c : double = bra.z - ket.z
 
         var alpha : double = bra.eta * ket.eta / (bra.eta + ket.eta)
-        var t : double = alpha * (a*a + b*b + c*c);
-        [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, r_boys, a, b, c)]
+        var t : double = alpha * (a*a + b*b + c*c)
+        var lambda : double = 2.0 * PI_5_2 / (bra.eta * ket.eta * sqrt(bra.eta + ket.eta));
+        [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda, r_boys, a, b, c)]
 
-        var lambda : double = (
-          2.0 * PI_5_2 / (bra.eta * ket.eta * sqrt(bra.eta + ket.eta))
-        )
 
         var offset = ket.data_rect.lo;
-        [generateKernelStatements(L12, L34, a, b, c, lambda, R,
+        [generateKernelStatements(L12, L34, a, b, c, R,
                                   r_density, offset, accumulators)]
       end
 

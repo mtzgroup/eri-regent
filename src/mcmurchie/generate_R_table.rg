@@ -8,7 +8,7 @@ local SQRT_PI = math.sqrt(math.pi)
 -- Generates statements that compute `length` auxiliary values.
 -- R000j = (-2*alpha)^j * F_j(t)
 -- where F_j(t) is the Boys function.
-function generateStatementsComputeR000(R000, length, t, alpha, r_boys)
+function generateStatementsComputeR000(R000, length, t, alpha, lambda, r_boys)
   assert(length <= 16, "Only accurate for j <= 16")
 
 
@@ -86,7 +86,10 @@ function generateStatementsComputeR000(R000, length, t, alpha, r_boys)
   end)
 
   local factor = regentlib.newsymbol(double, "factor")
-  statements:insert(rquote var [factor] = 1.0 end)
+  statements:insert(rquote
+    var [factor] = lambda; 
+    [R000[0]] *= factor
+  end)
   for j = 1, length-1 do -- inclusive
     statements:insert(rquote
       factor *= -2.0 * alpha;
@@ -101,8 +104,8 @@ end
 -- R00MJ = c * R00(M-1)(J+1) + (M-1) * R00(M-2)(J+1)
 -- R0LMJ = b * R0(L-1)M(J+1) + (L-1) * R0(L-2)M(J+1)
 -- RNLMJ = a * R(N-1)LM(J+1) + (N-1) * R(N-2)LM(J+1)
-function generateStatementsComputeRTable(R, length, t, alpha, r_boys, a, b, c)
-  local statements = generateStatementsComputeR000(R[0][0][0], length, t, alpha, r_boys)
+function generateStatementsComputeRTable(R, length, t, alpha, lambda, r_boys, a, b, c)
+  local statements = generateStatementsComputeR000(R[0][0][0], length, t, alpha, lambda, r_boys)
 
   for N = 0, length-1 do -- inclusive
     for L = 0, length-1-N do -- inclusive
