@@ -99,7 +99,7 @@ do
   regentlib.assert(getBoysLargestJ() >= 2 * highest_L + 1 + 6,
                    "Please generate more precomputed boys values.")
   -- TODO: Eventually populating r_boys should be done outside `coulomb`.
-  var r_boys = region(ispace(int2d, {121, getBoysLargestJ() + 1}), double)
+  var r_boys = region(ispace(int2d, {251, getBoysLargestJ() + 1}), double)
   populateBoysRegion(r_boys)
   fill(r_j_values.value, 0.0)
 

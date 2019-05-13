@@ -9,8 +9,8 @@ if len(sys.argv) != 2:
 
 FILE_NAME = sys.argv[1]
 MAX_MOMENTUM = 6
-# Add 6 because we use a seven term Taylor expansion
-LARGEST_J = 2 * MAX_MOMENTUM + 1 + 6
+# Add 5 because we use a six term Taylor expansion
+LARGEST_J = 2 * MAX_MOMENTUM + 1 + 5
 
 
 def integrand(u, t, j):
@@ -23,7 +23,7 @@ def boys(t, j):
 
 with open(FILE_NAME, "w") as f:
     values, errors = np.transpose(
-        [[boys(t / 10.0, j) for j in range(LARGEST_J + 1)] for t in range(121)],
+        [[boys(t / 10.0, j) for j in range(LARGEST_J + 1)] for t in range(251)],
         axes=(2, 0, 1),
     )
     relative_errors = errors / values

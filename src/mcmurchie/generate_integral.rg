@@ -28,7 +28,7 @@ local function generateKernelStatements(L12, L34, a, b, c, R,
 
   local pattern12 = generateSpinPattern(L12)
   local pattern34 = generateSpinPattern(L34)
-  for u = 0, H34-1 do --inclusive
+  for u = 0, H34-1 do -- inclusive
     for t = 0, H12-1 do -- inclusive
       local Nt, Lt, Mt = unpack(pattern12[t+1])
       local Nu, Lu, Mu = unpack(pattern34[u+1])
@@ -131,8 +131,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
 
 
         var offset = ket.data_rect.lo;
-        [generateKernelStatements(L12, L34, a, b, c, R,
-                                  r_density, offset, accumulators)]
+        [generateKernelStatements(L12, L34, a, b, c, R, r_density, offset, accumulators)]
       end
 
       var offset = bra.data_rect.lo;

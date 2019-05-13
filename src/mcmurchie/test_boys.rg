@@ -20,20 +20,26 @@ local function printValues()
 end
 
 
-terra readInput(t : &float, alpha : &float) : bool
-  return regentlib.c.scanf("%f %f", t, alpha) == 2
+terra readInput() : float
+  var input : float
+  if regentlib.c.scanf("%f", &input) == 1 then
+    return input
+  else
+    return -1
+  end
 end
 
 
 task toplevel()
-  var r_boys = region(ispace(int2d, {121, getBoysLargestJ() + 1}), double)
+  var r_boys = region(ispace(int2d, {251, getBoysLargestJ() + 1}), double)
   populateBoysRegion(r_boys)
-  var data : float[2]
-  while readInput(data, data+1) do
-    var t : float = data[0]
-    var alpha : float = data[1];
-    [generateStatementsComputeR000(R000, 16, t, alpha, r_boys)]
-    regentlib.c.printf("t=%.16g alpha=%.16g ", t, alpha);
+  while true do
+    var t : float = readInput()
+    if t < 0 then
+      break
+    end
+    [generateStatementsComputeBoys(R000, 16, t, r_boys)]
+    regentlib.c.printf("t=%.16g ", t);
     [printValues()]
     regentlib.c.printf("\n")
   end
