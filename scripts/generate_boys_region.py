@@ -8,7 +8,7 @@ if len(sys.argv) != 2:
     exit(0)
 
 FILE_NAME = sys.argv[1]
-MAX_MOMENTUM = 6
+MAX_MOMENTUM = 8
 # Add 5 because we use a six term Taylor expansion
 LARGEST_J = 2 * MAX_MOMENTUM + 1 + 5
 

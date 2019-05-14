@@ -19,32 +19,40 @@ if __name__ == "__main__":
     RESET = "\033[0;0m"
     capture_number = "([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)"
     t_pattern = re.compile("t=" + capture_number)
-    r_pattern = re.compile("R000(\d+)=" + capture_number)
+    boys_pattern = re.compile("boys(\d+)=" + capture_number)
 
-    # TODO: Find a reasonable range to test
-    input = "\n".join([str(t) for t in np.linspace(0.0012, 123.456, 1000)])
-    rg_process = Popen(
-        ["regent", "mcmurchie/test_boys.rg"], cwd="src/", stdin=PIPE, stdout=PIPE
-    )
-    output, _ = rg_process.communicate(input)
+    for max_j in range(17):
+        input = "\n".join([str(t) for t in np.linspace(0, 123.456, 100)])
+        rg_process = Popen(
+            ["regent", "mcmurchie/test_boys.rg", str(max_j)],
+            cwd="src/",
+            stdin=PIPE,
+            stdout=PIPE,
+        )
+        output, _ = rg_process.communicate(input)
 
-    for line in output.rstrip().split("\n"):
-        t = float(t_pattern.findall(line)[0])
-        r_parsed = r_pattern.findall(line)
-        actual = np.array([float(v) for _, v in r_parsed])
-        expected = np.array([boys(t, int(j))[0] for j, _ in r_parsed])
-        if not np.allclose(actual, expected, atol=1e-12):
-            error = np.max(np.absolute(actual - expected))
-            sys.stdout.write(RED)
-            print("Error in Boys computation!")
-            sys.stdout.write(RESET)
-            print("Absolute error = " + str(error) + ", t = " + str(t))
-            print("Actual:")
-            print(actual)
-            print("Expected:")
-            print(expected)
-            rg_process.wait()
-            sys.exit(1)
+        for line in output.rstrip().split("\n"):
+            t = float(t_pattern.findall(line)[0])
+            boys_parsed = boys_pattern.findall(line)
+            actual = np.array([float(v) for _, v in boys_parsed])
+            expected = np.array([boys(t, int(j))[0] for j, _ in boys_parsed])
+            if not np.allclose(actual, expected, atol=1e-14):
+                absolute_error = np.max(np.absolute(actual - expected))
+                relative_error = np.max(
+                    np.absolute(actual - expected) / np.absolute(expected)
+                )
+                sys.stdout.write(RED)
+                print("Error in Boys computation!")
+                sys.stdout.write(RESET)
+                print("Absolute error = " + str(absolute_error))
+                print("Relative error = " + str(relative_error))
+                print("t = " + str(t))
+                print("Actual:")
+                print(actual)
+                print("Expected:")
+                print(expected)
+                rg_process.wait()
+                sys.exit(1)
 
     sys.stdout.write(GREEN)
     print("All tests passed!")

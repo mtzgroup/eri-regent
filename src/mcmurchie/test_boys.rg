@@ -3,17 +3,22 @@ import "regent"
 require "mcmurchie.generate_R_table"
 require "mcmurchie.populate_boys_region"
 
-local R000 = {}
-for j = 0, 15 do -- inclusive
-  R000[j] = regentlib.newsymbol(double, "R000"..j)
+if arg[1] == nil then
+  assert(false, "Usage: regent "..arg[0].." [max j]")
+end
+local max_j = tonumber(arg[1])
+
+local boys = {}
+for j = 0, max_j do -- inclusive
+  boys[j] = regentlib.newsymbol(double, "boys"..j)
 end
 
 
 local function printValues()
   local statements = terralib.newlist()
-  for j, v in pairs(R000) do
+  for j, v in pairs(boys) do
     statements:insert(rquote
-      regentlib.c.printf("R000%d=%.16g ", j, v)
+      regentlib.c.printf("boys%d=%.16g ", j, v)
     end)
   end
   return statements
@@ -38,7 +43,7 @@ task toplevel()
     if t < 0 then
       break
     end
-    [generateStatementsComputeBoys(R000, 16, t, r_boys)]
+    [generateStatementsComputeBoys(boys, max_j+1, t, r_boys)]
     regentlib.c.printf("t=%.16g ", t);
     [printValues()]
     regentlib.c.printf("\n")

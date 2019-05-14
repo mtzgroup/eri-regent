@@ -129,7 +129,6 @@ function generateTaskMcMurchieIntegral(L12, L34)
         var lambda : double = 2.0 * PI_5_2 / (bra.eta * ket.eta * sqrt(bra.eta + ket.eta));
         [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda, r_boys, a, b, c)]
 
-
         var offset = ket.data_rect.lo;
         [generateKernelStatements(L12, L34, a, b, c, R, r_density, offset, accumulators)]
       end
