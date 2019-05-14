@@ -43,7 +43,7 @@ const double _precomputed_boys[%d] = {
   %s
 };
 """
-        % (LARGEST_J, values.size, ",\n  ".join(map(str, values.flatten())))
+        % (LARGEST_J, values.size, ",\n  ".join(map(float.hex, values.flatten())))
     )
 
     print("Wrote Boys values with shape " + str(values.shape) + " to " + FILE_NAME)
