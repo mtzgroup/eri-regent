@@ -22,7 +22,7 @@ if __name__ == "__main__":
     boys_pattern = re.compile("boys(\d+)=" + capture_number)
 
     for max_j in range(17):
-        input = "\n".join([str(t) for t in np.linspace(0, 123.456, 100)])
+        input = "\n".join([str(t) for t in np.linspace(0, 123.456, 1000)])
         rg_process = Popen(
             ["regent", "mcmurchie/test_boys.rg", str(max_j)],
             cwd="src/",
@@ -36,7 +36,8 @@ if __name__ == "__main__":
             boys_parsed = boys_pattern.findall(line)
             actual = np.array([float(v) for _, v in boys_parsed])
             expected = np.array([boys(t, int(j))[0] for j, _ in boys_parsed])
-            if not np.allclose(actual, expected, atol=1e-14):
+            atol = 1e-14 if t < 25 else 1e-12
+            if not np.allclose(actual, expected, atol=atol):
                 absolute_error = np.max(np.absolute(actual - expected))
                 relative_error = np.max(
                     np.absolute(actual - expected) / np.absolute(expected)

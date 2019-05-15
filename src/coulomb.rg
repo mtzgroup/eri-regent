@@ -1,7 +1,7 @@
 import "regent"
 require "fields"
 require "mcmurchie.generate_integral"
-require "mcmurchie.populate_boys_region"
+require "mcmurchie.populate_gamma_table"
 require "rys.generate_integral"
 
 local max_momentum
@@ -12,7 +12,7 @@ else
 end
 
 -- Generate code to dispatch two-electron repulsion integrals
-local function dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_boys, highest_L, parallelism)
+local function dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_gamma_table, highest_L, parallelism)
   -- local lua_spin_pattern = generateSpinPatternRegion(max_momentum)
   local statements = terralib.newlist({rquote
     -- TODO: Spin pattern region should not be initialized here.
@@ -35,13 +35,13 @@ local function dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_
             --   for ket_color in ket_coloring do
             --     [generateTaskMcMurchieIntegral(L12, L34)](
             --       p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-            --       p_density[ket_color], p_j_values[bra_color], r_boys
+            --       p_density[ket_color], p_j_values[bra_color], r_gamma_table
             --     )
             --   end
             -- end
             [generateTaskMcMurchieIntegral(L12, L34)](p_gausses[L12], p_gausses[L34],
                                                       p_density[L34], p_j_values[L12],
-                                                      r_boys)
+                                                      r_gamma_table)
           end
         end)
       else -- use Rys
@@ -80,7 +80,6 @@ end
 -- @param r_density Region of density matrix values that are referenced
 --                  from r_gausses.
 -- @param r_j_values Region of j values that will be overwritten.
--- @param r_boys Region of precomputed values of the Boys integral.
 -- @param highets_L The highest angular momentum of the contracted guassians.
 -- FIXME: All `HermiteGaussian`s in `r_gausses` with the same angular momentum
 --        are assumed to be contiguous. Either check this with an `assert` or
@@ -96,17 +95,15 @@ where
 do
   regentlib.assert(highest_L <= max_momentum,
                    "Please compile for higher angular momentum.")
-  regentlib.assert(getBoysLargestJ() >= 2 * highest_L + 1 + 6,
-                   "Please generate more precomputed boys values.")
-  -- TODO: Eventually populating r_boys should be done outside `coulomb`.
-  var r_boys = region(ispace(int2d, {251, getBoysLargestJ() + 1}), double)
-  populateBoysRegion(r_boys)
+  -- TODO: Eventually populating r_gamma_table should be done outside `coulomb`.
+  var r_gamma_table = region(ispace(int2d, {18, 700}), double[5])
+  populateGammaTable(r_gamma_table)
   fill(r_j_values.value, 0.0)
 
   var L_coloring = ispace(int1d, highest_L + 1)
   var p_gausses = partition(r_gausses.L, L_coloring)
   var p_density = image(r_density, p_gausses, r_gausses.data_rect)
-  var p_j_values = image(r_j_values, p_gausses, r_gausses.data_rect)
+  var p_j_values = image(r_j_values, p_gausses, r_gausses.data_rect);
 
-  ;[dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_boys, highest_L, parallelism)];
+  [dispatchIntegrals(r_gausses, p_gausses, p_density, p_j_values, r_gamma_table, highest_L, parallelism)]
 end

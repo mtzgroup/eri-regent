@@ -12,8 +12,6 @@ before_install:
   - git clone -b master https://github.com/StanfordLegion/legion.git $HOME/legion
   - $HOME/legion/language/install.py --rdir auto --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
   - sudo ln -s $HOME/legion/language/regent.py /usr/local/bin/regent
-  # Generate precomputed Boys values
-  - python scripts/generate_boys_region.py src/mcmurchie/precomputedBoys.h
 
 script:
   # - python scripts/test_boys.py

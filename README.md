@@ -3,13 +3,6 @@
 
 Calculates two-electron repulsion integrals with Regent
 
-## Precomputed Boys Function Values
-Use the python script in `scripts/` to generate a header file containing values of the Boys function.
-
-```
-python scripts/generate_boys_region.py src/mcmurchie/precomputedBoys.h
-```
-
 ## Running
 Run in Regent using `top.rg` inside `src/` for testing.
 
@@ -30,7 +23,7 @@ make run
 
 ### Higher Angular Momentum Systems
 
-The default maximum angular momentum is `2` for systems with P orbitals (the Bra PP has an angular momentum of `2`). To compute with higher systems, use the option `--max_momentum L` (must be the first option). Also, make sure there are enough Boys values generated with `scripts/generate_boys_region.py`. The table below lists the current compile times and memory usage for each `max_momentum`. Compile time is when Lua generates code before Regent starts executing it.
+The default maximum angular momentum is `2` for systems with P orbitals (the Bra PP has an angular momentum of `2`). To compute with higher systems, use the option `--max_momentum L` (must be the first option). The table below lists the current compile times and memory usage for each `max_momentum`. Compile time is when Lua generates code before Regent starts executing it.
 
 | Orbital | Angular Momentum | Memory     | Wall-time  |
 |:-------:|:----------------:|:----------:|:----------:|

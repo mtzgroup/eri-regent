@@ -102,9 +102,9 @@ function generateTaskMcMurchieIntegral(L12, L34)
                 r_ket_gausses : region(ispace(int1d), HermiteGaussian),
                 r_density     : region(ispace(int1d), Double),
                 r_j_values    : region(ispace(int1d), Double),
-                r_boys        : region(ispace(int2d), double))
+                r_gamma_table : region(ispace(int2d), double[5]))
   where
-    reads(r_bra_gausses, r_ket_gausses, r_density, r_boys),
+    reads(r_bra_gausses, r_ket_gausses, r_density, r_gamma_table),
     reduces +(r_j_values),
     r_density * r_j_values
   do
@@ -126,7 +126,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
         var alpha : double = bra.eta * ket.eta / (bra.eta + ket.eta)
         var t : double = alpha * (a*a + b*b + c*c)
         var lambda : double = bra.C * ket.C / sqrt(bra.eta + ket.eta);
-        [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda, r_boys, a, b, c)]
+        [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda, r_gamma_table, a, b, c)]
 
         var offset = ket.data_rect.lo;
         [generateKernelStatements(L12, L34, a, b, c, R, r_density, offset, accumulators)]

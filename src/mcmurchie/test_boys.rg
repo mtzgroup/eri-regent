@@ -1,7 +1,7 @@
 import "regent"
 
 require "mcmurchie.generate_R_table"
-require "mcmurchie.populate_boys_region"
+require "mcmurchie.populate_gamma_table"
 
 if arg[1] == nil then
   assert(false, "Usage: regent "..arg[0].." [max j]")
@@ -36,14 +36,14 @@ end
 
 
 task toplevel()
-  var r_boys = region(ispace(int2d, {251, getBoysLargestJ() + 1}), double)
-  populateBoysRegion(r_boys)
+  var r_gamma_table = region(ispace(int2d, {18, 700}), double[5])
+  populateGammaTable(r_gamma_table)
   while true do
     var t : float = readInput()
     if t < 0 then
       break
     end
-    [generateStatementsComputeBoys(boys, max_j+1, t, r_boys)]
+    [generateStatementsComputeBoys(boys, max_j+1, t, r_gamma_table)]
     regentlib.c.printf("t=%.16g ", t);
     [printValues()]
     regentlib.c.printf("\n")
