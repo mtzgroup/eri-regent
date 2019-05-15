@@ -5,6 +5,8 @@ local Config = require "config"
 local c = regentlib.c
 local assert = regentlib.assert
 local fabs = regentlib.fabs(double)
+local PI_5_2 = math.pow(math.pi, 2.5)
+local sqrt = regentlib.sqrt(double)
 
 terra fgets(line : &int8, n : int, file : &c.FILE) : bool
   return c.fgets(line, n, file) ~= nil
@@ -47,7 +49,8 @@ do
       var x : double = values[2]
       var y : double = values[3]
       var z : double = values[4]
-      r_gausses[i] = {x=x, y=y, z=z, eta=eta, L=L,
+      var C : double = sqrt(2 * PI_5_2) / eta
+      r_gausses[i] = {x=x, y=y, z=z, eta=eta, C=C, L=L,
                       data_rect={density_idx, density_idx+H-1}, bound=0}
       for j = 0, H do
         r_density[density_idx].value = values[j + 5]

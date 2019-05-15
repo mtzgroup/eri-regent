@@ -59,7 +59,6 @@ end
 function generateTaskMcMurchieIntegral(L12, L34)
   local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
   local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6
-  local PI_5_2 = math.pow(math.pi, 2.5)
   -- Create a table of Regent variables to hold Hermite polynomials.
   local R = {}
   for N = 0, L12+L34 do -- inclusive
@@ -126,7 +125,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
 
         var alpha : double = bra.eta * ket.eta / (bra.eta + ket.eta)
         var t : double = alpha * (a*a + b*b + c*c)
-        var lambda : double = 2.0 * PI_5_2 / (bra.eta * ket.eta * sqrt(bra.eta + ket.eta));
+        var lambda : double = bra.C * ket.C / sqrt(bra.eta + ket.eta);
         [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda, r_boys, a, b, c)]
 
         var offset = ket.data_rect.lo;

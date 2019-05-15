@@ -3,6 +3,7 @@ import "regent"
 fspace HermiteGaussian {
   {x, y, z} : double;  -- Location of Gaussian
   eta       : double;  -- Exponent of Gaussian
+  C         : double;  -- sqrt(2 * pi^(5/2)) / eta
   L         : int1d;   -- Angular momentum
   data_rect : rect1d;  -- Gives a range of indices where the number of values
                        -- is given by (L + 1) * (L + 2) * (L + 3) / 6
