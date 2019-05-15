@@ -44,4 +44,5 @@ The default maximum angular momentum is `2` for systems with P orbitals (the Bra
 
 ```
 python scripts/test.py
+python scripts/test_boys.py
 ```
