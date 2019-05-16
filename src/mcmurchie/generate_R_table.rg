@@ -26,7 +26,6 @@ function generateStatementsComputeBoys(boys, length, t, r_gamma_table)
     2.1090983755524045E+01,
     2.0881081442144000E+01,
     2.0683120753173197E+01,
-    0.0000000000000000E+00,
   }
   local downwardsRecursion = terralib.newlist({rquote
     var t_scaled : double = [factors[length]] * t
@@ -35,20 +34,24 @@ function generateStatementsComputeBoys(boys, length, t, r_gamma_table)
     [boys[length-1]] = coefficients[0] + t_scaled * (coefficients[1]
                                        + t_scaled * (coefficients[2]
                                        + t_scaled * (coefficients[3]
-                                       + t_scaled * (coefficients[4]))))
+                                       + t_scaled * coefficients[4])))
   end})
   for j = length-2, 0, -1 do -- inclusive
     downwardsRecursion:insert(rquote
-      [boys[j]] = (2.0 * t * [boys[j+1]] + exp(-t)) / (2 * j + 1)
+      [boys[j]] = (2.0 * t * [boys[j+1]] + exp(-t)) * (1.0 / (2 * j + 1))
     end)
   end
 
+  local t_inverse = regentlib.newsymbol(double, "t_inverse")
   local upwardsRecursionAsymptotic = terralib.newlist({rquote
-    [boys[0]] = SQRT_PI / (2 * sqrt(t)) -- TODO: Use inverse sqrt
+    -- var rsqrt_t : double = rsqrt(t)
+    var rsqrt_t : double = 1.0 / sqrt(t);
+    [boys[0]] = rsqrt_t * (SQRT_PI / 2)
+    var [t_inverse] = rsqrt_t * rsqrt_t
   end})
   for j = 0, length-2 do -- inclusive
     upwardsRecursionAsymptotic:insert(rquote
-      [boys[j+1]] = (2 * j + 1) * [boys[j]] / (2.0 * t)
+      [boys[j+1]] = ((2 * j + 1) / 2.0) * [boys[j]] * t_inverse
     end)
   end
 
@@ -73,7 +76,7 @@ end
 -- R0LMJ = b * R0(L-1)M(J+1) + (L-1) * R0(L-2)M(J+1)
 -- RNLMJ = a * R(N-1)LM(J+1) + (N-1) * R(N-2)LM(J+1)
 -- where F_J(t) is the Boys function.
-function generateStatementsComputeRTable(R, length, t, alpha, lambda, r_gamma_table, a, b, c)
+function generateStatementsComputeRTable(R, length, t, alpha, lambda, a, b, c, r_gamma_table)
   local statements = generateStatementsComputeBoys(R[0][0][0], length, t, r_gamma_table)
 
   for j = 0, length-1 do -- inclusive
