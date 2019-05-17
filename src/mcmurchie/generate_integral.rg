@@ -3,7 +3,7 @@ require "fields"
 require "mcmurchie.generate_R_table"
 require "generate_spin_pattern"
 
-local sqrt = regentlib.sqrt(double)
+local rsqrt = regentlib.rsqrt(double)
 local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]="FF", [7]="FG", [8]="GG"}
 
 
@@ -122,8 +122,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
         var b : double = bra.y - ket.y
         var c : double = bra.z - ket.z
 
-        -- var rsqrt_etas : double = rsqrt(bra.eta + ket.eta)
-        var rsqrt_etas : double = 1.0 / sqrt(bra.eta + ket.eta)
+        var rsqrt_etas : double = rsqrt(bra.eta + ket.eta)
         var lambda : double = bra.C * ket.C * rsqrt_etas
         var alpha : double = bra.eta * ket.eta * rsqrt_etas * rsqrt_etas
         var t : double = alpha * (a*a + b*b + c*c);

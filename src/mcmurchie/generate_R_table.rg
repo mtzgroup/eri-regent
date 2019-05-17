@@ -1,6 +1,6 @@
 import "regent"
 
-local sqrt = regentlib.sqrt(double)
+local rsqrt = regentlib.rsqrt(double)
 local round = regentlib.round(double)
 local exp = regentlib.exp(double)
 local SQRT_PI = math.sqrt(math.pi)
@@ -44,8 +44,7 @@ function generateStatementsComputeBoys(boys, length, t, r_gamma_table)
 
   local t_inverse = regentlib.newsymbol(double, "t_inverse")
   local upwardsRecursionAsymptotic = terralib.newlist({rquote
-    -- var rsqrt_t : double = rsqrt(t)
-    var rsqrt_t : double = 1.0 / sqrt(t);
+    var rsqrt_t : double = rsqrt(t);
     [boys[0]] = rsqrt_t * (SQRT_PI / 2)
     var [t_inverse] = rsqrt_t * rsqrt_t
   end})
