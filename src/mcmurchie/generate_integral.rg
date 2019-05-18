@@ -6,47 +6,6 @@ require "generate_spin_pattern"
 local rsqrt = regentlib.rsqrt(double)
 local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]="FF", [7]="FG", [8]="GG"}
 
-
--- Returns a list of regent statements that implements the McMurchie algorithm
-local function generateKernelStatements(L12, L34, a, b, c, R, r_ket_gausses, ket_idx, accumulator)
-  local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
-  local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6
-  local density = rexpr r_ket_gausses[ket_idx].density end
-
-  local statements = terralib.newlist()
-  local results = {}
-  for i = 0, H12-1 do --inclusive
-    results[i] = regentlib.newsymbol(double, "result"..i)
-    statements:insert(rquote var [results[i]] = 0.0 end)
-  end
-
-  local pattern12 = generateSpinPattern(L12)
-  local pattern34 = generateSpinPattern(L34)
-  for u = 0, H34-1 do -- inclusive
-    for t = 0, H12-1 do -- inclusive
-      local Nt, Lt, Mt = unpack(pattern12[t+1])
-      local Nu, Lu, Mu = unpack(pattern34[u+1])
-      local N, L, M = Nt + Nu, Lt + Lu, Mt + Mu
-      if (Nu + Lu + Mu) % 2 == 0 then
-        statements:insert(rquote
-          [results[t]] += density[u] * [R[N][L][M][0]]
-        end)
-      else
-        statements:insert(rquote
-          [results[t]] -= density[u] * [R[N][L][M][0]]
-        end)
-      end
-    end
-  end
-  for i = 0, H12-1 do -- inclusive
-    statements:insert(rquote
-      accumulator[i] += [results[i]]
-    end)
-  end
-  return statements
-end
-
-
 -- Given a pair of angular momentums, this returns a task
 -- to compute electron repulsion integrals between BraKets
 -- using the McMurchie algorithm.
@@ -66,6 +25,44 @@ function generateTaskMcMurchieIntegral(L12, L34)
         end
       end
     end
+  end
+
+
+  -- Returns a list of regent statements that implements the McMurchie algorithm
+  local function generateKernelStatements(a, b, c, r_ket_gausses, ket_idx, accumulator)
+    local density = rexpr r_ket_gausses[ket_idx].density end
+
+    local statements = terralib.newlist()
+    local results = {}
+    for i = 0, H12-1 do --inclusive
+      results[i] = regentlib.newsymbol(double, "result"..i)
+      statements:insert(rquote var [results[i]] = 0.0 end)
+    end
+
+    local pattern12 = generateSpinPattern(L12)
+    local pattern34 = generateSpinPattern(L34)
+    for u = 0, H34-1 do -- inclusive
+      for t = 0, H12-1 do -- inclusive
+        local Nt, Lt, Mt = unpack(pattern12[t+1])
+        local Nu, Lu, Mu = unpack(pattern34[u+1])
+        local N, L, M = Nt + Nu, Lt + Lu, Mt + Mu
+        if (Nu + Lu + Mu) % 2 == 0 then
+          statements:insert(rquote
+            [results[t]] += density[u] * [R[N][L][M][0]]
+          end)
+        else
+          statements:insert(rquote
+            [results[t]] -= density[u] * [R[N][L][M][0]]
+          end)
+        end
+      end
+    end
+    for i = 0, H12-1 do -- inclusive
+      statements:insert(rquote
+        accumulator[i] += [results[i]]
+      end)
+    end
+    return statements
   end
 
 
@@ -116,7 +113,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
         var t : double = alpha * (a*a + b*b + c*c);
         [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda, a, b, c, r_gamma_table)];
 
-        [generateKernelStatements(L12, L34, a, b, c, R, r_ket_gausses, ket_idx, accumulator)]
+        [generateKernelStatements(a, b, c, r_ket_gausses, ket_idx, accumulator)]
       end
 
       r_bra_gausses[bra_idx].j += accumulator
