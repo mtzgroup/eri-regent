@@ -8,7 +8,6 @@ struct Config {
   num_gausses          : int;       -- Number of Hermite Gaussians
   num_data_values      : int;       -- Number of J values and size of density matrix
   highest_L            : int;       -- Highest angular momentum over all Gaussians
-  parallelism          : int;
   input_filename       : int8[512];
   output_filename      : int8[512];
   true_values_filename : int8[512];
@@ -22,7 +21,6 @@ terra print_usage_and_abort()
   c.printf("  -h                   : Print the usage and exit.\n")
   c.printf("  -i {input.dat}       : Use {input.dat} as input data.\n")
   c.printf("  -o {output.dat}      : Use {output.dat} as output data.\n")
-  c.printf("  -p {value}           : Partition {value} ways.\n")
   c.printf("  -v {true_output.dat} : Use {true_output.dat} to check results.\n")
   c.printf("  --trials {value}     : Run {value} times.\n")
   c.printf("  --verbose            : Verbose printing.\n")
@@ -30,7 +28,6 @@ terra print_usage_and_abort()
 end
 
 terra Config:initialize_from_command()
-  self.parallelism = 1
   self.input_filename[0] = 0
   self.output_filename[0] = 0
   self.true_values_filename[0] = 0
@@ -82,9 +79,6 @@ terra Config:initialize_from_command()
         c.abort()
       end
       cstring.strncpy(self.output_filename, args.argv[i], 512)
-    elseif cstring.strcmp(args.argv[i], "-p") == 0 then
-      i = i + 1
-      self.parallelism = c.atoi(args.argv[i])
     elseif cstring.strcmp(args.argv[i], "-v") == 0 then
       if self.true_values_filename[0] ~= 0 then
         c.printf("Error: Only accepts one true values file!\n")

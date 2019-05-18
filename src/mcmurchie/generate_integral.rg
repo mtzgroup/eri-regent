@@ -11,18 +11,13 @@ local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]=
 local function generateKernelStatements(L12, L34, a, b, c, R, r_ket_gausses, ket_idx, accumulator)
   local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
   local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6
+  local density = rexpr r_ket_gausses[ket_idx].density end
 
   local statements = terralib.newlist()
-  local results, P = {}, {}
+  local results = {}
   for i = 0, H12-1 do --inclusive
     results[i] = regentlib.newsymbol(double, "result"..i)
     statements:insert(rquote var [results[i]] = 0.0 end)
-  end
-  for i = 0, H34-1 do --inclusive
-    P[i] = regentlib.newsymbol(double, "P"..i)
-    statements:insert(rquote
-      var [P[i]] = r_ket_gausses[ket_idx].density[i]
-    end)
   end
 
   local pattern12 = generateSpinPattern(L12)
@@ -34,11 +29,11 @@ local function generateKernelStatements(L12, L34, a, b, c, R, r_ket_gausses, ket
       local N, L, M = Nt + Nu, Lt + Lu, Mt + Mu
       if (Nu + Lu + Mu) % 2 == 0 then
         statements:insert(rquote
-          [results[t]] += [P[u]] * [R[N][L][M][0]]
+          [results[t]] += density[u] * [R[N][L][M][0]]
         end)
       else
         statements:insert(rquote
-          [results[t]] -= [P[u]] * [R[N][L][M][0]]
+          [results[t]] -= density[u] * [R[N][L][M][0]]
         end)
       end
     end
@@ -77,11 +72,12 @@ function generateTaskMcMurchieIntegral(L12, L34)
   local
   __demand(__leaf)
   __demand(__cuda)
-  task integral(r_bra_gausses : region(ispace(int1d), getHermiteGaussian(L12)),
-                r_ket_gausses : region(ispace(int1d), getHermiteGaussian(L34)),
+  task integral(r_bra_gausses : region(ispace(int1d), getHermiteGaussianPacked(L12)),
+                r_ket_gausses : region(ispace(int1d), getHermiteGaussianPacked(L34)),
                 r_gamma_table : region(ispace(int2d), double[5]))
   where
-    reads(r_bra_gausses.{x, y, z, eta, C}, r_ket_gausses.{x, y, z, eta, C, density}),
+    reads(r_bra_gausses.{x, y, z, eta, C, bound}),
+    reads(r_ket_gausses.{x, y, z, eta, C, density, bound}),
     reads(r_gamma_table),
     reduces +(r_bra_gausses.j)
   do
@@ -94,6 +90,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
       var bra_z : double = r_bra_gausses[bra_idx].z
       var bra_eta : double = r_bra_gausses[bra_idx].eta
       var bra_C : double = r_bra_gausses[bra_idx].C
+      var bra_bound : double = r_bra_gausses[bra_idx].bound
       var accumulator : double[H12]
       for i = 0, H12 do -- exclusive
         accumulator[i] = 0.0
@@ -106,6 +103,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
         var ket_z : double = r_ket_gausses[ket_idx].z
         var ket_eta : double = r_ket_gausses[ket_idx].eta
         var ket_C : double = r_ket_gausses[ket_idx].C
+        var ket_bound : double = r_ket_gausses[ket_idx].bound
 
         -- TODO: Use Gaussian.bound to filter useless loops
         var a : double = bra_x - ket_x
