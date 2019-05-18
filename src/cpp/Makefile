@@ -10,7 +10,7 @@ LFLAGS := -L$(LG_RT_DIR)/../bindings/regent -L .
 LIBS := -lregent -lcoulomb_tasks
 
 SRCS_RG := ../coulomb.rg ../fields.rg ../generate_spin_pattern.rg ../generate_lib.rg
-SRCS_RG += ../mcmurchie/generate_integral.rg ../mcmurchie/generate_R_table.rg $(wildcard ../mcmurchie/kernels/*.rg)
+SRCS_RG += ../mcmurchie/generate_integral.rg ../mcmurchie/generate_R_table.rg ../mcmurchie/gamma_table.h ../mcmurchie/populate_gamma_table.rg
 SRCS_RG += ../rys/generate_integral.rg
 
 SRCS_CPP := top.cpp

@@ -2,7 +2,6 @@
 // LD_LIBRARY_PATH=[PATH TO legion/bindings/regent]:. ./a.out
 
 #include "coulomb_tasks.h"
-#include "../mcmurchie/precomputedBoys.h"
 
 #include "legion.h"
 #include "legion/legion_c_util.h"
@@ -21,6 +20,7 @@ enum {  // Field IDs
   HERMITE_GAUSSIAN_Y_ID,
   HERMITE_GAUSSIAN_Z_ID,
   HERMITE_GAUSSIAN_ETA_ID,
+  HERMITE_GAUSSIAN_C_ID,
   HERMITE_GAUSSIAN_L_ID,
   HERMITE_GAUSSIAN_DATA_RECT_ID,
   HERMITE_GAUSSIAN_BOUND_ID,
@@ -31,6 +31,7 @@ const std::vector<FieldID> hermite_gaussian_field = {HERMITE_GAUSSIAN_X_ID,
                                                      HERMITE_GAUSSIAN_Y_ID,
                                                      HERMITE_GAUSSIAN_Z_ID,
                                                      HERMITE_GAUSSIAN_ETA_ID,
+                                                     HERMITE_GAUSSIAN_C_ID,
                                                      HERMITE_GAUSSIAN_L_ID,
                                                      HERMITE_GAUSSIAN_DATA_RECT_ID,
                                                      HERMITE_GAUSSIAN_BOUND_ID};
@@ -43,7 +44,6 @@ void top_level_task(const Task *task,
   std::cout << "Hi again from Regent\n";
   int num_gausses = 10;
   int highest_L = 0;
-  int parallelism = 1;
 
   const Rect<1> gausses_rect(0, num_gausses - 1);
   const Rect<1> values_rect(0, num_gausses - 1);
@@ -59,6 +59,7 @@ void top_level_task(const Task *task,
     falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_Y_ID);
     falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_Z_ID);
     falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_ETA_ID);
+    falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_C_ID);
     falloc.allocate_field(sizeof(uint64_t), HERMITE_GAUSSIAN_L_ID);
     falloc.allocate_field(sizeof(legion_rect_1d_t), HERMITE_GAUSSIAN_DATA_RECT_ID);
     falloc.allocate_field(sizeof(double), HERMITE_GAUSSIAN_BOUND_ID);
@@ -79,6 +80,7 @@ void top_level_task(const Task *task,
   req_gausses.add_field(HERMITE_GAUSSIAN_Y_ID);
   req_gausses.add_field(HERMITE_GAUSSIAN_Z_ID);
   req_gausses.add_field(HERMITE_GAUSSIAN_ETA_ID);
+  req_gausses.add_field(HERMITE_GAUSSIAN_C_ID);
   req_gausses.add_field(HERMITE_GAUSSIAN_L_ID);
   req_gausses.add_field(HERMITE_GAUSSIAN_DATA_RECT_ID);
   req_gausses.add_field(HERMITE_GAUSSIAN_BOUND_ID);
@@ -99,6 +101,7 @@ void top_level_task(const Task *task,
   const FieldAccessor<READ_WRITE, double, 1> gausses_y(pr_gausses, HERMITE_GAUSSIAN_Y_ID);
   const FieldAccessor<READ_WRITE, double, 1> gausses_z(pr_gausses, HERMITE_GAUSSIAN_Z_ID);
   const FieldAccessor<READ_WRITE, double, 1> gausses_eta(pr_gausses, HERMITE_GAUSSIAN_ETA_ID);
+  const FieldAccessor<READ_WRITE, double, 1> gausses_C(pr_gausses, HERMITE_GAUSSIAN_C_ID);
   const FieldAccessor<READ_WRITE, uint64_t, 1> gausses_L(pr_gausses, HERMITE_GAUSSIAN_L_ID);
   const FieldAccessor<READ_WRITE, legion_rect_1d_t, 1> gausses_data_rect(pr_gausses, HERMITE_GAUSSIAN_DATA_RECT_ID);
   const FieldAccessor<READ_WRITE, double, 1> gausses_bound(pr_gausses, HERMITE_GAUSSIAN_BOUND_ID);
@@ -111,6 +114,7 @@ void top_level_task(const Task *task,
     gausses_y[*pir] = 2.f;
     gausses_z[*pir] = 3.f;
     gausses_eta[*pir] = 4.f;
+    gausses_C[*pir] = 5.f;
     gausses_L[*pir] = L;
     int H = (L + 1) * (L + 2) * (L + 3) / 6;
     gausses_data_rect[*pir] = {idx, idx + H - 1};
@@ -128,7 +132,6 @@ void top_level_task(const Task *task,
   launcher.add_argument_r_density(lr_density, lr_density, double_field);
   launcher.add_argument_r_j_values(lr_j_values, lr_j_values, double_field);
   launcher.add_argument_highest_L(highest_L);
-  launcher.add_argument_parallelism(parallelism);
   launcher.execute(runtime, ctx);
 
 
