@@ -14,16 +14,12 @@ data_files = [
 ]
 
 
-def time_regent(file, num_cpus, num_gpus, num_trials):
+def time_regent(file, num_gpus, num_trials):
     import subprocess, re
 
     regent_args = "-i %s " % file + "--trials %d " % num_trials
     legion_args = (
-        "-ll:cpu %d " % num_cpus
-        + "-ll:gpu %d " % num_gpus
-        + "-ll:csize 1024 "
-        + "-ll:fsize 1024 "
-        + "-fflow 0 "
+        "-ll:cpu 1 -ll:util 1 -ll:gpu %d -ll:csize 1024 -ll:fsize 1024 " % num_gpus
     )
     output = subprocess.check_output(
         "regent top.rg " + regent_args + legion_args, cwd="src/", shell=True
@@ -31,20 +27,20 @@ def time_regent(file, num_cpus, num_gpus, num_trials):
     pattern = re.compile("Coulomb operator: ([0-9.]+) sec")
     return map(float, pattern.findall(output))
 
-
-def plot_timings(num_molecules, timings, title, file):
-    from matplotlib import pyplot as plt
-
-    plt.title(title)
-    plt.xlabel("Number of Water Molecules")
-    plt.ylabel("Runtime")
-    plt.errorbar(
-        num_molecules,
-        np.mean(timings, axis=1),
-        fmt="ko",
-        yerr=(np.min(timings, axis=1), np.max(timings, axis=1)),
-    )
-    plt.savefig(file)
+# TODO
+# def plot_timings(num_molecules, timings, title, file):
+#     from matplotlib import pyplot as plt
+#
+#     plt.title(title)
+#     plt.xlabel("Number of Water Molecules")
+#     plt.ylabel("Runtime")
+#     plt.errorbar(
+#         num_molecules,
+#         np.mean(timings, axis=1),
+#         fmt="ko",
+#         yerr=(np.min(timings, axis=1), np.max(timings, axis=1)),
+#     )
+#     plt.savefig(file)
 
 
 if __name__ == "__main__":
@@ -53,36 +49,48 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Benchmark code.")
     parser.add_argument(
-        "--num_cpus", default=1, type=int, help="The number of compute CPUs to use."
-    )
-    parser.add_argument(
-        "--num_gpus", default=1, type=int, help="The number of GPUs to use."
+        "--max_gpus", default=1, type=int, help="The maximum number of GPUs to use."
     )
     parser.add_argument(
         "--num_trials", default=1, type=int, help="Repeat each test NUM_TRIALS times."
     )
     parser.add_argument(
-        "--savefig_file", default=None, metavar="FILE", help="Save figure to FILE."
+        "--output_file", default=None, metavar="FILE", help="Pickle results to FILE."
+    )
+    parser.add_argument(
+        "--input_file", default=None, metavar="FILE", help="Plot pickled data in FILE."
     )
     args = parser.parse_args()
 
-    # TODO: Iterate over number of gpus
-    # TODO: Pickle results to plot later
-    print(
-        "Running with %d CPUs and %d GPUs for %d trials"
-        % (args.num_cpus, args.num_gpus, args.num_trials)
-    )
-    num_molecules, timings = [], []
-    for n, file in data_files:
-        runtimes = time_regent(file, args.num_cpus, args.num_gpus, args.num_trials)
-        num_molecules.append(n)
-        timings.append(runtimes)
-        print("Average runtime for %d water molecules: %f" % (n, np.mean(runtimes)))
+    if args.input_file is not None:
+        import pickle
+        with open(args.input_file, 'rb') as f:
+            timing_data = pickle.load(f)
+        # plot_timings(timing_data) # TODO
+        exit(0)
 
-    if args.savefig_file is not None:
-        plot_timings(
-            num_molecules,
-            timings,
-            "ERI with %d CPUs and %d GPUs" % (args.num_cpus, args.num_gpus),
-            args.savefig_file,
-        )
+    print("Running on up to %d GPUs for %d trials" % (args.max_gpus, args.num_trials))
+    timing_data = dict(
+        [
+            (
+                num_molecules,
+                [
+                    (num_gpus, time_regent(file, num_gpus, args.num_trials))
+                    for num_gpus in range(1, args.max_gpus + 1)
+                ]
+            )
+            for num_molecules, file in data_files
+        ]
+    )
+
+    for num_molecules, experiments in timing_data.items():
+        for num_gpus, runtimes in experiments:
+            print(
+                "Average runtime for %d water molecules on %d GPUs: %f"
+                % (num_molecules, num_gpus, np.mean(runtimes))
+            )
+
+    if args.output_file is not None:
+        import pickle
+        with open(args.output_file, 'wb') as f:
+            pickle.dump(timing_data, f)
