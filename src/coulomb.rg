@@ -35,18 +35,14 @@ local function dispatchIntegrals(p_gausses, r_density, r_j_values, r_gamma_table
       local use_mcmurchie = true
       if use_mcmurchie then
         local integral = generateTaskMcMurchieIntegral(L12, L34)
+        local parallelism = 1
         statements:insert(rquote
-          -- var bra_coloring = ispace(int1d, 1)
-          -- var ket_coloring = ispace(int1d, 1)
-          -- var p_bra_gausses = partition(equal, r_bra_gausses, bra_coloring)
-          -- var p_ket_gausses = partition(equal, r_ket_gausses, ket_coloring)
-          -- for bra_color in bra_coloring do
-          --   __demand(__parallel)
-          --   for ket_color in ket_coloring do
-          --     integral(p_bra_gausses[bra_color], p_ket_gausses[ket_color], r_gamma_table)
-          --   end
-          -- end
-          integral(r_bra_gausses, r_ket_gausses, r_gamma_table)
+          var bra_coloring = ispace(int1d, parallelism)
+          var p_bra_gausses = partition(equal, r_bra_gausses, bra_coloring)
+          __demand(__parallel)
+          for bra_color in bra_coloring do
+            integral(p_bra_gausses[bra_color], r_ket_gausses, r_gamma_table)
+          end
         end)
       else -- use Rys
         local integral = generateTaskRysIntegral(L12, L34)
