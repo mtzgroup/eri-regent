@@ -12,7 +12,7 @@ else
 end
 
 -- Generate code to dispatch two-electron repulsion integrals
-local function dispatchIntegrals(p_gausses, r_density, r_j_values, r_gamma_table)
+local function dispatchIntegrals(p_gausses, r_density, r_j_values, r_gamma_table, parallelism)
   -- local lua_spin_pattern = generateSpinPatternRegion(max_momentum)
   local statements = terralib.newlist({rquote
     -- TODO: Spin pattern region should not be initialized here.
@@ -35,7 +35,6 @@ local function dispatchIntegrals(p_gausses, r_density, r_j_values, r_gamma_table
       local use_mcmurchie = true
       if use_mcmurchie then
         local integral = generateTaskMcMurchieIntegral(L12, L34)
-        local parallelism = 1
         statements:insert(rquote
           var bra_coloring = ispace(int1d, parallelism)
           var p_bra_gausses = partition(equal, r_bra_gausses, bra_coloring)
@@ -96,7 +95,7 @@ end
 task coulomb(r_gausses  : region(ispace(int1d), HermiteGaussian),
              r_density  : region(ispace(int1d), Double),
              r_j_values : region(ispace(int1d), Double),
-             highest_L  : int)
+             highest_L : int, parallelism : int)
 where
   reads(r_gausses, r_density),
   writes(r_j_values),
@@ -109,5 +108,5 @@ do
 
   var p_gausses = partition(r_gausses.L, ispace(int1d, highest_L + 1));
 
-  [dispatchIntegrals(p_gausses, r_density, r_j_values, r_gamma_table)]
+  [dispatchIntegrals(p_gausses, r_density, r_j_values, r_gamma_table, parallelism)]
 end

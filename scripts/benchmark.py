@@ -17,7 +17,7 @@ data_files = [
 def time_regent(file, num_gpus, num_trials):
     import subprocess, re
 
-    regent_args = "-i %s " % file + "--trials %d " % num_trials
+    regent_args = "-i %s " % file + "-p %d " % num_gpus + "--trials %d " % num_trials
     legion_args = (
         "-ll:cpu 1 -ll:util 1 -ll:gpu %d -ll:csize 1024 -ll:fsize 1024 " % num_gpus
     )
