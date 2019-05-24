@@ -27,20 +27,24 @@ def time_regent(file, num_gpus, num_trials):
     pattern = re.compile("Coulomb operator: ([0-9.]+) sec")
     return map(float, pattern.findall(output))
 
-# TODO
-# def plot_timings(num_molecules, timings, title, file):
-#     from matplotlib import pyplot as plt
-#
-#     plt.title(title)
-#     plt.xlabel("Number of Water Molecules")
-#     plt.ylabel("Runtime")
-#     plt.errorbar(
-#         num_molecules,
-#         np.mean(timings, axis=1),
-#         fmt="ko",
-#         yerr=(np.min(timings, axis=1), np.max(timings, axis=1)),
-#     )
-#     plt.savefig(file)
+
+def plot_timings(timings_data):
+    from matplotlib import pyplot as plt
+
+    for num_molecules, experiments in timing_data.items():
+        num_gpus = [n for n, _ in experiments]
+        runtimes = [r for _, r in experiments]
+        plt.plot(
+            num_gpus,
+            np.mean(runtimes, axis=1),
+            label=(str(num_molecules) + " water molecules"),
+        )
+
+    plt.title("eri-regent")
+    plt.ylabel("Runtime")
+    plt.xlabel("Number of GPUs")
+    plt.legend()
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -64,9 +68,10 @@ if __name__ == "__main__":
 
     if args.input_file is not None:
         import pickle
-        with open(args.input_file, 'rb') as f:
+
+        with open(args.input_file, "rb") as f:
             timing_data = pickle.load(f)
-        # plot_timings(timing_data) # TODO
+            plot_timings(timing_data)
         exit(0)
 
     print("Running on up to %d GPUs for %d trials" % (args.max_gpus, args.num_trials))
@@ -77,7 +82,7 @@ if __name__ == "__main__":
                 [
                     (num_gpus, time_regent(file, num_gpus, args.num_trials))
                     for num_gpus in range(1, args.max_gpus + 1)
-                ]
+                ],
             )
             for num_molecules, file in data_files
         ]
@@ -92,5 +97,6 @@ if __name__ == "__main__":
 
     if args.output_file is not None:
         import pickle
-        with open(args.output_file, 'wb') as f:
+
+        with open(args.output_file, "wb") as f:
             pickle.dump(timing_data, f)
