@@ -107,9 +107,8 @@ function generateTaskMcMurchieIntegral(L12, L34)
         var b : double = bra_y - ket_y
         var c : double = bra_z - ket_z
 
-        var rsqrt_etas : double = rsqrt(bra_eta + ket_eta)
-        var lambda : double = bra_C * ket_C * rsqrt_etas
-        var alpha : double = bra_eta * ket_eta * rsqrt_etas * rsqrt_etas
+        var lambda : double = bra_C * ket_C * rsqrt(bra_eta + ket_eta)
+        var alpha : double = bra_eta * ket_eta / (bra_eta + ket_eta)
         var t : double = alpha * (a*a + b*b + c*c);
         [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda, a, b, c, r_gamma_table)];
 

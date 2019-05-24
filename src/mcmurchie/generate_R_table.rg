@@ -42,15 +42,12 @@ function generateStatementsComputeBoys(boys, length, t, r_gamma_table)
     end)
   end
 
-  local t_inverse = regentlib.newsymbol(double, "t_inverse")
   local upwardsRecursionAsymptotic = terralib.newlist({rquote
-    var rsqrt_t : double = rsqrt(t);
-    [boys[0]] = rsqrt_t * (SQRT_PI / 2)
-    var [t_inverse] = rsqrt_t * rsqrt_t
+    [boys[0]] = rsqrt(t) * (SQRT_PI / 2)
   end})
   for j = 0, length-2 do -- inclusive
     upwardsRecursionAsymptotic:insert(rquote
-      [boys[j+1]] = ((2 * j + 1) / 2.0) * [boys[j]] * t_inverse
+      [boys[j+1]] = ((2 * j + 1) / 2.0) * [boys[j]] / t
     end)
   end
 
