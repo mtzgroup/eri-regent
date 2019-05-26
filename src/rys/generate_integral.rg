@@ -1,28 +1,28 @@
 import "regent"
-require("fields")
-require("generate_spin_pattern")
+require "fields"
+require "generate_spin_pattern"
 
 local sqrt = regentlib.sqrt(double)
+local rsqrt = regentlib.rsqrt(double)
+local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]="FF", [7]="FG", [8]="GG"}
 
--- Generates the statements to produce a constant region needed for the Rys
--- algorithm.
+-- Generates the statements to produce a constant region needed for the Rys algorithm.
 function generateSpinPatternRegion(L)
   local H = (L + 1) * (L + 2) * (L + 3) / 6
   local r_spin_pattern = regentlib.newsymbol("r_spin_pattern")
   -- TODO: Since the largest value is `L`, we can significantly reduce the size
   --       of `r_spin_pattern` if needed.
   local statements = terralib.newlist({rquote
-    var [r_spin_pattern] = region(ispace(int2d, {H, 3}), int)
+    var [r_spin_pattern] = region(ispace(int1d, H), int3d)
   end})
   local pattern_lua = generateSpinPattern(L)
   for i = 0, H-1 do -- inclusive
+    local N, L, M = unpack(pattern_lua[i+1])
     statements:insert(rquote
-      r_spin_pattern[{i, 0}] = [pattern_lua[i+1][1]]
-      r_spin_pattern[{i, 1}] = [pattern_lua[i+1][2]]
-      r_spin_pattern[{i, 2}] = [pattern_lua[i+1][3]]
+      r_spin_pattern[i] = {x=N, y=L, z=M}
     end)
   end
-  return {initialize=statements, r_spin_pattern=r_spin_pattern}
+  return {statements, r_spin_pattern}
 end
 
 -- Given a pair of angular momentums, this returns a task
@@ -33,7 +33,6 @@ function generateTaskRysIntegral(L12, L34)
   local L = L12 + L34
   local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
   local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6
-  local PI_5_2 = math.pow(math.pi, 2.5)
 
   local
   __demand(__inline)
@@ -50,31 +49,48 @@ function generateTaskRysIntegral(L12, L34)
   local
   __demand(__leaf)
   __demand(__cuda)
-  task integral(r_bra_gausses  : region(ispace(int1d), HermiteGaussian),
-                r_ket_gausses  : region(ispace(int1d), HermiteGaussian),
-                r_density      : region(ispace(int1d), Double),
-                r_j_values     : region(ispace(int1d), Double),
-                r_spin_pattern : region(ispace(int2d), int),
-                alpha          : double,
-                omega          : double)
+  task integral(r_bra_gausses  : region(ispace(int1d), getHermiteGaussianPacked(L12)),
+                r_ket_gausses  : region(ispace(int1d), getHermiteGaussianPacked(L34)),
+                r_spin_pattern : region(ispace(int1d), int3d))
   where
-    reads(r_bra_gausses, r_ket_gausses, r_density, r_spin_pattern),
-    reduces +(r_j_values),
-    r_density * r_j_values
+    reads(r_bra_gausses.{x, y, z, eta, C, bound}),
+    reads(r_ket_gausses.{x, y, z, eta, C, density, bound}),
+    reads(r_spin_pattern),
+    reduces +(r_bra_gausses.j)
   do
+    var alpha : double = 1.0 -- TODO
+    var omega : double = 1.0 -- TODO
     var ket_idx_bounds_lo : int = r_ket_gausses.ispace.bounds.lo
     var ket_idx_bounds_hi : int = r_ket_gausses.ispace.bounds.hi
     for bra_idx in r_bra_gausses.ispace do
-      for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do
-        var bra = r_bra_gausses[bra_idx]
-        var ket = r_ket_gausses[ket_idx]
-        -- TODO: Bounds
-        var a : double = bra.x - ket.x
-        var b : double = bra.y - ket.y
-        var c : double = bra.z - ket.z
+      var bra_x : double = r_bra_gausses[bra_idx].x
+      var bra_y : double = r_bra_gausses[bra_idx].y
+      var bra_z : double = r_bra_gausses[bra_idx].z
+      var bra_eta : double = r_bra_gausses[bra_idx].eta
+      var bra_C : double = r_bra_gausses[bra_idx].C
+      var bra_bound : double = r_bra_gausses[bra_idx].bound
+      var accumulator : double[H12]
+      for i = 0, H12 do -- exclusive
+        accumulator[i] = 0.0
+      end
 
-        var lambda : double = alpha * 2.0 * PI_5_2 / (bra.eta * ket.eta * sqrt(bra.eta + ket.eta))
-        var rho : double = bra.eta * ket.eta / (bra.eta + ket.eta)
+      for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do
+        var ket_x : double = r_ket_gausses[ket_idx].x
+        var ket_y : double = r_ket_gausses[ket_idx].y
+        var ket_z : double = r_ket_gausses[ket_idx].z
+        var ket_eta : double = r_ket_gausses[ket_idx].eta
+        var ket_C : double = r_ket_gausses[ket_idx].C
+        var density : double[H34] = r_ket_gausses[ket_idx].density
+        var ket_bound : double = r_ket_gausses[ket_idx].bound
+
+        -- TODO: Bounds
+        var a : double = bra_x - ket_x
+        var b : double = bra_y - ket_y
+        var c : double = bra_z - ket_z
+
+        var lambda : double = alpha * bra_C * ket_C * rsqrt(bra_eta + ket_eta)
+        -- TODO: Rename to alpha to be consistent with McMurchie
+        var rho : double = bra_eta * ket_eta / (bra_eta + ket_eta)
         var d2 : double = 1
         if omega ~= -1 then
           d2 = omega * omega / (rho + omega * omega)
@@ -82,6 +98,7 @@ function generateTaskRysIntegral(L12, L34)
         end
         var T : double = rho * d2 * (a*a + b*b + c*c)
 
+        -- TODO: Unroll
         for i = 0, nrys do
           var t : double = __demand(__inline, interpolate_t(T, i))
           var w : double = __demand(__inline, interpolate_w(T, i))
@@ -102,25 +119,24 @@ function generateTaskRysIntegral(L12, L34)
             Hy[i+1] = U * (b * Hy[i] + i * Hy[i-1])
             Hz[i+1] = U * (c * Hz[i] + i * Hz[i-1])
           end
-          var P : double[H34]
-          for i = 0, H34 do -- exclusive
-            P[i] = r_density[ket.data_rect.lo + i].value
-          end
           for t_index = 0, H12 do -- exclusive
             var sum : double = 0.0
+            var t_spin : int3d = r_spin_pattern[t_index]
             for u_index = 0, H34 do -- exclusive
-              var N = r_spin_pattern[{t_index, 0}] + r_spin_pattern[{u_index, 0}]
-              var L = r_spin_pattern[{t_index, 1}] + r_spin_pattern[{u_index, 1}]
-              var M = r_spin_pattern[{t_index, 2}] + r_spin_pattern[{u_index, 2}]
-              sum += Hx[N] * Hy[L] * Hz[M] * P[u_index]
+              var u_spin : int3d = r_spin_pattern[u_index]
+              var N = t_spin.x + u_spin.x
+              var L = t_spin.y + u_spin.y
+              var M = t_spin.z + u_spin.z
+              sum += Hx[N] * Hy[L] * Hz[M] * density[u_index]
             end
-            r_j_values[bra.data_rect.lo + t_index].value += sum
+            accumulator[t_index] += sum
           end
         end
       end
+
+      r_bra_gausses[bra_idx].j += accumulator
     end
   end
-  local LToStr = {"SS", "SP", "PP", "PD", "DD", "FD", "FF"}
-  integral:set_name("Rys"..LToStr[L12+1]..LToStr[L34+1])
+  integral:set_name("Rys"..LToStr[L12]..LToStr[L34])
   return integral
 end

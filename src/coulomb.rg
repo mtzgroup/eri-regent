@@ -13,10 +13,10 @@ end
 
 -- Generate code to dispatch two-electron repulsion integrals
 local function dispatchIntegrals(p_gausses, r_density, r_j_values, r_gamma_table, parallelism)
-  -- local lua_spin_pattern = generateSpinPatternRegion(max_momentum)
+  -- local spin_pattern_init, r_spin_pattern = unpack(generateSpinPatternRegion(max_momentum))
   local statements = terralib.newlist({rquote
     -- TODO: Spin pattern region should not be initialized here.
-    -- [lua_spin_pattern.initialize]
+    -- [spin_pattern_init]
   end})
 
   local r_gausses_packed = {}
@@ -46,16 +46,11 @@ local function dispatchIntegrals(p_gausses, r_density, r_j_values, r_gamma_table
       else -- use Rys
         local integral = generateTaskRysIntegral(L12, L34)
         statements:insert(rquote
-          -- var bra_coloring = ispace(int1d, 1)
-          -- var ket_coloring = ispace(int1d, 1)
+          -- var bra_coloring = ispace(int1d, parallelism)
           -- var p_bra_gausses = partition(equal, r_bra_gausses, bra_coloring)
-          -- var p_ket_gausses = partition(equal, r_ket_gausses, ket_coloring)
+          -- __demand(__parallel)
           -- for bra_color in bra_coloring do
-          --   __demand(__parallel)
-          --   for ket_color in ket_coloring do
-          --     integral(p_bra_gausses[bra_color], p_ket_gausses[ket_color],
-          --              [lua_spin_pattern.r_spin_pattern], 1, 1)
-          --   end
+          --   integral(p_bra_gausses[bra_color], r_ket_gausses, r_spin_pattern)
           -- end
         end)
       end
