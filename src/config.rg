@@ -56,12 +56,12 @@ terra Config:initialize_from_command()
       cstring.strncpy(self.input_filename, args.argv[i], 512)
       -- The first line of the file is the number of HermiteGaussians
       c.fscanf(file, "%d\n", &self.num_gausses)
-      var line : int8[512]
+      var line : int8[1024]
       var L : int
       self.num_data_values = 0
       self.highest_L = 0
       for j = 0, self.num_gausses do
-        c.fgets(line, 512, file)
+        c.fgets(line, 1024, file)
         c.sscanf(line, "%d", &L)
         if L > self.highest_L then
           self.highest_L = L

@@ -66,12 +66,13 @@ local function dispatchIntegrals(p_gausses, r_density, r_j_values, r_gamma_table
     local H = (L + 1) * (L + 2) * (L + 3) / 6
     local r_packed = r_gausses_packed[L]
     statements:insert(rquote
-      var p_gausses_lo : int = p_gausses[L].bounds.lo
-      for i = 0, r_packed.volume do -- exclusive
-        var data_rect_lo : int = p_gausses[L][p_gausses_lo + i].data_rect.lo
+      var i : int = 0
+      for index in p_gausses[L].ispace do
+        var data_rect_lo : int = p_gausses[L][index].data_rect.lo
         for array_idx = 0, H do -- exclusive
           r_j_values[data_rect_lo + array_idx].value = r_packed[i].j[array_idx]
         end
+        i += 1
       end
     end)
   end

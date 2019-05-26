@@ -66,6 +66,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
   end
 
 
+  -- NOTE: `r_ket_gausses` is assumed to be contiguous
   local
   __demand(__leaf)
   __demand(__cuda)
@@ -81,7 +82,6 @@ function generateTaskMcMurchieIntegral(L12, L34)
     var ket_idx_bounds_lo : int = r_ket_gausses.ispace.bounds.lo
     var ket_idx_bounds_hi : int = r_ket_gausses.ispace.bounds.hi
     for bra_idx in r_bra_gausses.ispace do
-
       var bra_x : double = r_bra_gausses[bra_idx].x
       var bra_y : double = r_bra_gausses[bra_idx].y
       var bra_z : double = r_bra_gausses[bra_idx].z
@@ -93,7 +93,6 @@ function generateTaskMcMurchieIntegral(L12, L34)
         accumulator[i] = 0.0
       end
 
-      -- FIXME: This region is assumed to be contiguous.
       for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do -- exclusive
         var ket_x : double = r_ket_gausses[ket_idx].x
         var ket_y : double = r_ket_gausses[ket_idx].y
