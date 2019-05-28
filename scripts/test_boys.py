@@ -22,8 +22,8 @@ if __name__ == "__main__":
     boys_pattern = re.compile("boys(\d+)=" + capture_float)
 
     for max_j in range(17):
-        num_inputs = 1000
-        input = "\n".join([str(t) for t in np.linspace(0, 123.456, num_inputs)])
+        num_inputs = 100
+        input = "\n".join([str(t) for t in np.linspace(0, 34.56, num_inputs)])
         rg_process = Popen(
             ["regent", "mcmurchie/test_boys.rg", str(max_j)],
             cwd="src/",
