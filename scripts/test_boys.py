@@ -17,12 +17,13 @@ if __name__ == "__main__":
     RED = "\033[1;31m"
     GREEN = "\033[0;32m"
     RESET = "\033[0;0m"
-    capture_number = "([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)"
-    t_pattern = re.compile("t=" + capture_number)
-    boys_pattern = re.compile("boys(\d+)=" + capture_number)
+    capture_float = "([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)"
+    t_pattern = re.compile("t=" + capture_float)
+    boys_pattern = re.compile("boys(\d+)=" + capture_float)
 
     for max_j in range(17):
-        input = "\n".join([str(t) for t in np.linspace(0, 123.456, 1000)])
+        num_inputs = 1000
+        input = "\n".join([str(t) for t in np.linspace(0, 123.456, num_inputs)])
         rg_process = Popen(
             ["regent", "mcmurchie/test_boys.rg", str(max_j)],
             cwd="src/",
@@ -31,8 +32,12 @@ if __name__ == "__main__":
         )
         output, _ = rg_process.communicate(input)
 
+        num_outputs = 0
         for line in output.rstrip().split("\n"):
-            t = float(t_pattern.findall(line)[0])
+            try:
+                t = float(t_pattern.findall(line)[0])
+            except:
+                continue
             boys_parsed = boys_pattern.findall(line)
             actual = np.array([float(v) for _, v in boys_parsed])
             expected = np.array([boys(t, int(j))[0] for j, _ in boys_parsed])
@@ -54,6 +59,8 @@ if __name__ == "__main__":
                 print(expected)
                 rg_process.wait()
                 sys.exit(1)
+            num_outputs += 1
+        assert num_inputs == num_outputs, "Did not read in all inputs!"
 
     sys.stdout.write(GREEN)
     print("All tests passed!")
