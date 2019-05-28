@@ -86,8 +86,7 @@ end
 -- @param r_j_values Region of j values that will be overwritten.
 -- @param highest_L The highest angular momentum of the contracted guassians.
 -- FIXME: All `HermiteGaussian`s in `r_gausses` with the same angular momentum
---        are assumed to be contiguous. Either check this with an `assert` or
---        create a new region where this is the case.
+--        are assumed to be contiguous.
 task coulomb(r_gausses  : region(ispace(int1d), HermiteGaussian),
              r_density  : region(ispace(int1d), Double),
              r_j_values : region(ispace(int1d), Double),

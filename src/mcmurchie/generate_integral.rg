@@ -29,12 +29,12 @@ function generateTaskMcMurchieIntegral(L12, L34)
 
 
   -- Returns a list of regent statements that implements the McMurchie algorithm
-  local function generateKernelStatements(a, b, c, r_ket_gausses, ket_idx, accumulator)
+  local function generateKernelStatements(r_ket_gausses, ket_idx, accumulator)
     local density = rexpr r_ket_gausses[ket_idx].density end
 
     local statements = terralib.newlist()
     local results = {}
-    for i = 0, H12-1 do --inclusive
+    for i = 0, H12-1 do -- inclusive
       results[i] = regentlib.newsymbol(double, "result"..i)
       statements:insert(rquote var [results[i]] = 0.0 end)
     end
@@ -88,6 +88,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
       var bra_eta : double = r_bra_gausses[bra_idx].eta
       var bra_C : double = r_bra_gausses[bra_idx].C
       var bra_bound : double = r_bra_gausses[bra_idx].bound
+      -- TODO: `accumulator` should be shared
       var accumulator : double[H12]
       for i = 0, H12 do -- exclusive
         accumulator[i] = 0.0
@@ -111,7 +112,7 @@ function generateTaskMcMurchieIntegral(L12, L34)
         var t : double = alpha * (a*a + b*b + c*c);
         [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda, a, b, c, r_gamma_table)];
 
-        [generateKernelStatements(a, b, c, r_ket_gausses, ket_idx, accumulator)]
+        [generateKernelStatements(r_ket_gausses, ket_idx, accumulator)]
       end
 
       r_bra_gausses[bra_idx].j += accumulator
