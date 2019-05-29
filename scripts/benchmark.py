@@ -32,17 +32,31 @@ def plot_timings(timings_data):
     from matplotlib import pyplot as plt
 
     for num_molecules, experiments in timing_data.items():
-        num_gpus = [n for n, _ in experiments]
-        runtimes = [r for _, r in experiments]
-        plt.plot(
-            num_gpus,
-            np.mean(runtimes, axis=1),
-            label=(str(num_molecules) + " water molecules"),
-        )
+        num_gpus = np.array([n for n, _ in experiments])
+        runtimes = np.mean([r for _, r in experiments], axis=1)
+        efficiency = runtimes[0] / (num_gpus * runtimes)
+        plt.plot(num_gpus, efficiency, label=str(num_molecules) + " water molecules")
 
-    plt.title("eri-regent")
-    plt.ylabel("Runtime")
+    plt.title("Efficiency of eri-regent on GPUs")
+    plt.ylabel("Efficiency")
     plt.xlabel("Number of GPUs")
+    plt.xticks(num_gpus)
+    plt.legend()
+    plt.show()
+
+    num_molecules = [n for n, _ in timing_data.items()]
+    num_gpu_trials = np.min([len(r) for _, r in timing_data.items()])
+    for i in range(num_gpu_trials):
+        runtimes = np.mean([r[i][1] for _, r in timing_data.items()], axis=1)
+        num_gpus = [r[i][0] for _, r in timing_data.items()]
+        for n in num_gpus:
+            assert num_gpus[0] == n
+        plt.plot(num_molecules, runtimes, label=str(num_gpus[0]) + " GPUs")
+
+    plt.title("Runtime of eri-regent on Water Molecules")
+    plt.ylabel("Runtime (seconds)")
+    plt.xlabel("Number of Water Molecules")
+    plt.xticks(num_molecules)
     plt.legend()
     plt.show()
 
