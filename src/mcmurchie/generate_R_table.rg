@@ -1,7 +1,7 @@
 import "regent"
 
 local rsqrt = regentlib.rsqrt(double)
-local floor = regentlib.floor(double)
+local round = regentlib.llrint(double)
 local exp = regentlib.exp(double)
 local SQRT_PI = math.sqrt(math.pi)
 
@@ -29,8 +29,7 @@ function generateStatementsComputeBoys(boys, length, t, r_gamma_table)
   }
   local downwardsRecursion = terralib.newlist({rquote
     var t_scaled : double = [factors[length]] * t
-    var index : int = floor(t_scaled + 0.5)
-    var coefficients : double[5] = r_gamma_table[{length-1, index}];
+    var coefficients : double[5] = r_gamma_table[{length-1, round(t_scaled)}];
     [boys[length-1]] = coefficients[0] + t_scaled * (coefficients[1]
                                        + t_scaled * (coefficients[2]
                                        + t_scaled * (coefficients[3]
