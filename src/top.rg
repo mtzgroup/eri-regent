@@ -74,9 +74,14 @@ do
       if c.strncmp(line, "\n", 1) ~= 0 and c.strncmp(line, "\r\n", 2) ~= 0 then
         var data : int[1]
         c.sscanf([&int8](line), "%d", data)
+        assert(data[0] == [int32](r_gausses[i].L), "L is wrong")
         var L : int = data[0]
         var H : int = (L + 1) * (L + 2) * (L + 3) / 6
         var values : &double = readline(line, H)
+        assert(values[1] == r_gausses[i].eta, "eta is wrong")
+        assert(values[2] == r_gausses[i].x, "x is wrong")
+        assert(values[3] == r_gausses[i].y, "y is wrong")
+        assert(values[4] == r_gausses[i].z, "z is wrong")
         for j = 0, H do
           r_true_j_values[j_idx].value = values[j + 5]
           j_idx = j_idx + 1
