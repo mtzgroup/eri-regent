@@ -1,3 +1,4 @@
+molecule_name = "H2O"
 data_files = [
     # (1, "data/h2o_6-311g.dat"),
     # (2, "data/small-water/h2o_2_6-311g.dat"),
@@ -12,6 +13,16 @@ data_files = [
     # (750, "data/water-boxes/h2o_750_6-311g.dat"),
     # (1000, "data/water-boxes/h2o_1000_6-311g.dat"),
 ]
+# molecule_name = "H"
+# data_files = [
+#     (2 ** 3, "data/H-grids/2x2x2_6-311g.dat"),
+#     (3 ** 3, "data/H-grids/3x3x3_6-311g.dat"),
+#     (4 ** 3, "data/H-grids/4x4x4_6-311g.dat"),
+#     (5 ** 3, "data/H-grids/5x5x5_6-311g.dat"),
+#     (6 ** 3, "data/H-grids/6x6x6_6-311g.dat"),
+#     (7 ** 3, "data/H-grids/7x7x7_6-311g.dat"),
+#     (8 ** 3, "data/H-grids/8x8x8_6-311g.dat"),
+# ]
 
 
 def time_regent(file, num_gpus, num_trials):
@@ -35,7 +46,7 @@ def plot_timings(timings_data):
         num_gpus = np.array([n for n, _ in experiments])
         runtimes = np.mean([r for _, r in experiments], axis=1)
         efficiency = runtimes[0] / (num_gpus * runtimes)
-        plt.plot(num_gpus, efficiency, label=str(num_molecules) + " water molecules")
+        plt.plot(num_gpus, efficiency, label=str(num_molecules) + " " + molecule_name)
 
     plt.title("Efficiency of eri-regent on GPUs")
     plt.ylabel("Efficiency")
@@ -53,9 +64,9 @@ def plot_timings(timings_data):
             assert num_gpus[0] == n
         plt.plot(num_molecules, runtimes, label=str(num_gpus[0]) + " GPUs")
 
-    plt.title("Runtime of eri-regent on Water Molecules")
+    plt.title("Runtime of eri-regent for " + molecule_name)
     plt.ylabel("Runtime (seconds)")
-    plt.xlabel("Number of Water Molecules")
+    plt.xlabel("Number of " + molecule_name)
     plt.xticks(num_molecules)
     plt.legend()
     plt.show()
@@ -105,8 +116,8 @@ if __name__ == "__main__":
     for num_molecules, experiments in timing_data.items():
         for num_gpus, runtimes in experiments:
             print(
-                "Average runtime for %d water molecules on %d GPUs: %f"
-                % (num_molecules, num_gpus, np.mean(runtimes))
+                "Average runtime for %d %s molecules on %d GPUs: %f"
+                % (num_molecules, molecule_name, num_gpus, np.mean(runtimes))
             )
 
     if args.output_file is not None:
