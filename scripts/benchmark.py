@@ -42,7 +42,7 @@ def time_regent(file, num_gpus, num_trials):
 def plot_timings(timings_data):
     from matplotlib import pyplot as plt
 
-    for num_molecules, experiments in timing_data.items():
+    for num_molecules, experiments in sorted(timing_data.items()):
         num_gpus = np.array([n for n, _ in experiments])
         runtimes = np.mean([r for _, r in experiments], axis=1)
         efficiency = runtimes[0] / (num_gpus * runtimes)
@@ -56,13 +56,17 @@ def plot_timings(timings_data):
     plt.show()
 
     num_molecules = [n for n, _ in timing_data.items()]
+    order = np.argsort(num_molecules)
+    num_molecules = np.sort(num_molecules)
     num_gpu_trials = np.min([len(r) for _, r in timing_data.items()])
     for i in range(num_gpu_trials):
         runtimes = np.mean([r[i][1] for _, r in timing_data.items()], axis=1)
+        runtimes = runtimes[order]
         num_gpus = [r[i][0] for _, r in timing_data.items()]
         for n in num_gpus:
             assert num_gpus[0] == n
         plt.plot(num_molecules, runtimes, label=str(num_gpus[0]) + " GPUs")
+    plt.plot([50, 10, 250], [0.63, 2.98, 7.6], label="TeraChem")
 
     plt.title("Runtime of eri-regent for " + molecule_name)
     plt.ylabel("Runtime (seconds)")
