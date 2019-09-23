@@ -38,7 +38,7 @@ local function dispatchIntegrals(p_gausses, r_density, r_j_values, r_gamma_table
         statements:insert(rquote
           var bra_coloring = ispace(int1d, parallelism)
           var p_bra_gausses = partition(equal, r_bra_gausses, bra_coloring)
-          __demand(__parallel)
+          __demand(__index_launch)
           for bra_color in bra_coloring do
             integral(p_bra_gausses[bra_color], r_ket_gausses, r_gamma_table)
           end
@@ -48,7 +48,7 @@ local function dispatchIntegrals(p_gausses, r_density, r_j_values, r_gamma_table
         statements:insert(rquote
           -- var bra_coloring = ispace(int1d, parallelism)
           -- var p_bra_gausses = partition(equal, r_bra_gausses, bra_coloring)
-          -- __demand(__parallel)
+          -- __demand(__index_launch)
           -- for bra_color in bra_coloring do
           --   integral(p_bra_gausses[bra_color], r_ket_gausses, r_spin_pattern)
           -- end
