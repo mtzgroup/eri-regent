@@ -7,8 +7,13 @@ local assert = regentlib.assert
 
 -- TODO: Verify these functions are correct!
 
+local terra checkFile(filep : &c.FILE)
+  assert(filep ~= nil, "Could not open file!")
+end
+
 terra readParametersFile(filename : &int8, data : &double)
   var filep = c.fopen(filename, "r")
+  checkFile(filep)
   var num_values = c.fscanf(filep,
     "scalfr=%lf\nscallr=%lf\nomega=%lf\nthresp=%lf\nthredp=%lf\n",
     data, data+1, data+2, data+3, data+4)
@@ -23,35 +28,36 @@ function writeGaussiansToRegions(filename, region_vars)
   local double_data = regentlib.newsymbol(double[6])
   local statements = terralib.newlist({rquote
     var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
     var [int_data]
     var [double_data]
   end})
   for L_lua = 0, #region_vars do -- inclusive
     local region_var = region_vars[L_lua]
     statements:insert(rquote
-      var num_values = c.fscanf(filep, "L=%d,N=%d\n", [int_data], [int_data]+1)
+      var num_values = c.fscanf(filep, "L=%d,N=%d\n", int_data, int_data+1)
       assert(num_values == 2, "Did not read all values in header!")
-      var L = [int_data][0]
-      var N = [int_data][1]
+      var L = int_data[0]
+      var N = int_data[1]
       assert(L == L_lua, "Unexpected angular momentum!")
       var [region_var] = region(ispace(int1d, N), Gaussian)
       for j = 0, N do -- exclusive
         num_values = c.fscanf(filep,
           "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf",
-          [double_data]+0, [double_data]+1, [double_data]+2,
-          [double_data]+3, [double_data]+4, [double_data]+5
+          double_data+0, double_data+1, double_data+2,
+          double_data+3, double_data+4, double_data+5
         )
         assert(num_values == 6, "Did not read all values in line!");
         [region_var][j] = {
-          x=[double_data][0], y=[double_data][1], z=[double_data][2],
-          eta=[double_data][3], C=[double_data][4], bound=[double_data][5]
+          x=double_data[0], y=double_data[1], z=double_data[2],
+          eta=double_data[3], C=double_data[4], bound=double_data[5]
         }
         assert(c.fscanf(filep, "\n") == 0, "Could not read newline!")
       end
     end)
   end
   statements:insert(rquote
-    c.fclose([filep])
+    c.fclose(filep)
   end)
   return statements
 end
@@ -63,6 +69,7 @@ function writeGaussiansWithDensityToRegions(filename, region_vars)
   local double_data = regentlib.newsymbol(double[6])
   local statements = terralib.newlist({rquote
     var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
     var [int_data]
     var [double_data]
   end})
@@ -71,17 +78,17 @@ function writeGaussiansWithDensityToRegions(filename, region_vars)
     local H = computeH(L_lua)
     local field_space = getGaussianWithDensity(L_lua)
     statements:insert(rquote
-      var num_values = c.fscanf(filep, "L=%d,N=%d\n", [int_data], [int_data]+1)
+      var num_values = c.fscanf(filep, "L=%d,N=%d\n", int_data, int_data+1)
       assert(num_values == 2, "Did not read all values in header!")
-      var L = [int_data][0]
-      var N = [int_data][1]
+      var L = int_data[0]
+      var N = int_data[1]
       assert(L == L_lua, "Unexpected angular momentum!")
       var [region_var] = region(ispace(int1d, N), field_space)
       for j = 0, N do -- exclusive
         num_values = c.fscanf(filep,
           "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,density=",
-          [double_data]+0, [double_data]+1, [double_data]+2,
-          [double_data]+3, [double_data]+4, [double_data]+5
+          double_data+0, double_data+1, double_data+2,
+          double_data+3, double_data+4, double_data+5
         )
         assert(num_values == 6, "Did not read all values in line!");
         var density : double[H]
@@ -90,8 +97,8 @@ function writeGaussiansWithDensityToRegions(filename, region_vars)
           assert(num_values == 1, "Could not read density value!")
         end
         [region_var][j] = {
-          x=[double_data][0], y=[double_data][1], z=[double_data][2],
-          eta=[double_data][3], C=[double_data][4], bound=[double_data][5],
+          x=double_data[0], y=double_data[1], z=double_data[2],
+          eta=double_data[3], C=double_data[4], bound=double_data[5],
           density=density
         }
         assert(c.fscanf(filep, "\n") == 0, "Could not read newline!")
@@ -99,7 +106,7 @@ function writeGaussiansWithDensityToRegions(filename, region_vars)
     end)
   end
   statements:insert(rquote
-    c.fclose([filep])
+    c.fclose(filep)
   end)
   return statements
 end

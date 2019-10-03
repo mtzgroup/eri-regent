@@ -70,13 +70,13 @@ function generateTaskMcMurchieJFockIntegral(L12, L34)
   local
   __demand(__leaf)
   __demand(__cuda)
-  task jfock_integral(r_jbras       : region(ispace(int1d), Gaussian),
-                      r_jkets       : region(ispace(int1d), getGaussianWithDensity(L34)),
-                      r_output      : region(ispace(int1d), double),
-                      r_gamma_table : region(ispace(int2d), double[5]))
+  task jfock_integral(r_jbras         : region(ispace(int1d), Gaussian),
+                      r_jkets         : region(ispace(int1d), getGaussianWithDensity(L34)),
+                      r_kernel_output : region(ispace(int1d), double[H12]),
+                      r_gamma_table   : region(ispace(int2d), double[5]))
   where
     reads(r_jbras, r_jkets, r_gamma_table),
-    reduces +(r_output)
+    reduces +(r_kernel_output)
   do
     var jket_idx_bounds_lo : int = r_jkets.ispace.bounds.lo
     var jket_idx_bounds_hi : int = r_jkets.ispace.bounds.hi
@@ -114,8 +114,7 @@ function generateTaskMcMurchieJFockIntegral(L12, L34)
         [generateJFockKernelStatements(r_jkets, jket_idx, accumulator)]
       end
 
-      -- r_output[jbra_idx] += accumulator
-      r_output[jbra_idx] += accumulator[0] -- TODO
+      r_kernel_output[jbra_idx] += accumulator
     end
   end
   jfock_integral:set_name("JFockMcMurchie"..LToStr[L12]..LToStr[L34])

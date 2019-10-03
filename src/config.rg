@@ -12,9 +12,8 @@ struct Config {
   input_directory      : int8[512];
   bras_filename        : int8[512];
   kets_filename        : int8[512];
-  parameters_filename   : int8[512];
+  parameters_filename  : int8[512];
   num_trials           : int;
-  -- verbose              : bool;
 }
 
 terra Config:dump()
@@ -25,7 +24,6 @@ terra Config:dump()
   c.printf("\tbras_filename: %s\n", self.bras_filename)
   c.printf("\tkets_filename: %s\n", self.kets_filename)
   c.printf("\tnum_trials: %d\n", self.num_trials)
-  -- c.printf("\tverbose: %d\n", self.verbose)
 end
 
 terra print_usage_and_abort()
@@ -36,7 +34,6 @@ terra print_usage_and_abort()
   c.printf("  -i {directory}       : Use input files in {directory}.\n")
   c.printf("  -p {value}           : Partition bras {value} ways.\n")
   c.printf("  --trials {value}     : Run {value} times.\n")
-  -- c.printf("  --verbose            : Verbose printing.\n")
   c.exit(0)
 end
 
@@ -45,7 +42,6 @@ terra Config:initialize_from_command()
   self.parallelism = 1
   self.input_directory[0] = 0
   self.num_trials = 1
-  -- self.verbose = false
 
   var args = c.legion_runtime_get_input_args()
   var i = 1
@@ -66,8 +62,6 @@ terra Config:initialize_from_command()
       i = i + 1
       self.num_trials = c.atoi(args.argv[i])
       assert(self.num_trials > 0, "Number of trials must be positive.")
-    -- elseif cstring.strcmp(args.argv[i], "--verbose") == 0 then
-    --   self.verbose = true
     elseif cstring.strcmp(args.argv[i], "-L") == 0 then
       i = i + 1
     else

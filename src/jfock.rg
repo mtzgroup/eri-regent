@@ -14,6 +14,7 @@ function jfock(r_jbras_list, r_jkets_list,
     -- [spin_pattern_init]
   end})
   for L12 = 0, getCompiledMaxMomentum() do -- inclusive
+    local H12 = computeH(L12)
     for L34 = 0, getCompiledMaxMomentum() do -- inclusive
       local r_jbras = r_jbras_list[L12]
       local r_jkets = r_jkets_list[L34]
@@ -23,10 +24,13 @@ function jfock(r_jbras_list, r_jkets_list,
         statements:insert(rquote
           var jbra_coloring = ispace(int1d, parallelism)
           var p_jbras = partition(equal, r_jbras, jbra_coloring)
+          var r_kernel_output = region(ispace(int1d, r_jbras.volume), double[H12])
           __demand(__index_launch)
           for jbra_color in jbra_coloring do
-            jfock_integral(p_jbras[jbra_color], r_jkets, r_output, r_gamma_table)
+            jfock_integral(p_jbras[jbra_color], r_jkets, r_kernel_output, r_gamma_table)
           end
+
+          -- TODO: Post processing to reduce `r_kernel_output` into `r_output`
         end)
       else -- use Rys
         -- local jfock_integral = generateTaskRysJFockIntegral(L12, L34)
@@ -43,24 +47,3 @@ function jfock(r_jbras_list, r_jkets_list,
   end
   return statements
 end
-
--- -- Given two arrays of regions, return a task that computes the jfock operator
--- function jfock(r_jbras_list, r_jkets_list)
---
---   -- Compute the jfock operator and add the result to `r_output`
---   -- `r_output` should be zero'd before this is called
---   local
---   task jfock_task(r_gamma_table : region(ispace(int2d), double[5]),
---                   r_output      : region(ispace(int1d), double),
---                   parameters    : Parameters,
---                   parallelism   : int)
---   where
---     reads(r_gamma_table),
---     reduces +(r_output)
---   do
---     [dispatchIntegrals(r_jbras_list, r_jkets_list,
---                        r_gamma_table, r_output, parameters, parallelism)]
---   end
---   jfock_task:set_name("jfock_task")
---   return jfock_task
--- end

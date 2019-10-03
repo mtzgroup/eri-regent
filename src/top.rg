@@ -1,10 +1,9 @@
 import "regent"
 
--- require "coulomb"
 local Config = require "config"
 require "parse_files"
 require "mcmurchie.populate_gamma_table"
-require "mcmurchie.jfock"
+require "jfock"
 
 local c = regentlib.c
 local assert = regentlib.assert
@@ -135,6 +134,10 @@ task toplevel()
   [dumpRegionSizes("Kets", r_jkets_list)]
   c.printf("******************************************\n")
 
+  __fence(__execution, __block) -- Make sure we only time the computation
+  var ts_start = c.legion_get_current_time_in_micros()
+  __fence(__execution, __block) -- Make sure we only time the computation
+
   -- Compute results --
   ---------------------
   ;[jfock(r_jbras_list, r_jkets_list,
@@ -142,29 +145,10 @@ task toplevel()
           parameters, rexpr config.parallelism end)]
   ---------------------
 
-  --
-  -- var r_gausses = region(ispace(int1d, config.num_gausses), HermiteGaussian)
-  -- var r_density = region(ispace(int1d, config.num_data_values), Double)
-  -- var r_j_values = region(ispace(int1d, config.num_data_values), Double)
-  -- var r_true_j_values = region(ispace(int1d, config.num_data_values), Double)
-  --
-  -- if config.verbose then c.printf("Reading input file\n") end
-  -- populateData(r_gausses, r_density, r_true_j_values, config)
-  --
-  -- if config.verbose then c.printf("Launching integrals\n") end
-  -- for trial = 0, config.num_trials do -- exclusive
-  --   if config.num_trials > 1 then c.printf("Running trial %d\n", trial) end
-  --   __fence(__execution, __block) -- Make sure we only time the computation
-  --   var ts_start = c.legion_get_current_time_in_micros()
-  --   __fence(__execution, __block) -- Make sure we only time the computation
-  --
-  --   coulomb(r_gausses, r_density, r_j_values, config.highest_L, config.parallelism)
-  --
-  --   __fence(__execution, __block) -- Make sure we only time the computation
-  --   var ts_stop = c.legion_get_current_time_in_micros()
-  --   c.printf("Coulomb operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
-  -- end
-  --
+  __fence(__execution, __block) -- Make sure we only time the computation
+  var ts_stop = c.legion_get_current_time_in_micros()
+  c.printf("Coulomb operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
+
   -- writeOutput(r_gausses, r_j_values, config)
   -- verifyOutput(r_gausses, r_j_values, r_true_j_values, config)
 end
