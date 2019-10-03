@@ -4,12 +4,12 @@ require "mcmurchie.generate_integral"
 require "mcmurchie.populate_gamma_table"
 require "rys.generate_integral"
 
-local max_momentum
-if arg[1] == "--max_momentum" then
-  max_momentum = tonumber(arg[2])
-else
-  max_momentum = 2
-end
+-- local max_momentum
+-- if arg[1] == "--max_momentum" then
+--   max_momentum = tonumber(arg[2])
+-- else
+--   max_momentum = 2
+-- end
 
 -- Generate code to dispatch two-electron repulsion integrals
 local function dispatchIntegrals(p_gausses, r_density, r_j_values, r_gamma_table, parallelism)

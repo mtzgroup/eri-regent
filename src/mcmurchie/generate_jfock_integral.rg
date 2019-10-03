@@ -1,4 +1,6 @@
 import "regent"
+
+require "helper"
 require "fields"
 require "mcmurchie.generate_R_table"
 require "generate_spin_pattern"
@@ -9,9 +11,9 @@ local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]=
 -- Given a pair of angular momentums, this returns a task
 -- to compute electron repulsion integrals between BraKets
 -- using the McMurchie algorithm.
-function generateTaskMcMurchieIntegral(L12, L34)
-  local H12 = (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
-  local H34 = (L34 + 1) * (L34 + 2) * (L34 + 3) / 6
+function generateTaskMcMurchieJFockIntegral(L12, L34)
+  local H12 = computeH(L12)
+  local H34 = computeH(L34)
   -- Create a table of Regent variables to hold Hermite polynomials.
   local R = {}
   for N = 0, L12+L34 do -- inclusive
@@ -29,8 +31,8 @@ function generateTaskMcMurchieIntegral(L12, L34)
 
 
   -- Returns a list of regent statements that implements the McMurchie algorithm
-  local function generateKernelStatements(r_ket_gausses, ket_idx, accumulator)
-    local density = rexpr r_ket_gausses[ket_idx].density end
+  local function generateJFockKernelStatements(r_jkets, jket_idx, accumulator)
+    local density = rexpr r_jkets[jket_idx].density end
 
     local statements = terralib.newlist()
     local results = {}
@@ -65,59 +67,57 @@ function generateTaskMcMurchieIntegral(L12, L34)
     return statements
   end
 
-
-  -- NOTE: `r_ket_gausses` is assumed to be contiguous
   local
   __demand(__leaf)
   __demand(__cuda)
-  task integral(r_bra_gausses : region(ispace(int1d), getHermiteGaussianPacked(L12)),
-                r_ket_gausses : region(ispace(int1d), getHermiteGaussianPacked(L34)),
-                r_gamma_table : region(ispace(int2d), double[5]))
+  task jfock_integral(r_jbras       : region(ispace(int1d), Gaussian),
+                      r_jkets       : region(ispace(int1d), getGaussianWithDensity(L34)),
+                      r_output      : region(ispace(int1d), double),
+                      r_gamma_table : region(ispace(int2d), double[5]))
   where
-    reads(r_bra_gausses.{x, y, z, eta, C, bound}),
-    reads(r_ket_gausses.{x, y, z, eta, C, density, bound}),
-    reads(r_gamma_table),
-    reduces +(r_bra_gausses.j)
+    reads(r_jbras, r_jkets, r_gamma_table),
+    reduces +(r_output)
   do
-    var ket_idx_bounds_lo : int = r_ket_gausses.ispace.bounds.lo
-    var ket_idx_bounds_hi : int = r_ket_gausses.ispace.bounds.hi
-    for bra_idx in r_bra_gausses.ispace do
-      var bra_x : double = r_bra_gausses[bra_idx].x
-      var bra_y : double = r_bra_gausses[bra_idx].y
-      var bra_z : double = r_bra_gausses[bra_idx].z
-      var bra_eta : double = r_bra_gausses[bra_idx].eta
-      var bra_C : double = r_bra_gausses[bra_idx].C
-      var bra_bound : double = r_bra_gausses[bra_idx].bound
+    var jket_idx_bounds_lo : int = r_jkets.ispace.bounds.lo
+    var jket_idx_bounds_hi : int = r_jkets.ispace.bounds.hi
+    for jbra_idx in r_jbras.ispace do
+      var jbra_x : double = r_jbras[jbra_idx].x
+      var jbra_y : double = r_jbras[jbra_idx].y
+      var jbra_z : double = r_jbras[jbra_idx].z
+      var jbra_eta : double = r_jbras[jbra_idx].eta
+      var jbra_C : double = r_jbras[jbra_idx].C
+      var jbra_bound : double = r_jbras[jbra_idx].bound
       -- TODO: `accumulator` should be shared
       var accumulator : double[H12]
       for i = 0, H12 do -- exclusive
         accumulator[i] = 0.0
       end
 
-      for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do -- exclusive
-        var ket_x : double = r_ket_gausses[ket_idx].x
-        var ket_y : double = r_ket_gausses[ket_idx].y
-        var ket_z : double = r_ket_gausses[ket_idx].z
-        var ket_eta : double = r_ket_gausses[ket_idx].eta
-        var ket_C : double = r_ket_gausses[ket_idx].C
-        var ket_bound : double = r_ket_gausses[ket_idx].bound
+      for jket_idx = jket_idx_bounds_lo, jket_idx_bounds_hi + 1 do -- exclusive
+        var jket_x : double = r_jkets[jket_idx].x
+        var jket_y : double = r_jkets[jket_idx].y
+        var jket_z : double = r_jkets[jket_idx].z
+        var jket_eta : double = r_jkets[jket_idx].eta
+        var jket_C : double = r_jkets[jket_idx].C
+        var jket_bound : double = r_jkets[jket_idx].bound
 
         -- TODO: Use Gaussian.bound to filter useless loops
-        var a : double = bra_x - ket_x
-        var b : double = bra_y - ket_y
-        var c : double = bra_z - ket_z
+        var a : double = jbra_x - jket_x
+        var b : double = jbra_y - jket_y
+        var c : double = jbra_z - jket_z
 
-        var lambda : double = bra_C * ket_C * rsqrt(bra_eta + ket_eta)
-        var alpha : double = bra_eta * ket_eta / (bra_eta + ket_eta)
+        var lambda : double = jbra_C * jket_C * rsqrt(jbra_eta + jket_eta)
+        var alpha : double = jbra_eta * jket_eta / (jbra_eta + jket_eta)
         var t : double = alpha * (a*a + b*b + c*c);
         [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda, a, b, c, r_gamma_table)];
 
-        [generateKernelStatements(r_ket_gausses, ket_idx, accumulator)]
+        [generateJFockKernelStatements(r_jkets, jket_idx, accumulator)]
       end
 
-      r_bra_gausses[bra_idx].j += accumulator
+      -- r_output[jbra_idx] += accumulator
+      r_output[jbra_idx] += accumulator[0] -- TODO
     end
   end
-  integral:set_name("McMurchie"..LToStr[L12]..LToStr[L34])
-  return integral
+  jfock_integral:set_name("JFockMcMurchie"..LToStr[L12]..LToStr[L34])
+  return jfock_integral
 end
