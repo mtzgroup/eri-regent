@@ -6,7 +6,6 @@ require "mcmurchie.generate_R_table"
 require "generate_spin_pattern"
 
 local rsqrt = regentlib.rsqrt(double)
-local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]="FF", [7]="FG", [8]="GG"}
 
 -- Given a pair of angular momentums, this returns a task
 -- to compute electron repulsion integrals between BraKets

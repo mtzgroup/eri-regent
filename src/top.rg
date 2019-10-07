@@ -117,9 +117,7 @@ task toplevel()
   --------------------------
   var N = parameters.num_atomic_orbitals * parameters.num_atomic_orbitals
   var r_output = region(ispace(int1d, N), double)
-  for e in r_output.ispace do
-    r_output[e] = 0
-  end
+  fill(r_output, 0)
   --------------------------
 
   c.printf("******************************************\n")

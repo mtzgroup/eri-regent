@@ -48,7 +48,7 @@ function writeGaussiansToRegions(filename, region_vars)
           double_data+3, double_data+4, double_data+5
         )
         assert(num_values == 6, "Did not read all values in line!");
-        [region_var][j] = {
+        region_var[j] = {
           x=double_data[0], y=double_data[1], z=double_data[2],
           eta=double_data[3], C=double_data[4], bound=double_data[5]
         }
@@ -96,7 +96,7 @@ function writeGaussiansWithDensityToRegions(filename, region_vars)
           num_values = c.fscanf(filep, "%lf;", density+k)
           assert(num_values == 1, "Could not read density value!")
         end
-        [region_var][j] = {
+        region_var[j] = {
           x=double_data[0], y=double_data[1], z=double_data[2],
           eta=double_data[3], C=double_data[4], bound=double_data[5],
           density=density
