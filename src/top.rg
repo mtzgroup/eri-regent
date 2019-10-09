@@ -8,45 +8,6 @@ require "parse_files"
 
 local c = regentlib.c
 local assert = regentlib.assert
--- local fabs = regentlib.fabs(double)
-
--- task verifyOutput(r_gausses       : region(ispace(int1d), HermiteGaussian),
---                   r_j_values      : region(ispace(int1d), Double),
---                   r_true_j_values : region(ispace(int1d), Double),
---                   config          : Config)
--- where
---   reads(r_gausses, r_j_values, r_true_j_values)
--- do
---   if config.true_values_filename[0] == 0 then
---     return
---   end
---   if config.verbose then c.printf("Verifying output\n") end
---   var max_error : double = 0.0
---   var num_incorrect = 0
---   for gauss_idx in r_gausses.ispace do
---     var gaussian = r_gausses[gauss_idx]
---     for i = [int](gaussian.data_rect.lo), [int](gaussian.data_rect.hi + 1) do
---       var actual : double = r_j_values[i].value
---       var expected : double = r_true_j_values[i].value
---       var error : double = fabs(actual - expected)
---       if [bool](c.isnan(actual)) or [bool](c.isinf(actual)) or error > 1e-8 then
---         c.printf("Value differs at gaussian = %d, L = %d, i = %d: actual = %.12f, expected = %.12f\n",
---                  gauss_idx, gaussian.L, i - [int](gaussian.data_rect.lo), actual, expected)
---         num_incorrect += 1
---       end
---       if error > max_error then
---         max_error = error
---       end
---     end
---   end
---   if config.verbose or num_incorrect > 0 then
---     c.printf("%d/%d incorrect values found\n", num_incorrect, r_j_values.ispace.volume)
---     c.printf("Max error = %.12f\n", max_error)
---   end
---   if num_incorrect > 0 then
---     c.exit(1)
---   end
--- end
 
 local r_jbras_list, r_jkets_list = {}, {}
 for i = 0, getCompiledMaxMomentum() do -- inclusive
@@ -123,10 +84,10 @@ task toplevel()
   if output_filename[0] ~= 0 then
     [writeOutput(r_jbras_list, output_filename)]
   end
-  -- var verify_filename = config.verify_filename
-  -- if verify_filename[0] ~= 0 then
-  --   [verifyOutput(r_jbras_list, verify_filename)]
-  -- end
+  var verify_filename = config.verify_filename
+  if verify_filename[0] ~= 0 then
+    [verifyOutput(r_jbras_list, 1e-8, verify_filename)]
+  end
   ----------------------------
 end
 

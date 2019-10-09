@@ -1,10 +1,11 @@
 import "regent"
 
-require "helper"
 require "fields"
+require "helper"
 
-local c = regentlib.c
 local assert = regentlib.assert
+local c = regentlib.c
+local fabs = regentlib.fabs(double)
 
 -- TODO: Verify these functions are correct!
 
@@ -122,33 +123,66 @@ end
 -- Writes the output to `filename`
 function writeOutput(r_jbras_list, filename)
   local filep = regentlib.newsymbol()
-  local function dumpOutputLine(output, L)
-    local H = computeH(L)
-    local statements = terralib.newlist()
-    for i = 0, H-1 do -- inclusive
-      statements:insert(rquote
-        c.fprintf(filep, "%A\t", output[i])
-      end)
-    end
-    statements:insert(rquote
-      c.fprintf(filep, "\n")
-    end)
-    return statements
-  end
   local statements = terralib.newlist({rquote
     var [filep] = c.fopen(filename, "w")
     checkFile(filep)
   end})
   for L = 0, #r_jbras_list do
+    local H = computeH(L)
     statements:insert(rquote
-      c.fprintf(filep, "L=%d\n", L)
+      c.fprintf(filep, "L=%d,N=%d\n", L, [r_jbras_list[L]].volume)
       for bra in [r_jbras_list[L]] do
-        [dumpOutputLine(rexpr bra.output end, L)]
+        for i = 0, H do -- exclusive
+          c.fprintf(filep, "%A\t", bra.output[i])
+        end
+        c.fprintf(filep, "\n")
       end
     end)
   end
   statements:insert(rquote
     c.fclose(filep)
+  end)
+  return statements
+end
+
+-- Verify the output is within `epsilon` of data from `filename`
+function verifyOutput(r_jbras_list, epsilon, filename)
+  local filep = regentlib.newsymbol()
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
+  end})
+  for L = 0, #r_jbras_list do
+    local H = computeH(L)
+    local r_jbras = r_jbras_list[L]
+    statements:insert(rquote
+      var max_error : double = 0 -- TODO
+      var int_data : int[2]
+      var double_data : double[1]
+      var num_values = c.fscanf(filep, "L=%d,N=%d\n", int_data+0, int_data+1)
+      assert(num_values == 2, "Did not read angular momentum!")
+      assert(L == int_data[0], "Wrong angular momentum!")
+      var N = int_data[1]
+      for i = 0, N do -- exclusive
+        for j = 0, H do -- exclusive
+          num_values = c.fscanf(filep, "%lf\t", double_data)
+          assert(num_values == 1, "Did not read value!")
+          var expected = double_data[0]
+          var actual = r_jbras[i].output[j]
+          var error = fabs(actual - expected)
+          if [bool](c.isnan(actual)) or [bool](c.isinf(actual)) or error > epsilon then
+            c.printf("Value differs at L = %d, JBra[%d].output[%d]: actual = %.12f, expected = %.12f\n",
+                     L, i, j, actual, expected)
+            assert(false, "Wrong output!")
+          end
+        end
+        assert(c.fscanf(filep, "\n") == 0, "Did not read newline")
+      end
+    end)
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+    c.printf("Values are correct!\n")
   end)
   return statements
 end
