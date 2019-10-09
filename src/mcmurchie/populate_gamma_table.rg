@@ -1,11 +1,10 @@
 import "regent"
+
 local gamma_header = terralib.includec("mcmurchie/gamma_table.h", {"-I", "./"})
 
-local
-terra getGammaTable(j : int, index : int) : double[5]
+local terra getGammaTable(j : int, index : int) : double[5]
   return gamma_header.gamma_table[j][index]
 end
-
 
 task populateGammaTable(r_gamma_table : region(ispace(int2d, {18, 700}), double[5]))
 where

@@ -1,6 +1,7 @@
 import "regent"
-require "fields"
+
 require "helper"
+require "fields"
 
 local c = regentlib.c
 local assert = regentlib.assert
@@ -22,7 +23,7 @@ terra readParametersFile(filename : &int8, data : &double)
 end
 
 -- Writes data found in `filename` to an array of regions given by `region_vars`.
-function writeGaussiansToRegions(filename, region_vars)
+function writeJBrasToRegions(filename, region_vars)
   local filep = regentlib.newsymbol()
   local int_data = regentlib.newsymbol(int[2])
   local double_data = regentlib.newsymbol(double[6])
@@ -33,6 +34,8 @@ function writeGaussiansToRegions(filename, region_vars)
     var [double_data]
   end})
   for L_lua = 0, #region_vars do -- inclusive
+    local H = computeH(L_lua)
+    local field_space = getJBra(L_lua)
     local region_var = region_vars[L_lua]
     statements:insert(rquote
       var num_values = c.fscanf(filep, "L=%d,N=%d\n", int_data, int_data+1)
@@ -40,7 +43,11 @@ function writeGaussiansToRegions(filename, region_vars)
       var L = int_data[0]
       var N = int_data[1]
       assert(L == L_lua, "Unexpected angular momentum!")
-      var [region_var] = region(ispace(int1d, N), Gaussian)
+      var [region_var] = region(ispace(int1d, N), field_space)
+      var zeros : double[H]
+      for k = 0, H do -- exclusive
+        zeros[k] = 0
+      end
       for j = 0, N do -- exclusive
         num_values = c.fscanf(filep,
           "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf",
@@ -50,7 +57,8 @@ function writeGaussiansToRegions(filename, region_vars)
         assert(num_values == 6, "Did not read all values in line!");
         region_var[j] = {
           x=double_data[0], y=double_data[1], z=double_data[2],
-          eta=double_data[3], C=double_data[4], bound=double_data[5]
+          eta=double_data[3], C=double_data[4], bound=double_data[5],
+          output=zeros
         }
         assert(c.fscanf(filep, "\n") == 0, "Could not read newline!")
       end
@@ -63,7 +71,7 @@ function writeGaussiansToRegions(filename, region_vars)
 end
 
 -- Writes data found in `filename` to an array of regions given by `region_vars`.
-function writeGaussiansWithDensityToRegions(filename, region_vars)
+function writeJKetsToRegions(filename, region_vars)
   local filep = regentlib.newsymbol()
   local int_data = regentlib.newsymbol(int[2])
   local double_data = regentlib.newsymbol(double[6])
@@ -76,7 +84,7 @@ function writeGaussiansWithDensityToRegions(filename, region_vars)
   for L_lua = 0, #region_vars do -- inclusive
     local region_var = region_vars[L_lua]
     local H = computeH(L_lua)
-    local field_space = getGaussianWithDensity(L_lua)
+    local field_space = getJKet(L_lua)
     statements:insert(rquote
       var num_values = c.fscanf(filep, "L=%d,N=%d\n", int_data, int_data+1)
       assert(num_values == 2, "Did not read all values in header!")
@@ -111,28 +119,36 @@ function writeGaussiansWithDensityToRegions(filename, region_vars)
   return statements
 end
 
--- local r_jbras0 = regentlib.newsymbol()
--- local r_jbras1 = regentlib.newsymbol()
--- local r_jbras2 = regentlib.newsymbol()
--- local task test()
---   var args = c.legion_runtime_get_input_args()
---   var filename = args.argv[1];
---   [write_gaussians_with_density_to_regions(filename, {r_jbras0, r_jbras1, r_jbras2})]
---   c.printf("L=0\n")
---   for bra in [r_jbras0] do
---     c.printf("(%f, %f, %f), eta: %f, C: %f, bound: %f\n",
---              bra.x, bra.y, bra.z, bra.eta, bra.C, bra.bound)
---   end
---   c.printf("L=1\n")
---   for bra in [r_jbras1] do
---     c.printf("(%f, %f, %f), eta: %f, C: %f, bound: %f\n",
---              bra.x, bra.y, bra.z, bra.eta, bra.C, bra.bound)
---   end
---   c.printf("L=2\n")
---   for bra in [r_jbras2] do
---     c.printf("(%f, %f, %f), eta: %f, C: %f, bound: %f\n",
---              bra.x, bra.y, bra.z, bra.eta, bra.C, bra.bound)
---   end
--- end
---
--- regentlib.start(test)
+-- Writes the output to `filename`
+function writeOutput(r_jbras_list, filename)
+  local filep = regentlib.newsymbol()
+  local function dumpOutputLine(output, L)
+    local H = computeH(L)
+    local statements = terralib.newlist()
+    for i = 0, H-1 do -- inclusive
+      statements:insert(rquote
+        c.fprintf(filep, "%A\t", output[i])
+      end)
+    end
+    statements:insert(rquote
+      c.fprintf(filep, "\n")
+    end)
+    return statements
+  end
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "w")
+    checkFile(filep)
+  end})
+  for L = 0, #r_jbras_list do
+    statements:insert(rquote
+      c.fprintf(filep, "L=%d\n", L)
+      for bra in [r_jbras_list[L]] do
+        [dumpOutputLine(rexpr bra.output end, L)]
+      end
+    end)
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+  end)
+  return statements
+end

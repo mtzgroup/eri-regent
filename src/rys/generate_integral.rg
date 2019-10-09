@@ -1,10 +1,11 @@
 import "regent"
+
 require "fields"
 require "generate_spin_pattern"
+require "helper"
 
 local sqrt = regentlib.sqrt(double)
 local rsqrt = regentlib.rsqrt(double)
-local LToStr = {[0]="SS", [1]="SP", [2]="PP", [3]="PD", [4]="DD", [5]="DF", [6]="FF", [7]="FG", [8]="GG"}
 
 -- Generates the statements to produce a constant region needed for the Rys algorithm.
 function generateSpinPatternRegion(L)

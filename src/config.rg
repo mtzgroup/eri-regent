@@ -13,6 +13,7 @@ struct Config {
   bras_filename        : int8[512];
   kets_filename        : int8[512];
   parameters_filename  : int8[512];
+  output_filename      : int8[512];
   num_trials           : int;
 }
 
@@ -33,6 +34,7 @@ terra print_usage_and_abort()
   c.printf("  -L {value}           : Use {value} as the max momentum (set at compile time).\n")
   c.printf("  -i {directory}       : Use input files in {directory}.\n")
   c.printf("  -p {value}           : Partition bras {value} ways.\n")
+  c.printf("  -o {file}            : Write output to {file}\n")
   c.printf("  --trials {value}     : Run {value} times.\n")
   c.exit(0)
 end
@@ -41,6 +43,7 @@ terra Config:initialize_from_command()
   self.max_momentum = [getCompiledMaxMomentum()]
   self.parallelism = 1
   self.input_directory[0] = 0
+  self.output_filename[0] = 0
   self.num_trials = 1
 
   var args = c.legion_runtime_get_input_args()
@@ -55,10 +58,17 @@ terra Config:initialize_from_command()
       end
       i = i + 1
       cstring.strncpy(self.input_directory, args.argv[i], 512)
-  elseif cstring.strcmp(args.argv[i], "-p") == 0 then
+    elseif cstring.strcmp(args.argv[i], "-o") == 0 then
+      if self.output_filename[0] ~= 0 then
+        c.printf("Error: Only accepts on output file!\n")
+        c.abort()
+      end
+      i = i + 1
+      cstring.strncpy(self.output_filename, args.argv[i], 512)
+    elseif cstring.strcmp(args.argv[i], "-p") == 0 then
       i = i + 1
       self.parallelism = c.atoi(args.argv[i])
-  elseif cstring.strcmp(args.argv[i], "--trials") == 0 then
+    elseif cstring.strcmp(args.argv[i], "--trials") == 0 then
       i = i + 1
       self.num_trials = c.atoi(args.argv[i])
       assert(self.num_trials > 0, "Number of trials must be positive.")

@@ -1,35 +1,14 @@
 import "regent"
 
 local Config = require "config"
-require "parse_files"
-require "mcmurchie.populate_gamma_table"
+require "helper"
 require "jfock"
+require "mcmurchie.populate_gamma_table"
+require "parse_files"
 
 local c = regentlib.c
 local assert = regentlib.assert
 -- local fabs = regentlib.fabs(double)
-
--- task writeOutput(r_gausses  : region(ispace(int1d), HermiteGaussian),
---                  r_j_values : region(ispace(int1d), Double),
---                  config     : Config)
--- where
---   reads(r_gausses, r_j_values)
--- do
---   if config.output_filename[0] ~= 0 then
---     if config.verbose then c.printf("Writing output\n") end
---     var file = c.fopen(config.output_filename, "w")
---     -- c.fprintf(file, "%d\n\n", config.num_gausses)
---     for i in r_gausses.ispace do
---       var bra = r_gausses[i]
---       -- c.fprintf(file, "%d %.6f %.12f %.12f %.12f ", bra.L, bra.eta, bra.x, bra.y, bra.z)
---       for j = [int](bra.data_rect.lo), [int](bra.data_rect.hi) + 1 do
---         c.fprintf(file, "%.12f ", r_j_values[j].value)
---       end
---       c.fprintf(file, "\n")
---     end
---     c.fclose(file)
---   end
--- end
 
 -- task verifyOutput(r_gausses       : region(ispace(int1d), HermiteGaussian),
 --                   r_j_values      : region(ispace(int1d), Double),
@@ -92,13 +71,11 @@ task toplevel()
 
   -- Read regions and parameters from file --
   -------------------------------------------
-  ;[writeGaussiansToRegions(rexpr config.bras_filename end, r_jbras_list)];
-  [writeGaussiansWithDensityToRegions(rexpr config.kets_filename end, r_jkets_list)]
+  ;[writeJBrasToRegions(rexpr config.bras_filename end, r_jbras_list)]
+  ;[writeJKetsToRegions(rexpr config.kets_filename end, r_jkets_list)]
   var data : double[5]
   readParametersFile(config.parameters_filename, data)
-  -- TODO: Add number of atomic orbitals
   var parameters = [Parameters]{
-    num_atomic_orbitals = 19, -- TODO
     scalfr = data[0],
     scallr = data[1],
     omega = data[2],
@@ -113,18 +90,10 @@ task toplevel()
   populateGammaTable(r_gamma_table)
   -----------------------------------------
 
-  -- Create output region --
-  --------------------------
-  var N = parameters.num_atomic_orbitals * parameters.num_atomic_orbitals
-  var r_output = region(ispace(int1d, N), double)
-  fill(r_output, 0)
-  --------------------------
-
   c.printf("******************************************\n")
   c.printf("*    Two-Electron Repulsion Integrals    *\n")
   c.printf("*                                        *\n")
   c.printf("* Max Angular Momentum : %15u *\n", config.max_momentum)
-  c.printf("* # Atomic Orbitals : %18u *\n", parameters.num_atomic_orbitals)
   c.printf("* Parallelism : %24u *\n", config.parallelism)
   c.printf("* Number of Bras                         *\n");
   [dumpRegionSizes("Bras", r_jbras_list)]
@@ -138,17 +107,27 @@ task toplevel()
 
   -- Compute results --
   ---------------------
-  ;[jfock(r_jbras_list, r_jkets_list,
-          r_gamma_table, r_output,
-          parameters, rexpr config.parallelism end)]
+  var threshold = parameters.thredp
+  var parallelism = config.parallelism;
+  [jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism)]
   ---------------------
 
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_stop = c.legion_get_current_time_in_micros()
   c.printf("Coulomb operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
 
-  -- writeOutput(r_gausses, r_j_values, config)
-  -- verifyOutput(r_gausses, r_j_values, r_true_j_values, config)
+
+  -- Write or verify output --
+  ----------------------------
+  var output_filename = config.output_filename
+  if output_filename[0] ~= 0 then
+    [writeOutput(r_jbras_list, output_filename)]
+  end
+  -- var verify_filename = config.verify_filename
+  -- if verify_filename[0] ~= 0 then
+  --   [verifyOutput(r_jbras_list, verify_filename)]
+  -- end
+  ----------------------------
 end
 
 regentlib.start(toplevel)

@@ -8,7 +8,7 @@ local SQRT_PI = math.sqrt(math.pi)
 -- Generates statements that compute `length` Boys values
 function generateStatementsComputeBoys(boys, length, t, r_gamma_table)
 
-  local factors = { -- Lua is index by one
+  local factors = { -- Lua is indexed by one
     2.7166345615120040E+01,
     2.6273691011184581E+01,
     2.5532392190003377E+01,

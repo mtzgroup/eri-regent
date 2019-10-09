@@ -1,11 +1,6 @@
 import "regent"
 
-fspace Double {
-  value : double;
-}
-
 struct Parameters {
-  num_atomic_orbitals : int;
   scalfr              : double;
   scallr              : double;
   omega               : double;
@@ -13,27 +8,34 @@ struct Parameters {
   thredp              : double;
 }
 
--- A field space for a gaussian with no density values.
-fspace Gaussian {
-  {x, y, z} : double; -- Location of gaussian
-  eta       : double; -- Exponent of gaussian
-  C         : double; -- FIXME: sqrt(2 * pi^(5/2)) / eta
-  bound     : double;
-}
-
--- Generate a field space for a guassian with density values.
-local GaussianWithDensityCache = {}
-function getGaussianWithDensity(L)
-  if GaussianWithDensityCache[L] == nil then
+local JBraCache = {}
+function getJBra(L)
+  if JBraCache[L] == nil then
     local H = (L + 1) * (L + 2) * (L + 3) / 6
-    local fspace GaussianWithDensity {
+    local fspace JBra {
       {x, y, z} : double;    -- Location of gaussian
       eta       : double;    -- Exponent of gaussian
-      C         : double;    -- FIXME: sqrt(2 * pi^(5/2)) / eta
+      C         : double;
       bound     : double;
-      density   : double[H];
+      output    : double[H]; -- Result of integrals
     }
-    GaussianWithDensityCache[L] = GaussianWithDensity
+    JBraCache[L] = JBra
   end
-  return GaussianWithDensityCache[L]
+  return JBraCache[L]
+end
+
+local JKetCache = {}
+function getJKet(L)
+  if JKetCache[L] == nil then
+    local H = (L + 1) * (L + 2) * (L + 3) / 6
+    local fspace JKet {
+      {x, y, z} : double;    -- Location of gaussian
+      eta       : double;    -- Exponent of gaussian
+      C         : double;
+      bound     : double;
+      density   : double[H]; -- Preprocessed data
+    }
+    JKetCache[L] = JKet
+  end
+  return JKetCache[L]
 end
