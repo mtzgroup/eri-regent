@@ -23,12 +23,12 @@ if __name__ == "__main__":
         # TODO: Test gpu and cuda
         try:
             subprocess.check_call(
-                ["regent", "top.rg", "-L", str(L), "-i", infile, "-v", outfile, "-fflow", "0"],
+                ["regent", "top.rg", "-L", str(L), "-i", indirectory, "-v", outfile, "-fflow", "0"],
                 cwd="src/",
             )
         except:
             sys.stdout.write(RED)
-            print("Failed on input " + infile)
+            print("Failed on input " + indirectory)
             sys.stdout.write(RESET)
             sys.exit(1)
 

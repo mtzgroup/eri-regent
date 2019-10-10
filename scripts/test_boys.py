@@ -25,12 +25,13 @@ if __name__ == "__main__":
         num_inputs = 100
         input = "\n".join([str(t) for t in np.linspace(0, 34.56, num_inputs)])
         rg_process = Popen(
-            ["regent", "mcmurchie/test_boys.rg", str(max_j)],
+            ["regent", "mcmurchie/jfock/test_boys.rg", str(max_j)],
             cwd="src/",
             stdin=PIPE,
             stdout=PIPE,
         )
-        output, _ = rg_process.communicate(input)
+        output, _ = rg_process.communicate(bytes(input, "utf-8"))
+        output = output.decode("utf-8")
 
         num_outputs = 0
         for line in output.rstrip().split("\n"):
