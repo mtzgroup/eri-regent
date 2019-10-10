@@ -1,6 +1,4 @@
-test_files = [
-    ("data/h2o", "data/h2o/output.dat", 1),
-]
+test_files = [("data/h2o", "data/h2o/output.dat", 1)]
 
 quick_test_files = test_files[:1]
 
@@ -23,7 +21,18 @@ if __name__ == "__main__":
         # TODO: Test gpu and cuda
         try:
             subprocess.check_call(
-                ["regent", "top.rg", "-L", str(L), "-i", indirectory, "-v", outfile, "-fflow", "0"],
+                [
+                    "regent",
+                    "top.rg",
+                    "-L",
+                    str(L),
+                    "-i",
+                    indirectory,
+                    "-v",
+                    outfile,
+                    "-fflow",
+                    "0",
+                ],
                 cwd="src/",
             )
         except:
