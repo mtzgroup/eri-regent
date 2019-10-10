@@ -14,5 +14,5 @@ before_install:
   - sudo ln -s $HOME/legion/language/regent.py /usr/local/bin/regent
 
 script:
-  # - python scripts/test_boys.py
+  - python scripts/test_boys.py
   - python scripts/test.py

@@ -30,8 +30,7 @@ if __name__ == "__main__":
             stdin=PIPE,
             stdout=PIPE,
         )
-        output, _ = rg_process.communicate(bytes(input, "utf-8"))
-        output = output.decode("utf-8")
+        output, _ = rg_process.communicate(input)
 
         num_outputs = 0
         for line in output.rstrip().split("\n"):
