@@ -6,21 +6,26 @@ require "jfock"
 require "mcmurchie.populate_gamma_table"
 require "parse_files"
 
-local c = regentlib.c
 local assert = regentlib.assert
+local c = regentlib.c
 
 local r_jbras_list, r_jkets_list = {}, {}
-for i = 0, getCompiledMaxMomentum() do -- inclusive
-  r_jbras_list[i] = regentlib.newsymbol("r_jbras"..i)
-  r_jkets_list[i] = regentlib.newsymbol("r_jkets"..i)
+for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+  r_jbras_list[L1], r_jkets_list[L1] = {}, {}
+  for L2 = L1, getCompiledMaxMomentum() do -- inclusive
+    r_jbras_list[L1][L2] = regentlib.newsymbol("r_jbras"..L1..L2)
+    r_jkets_list[L1][L2] = regentlib.newsymbol("r_jkets"..L1..L2)
+  end
 end
 
 function dumpRegionSizes(name, r)
   local statements = terralib.newlist()
-  for i = 0, #r do -- inclusive
-    statements:insert(rquote
-      c.printf("* \t\t%s  %20d *\n", [LToStr[i]], [r[i]].volume)
-    end)
+  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L2 = L1, getCompiledMaxMomentum() do -- inclusive
+      statements:insert(rquote
+        c.printf("* \t\t%s%s  %20d *\n", [LToStr[L1]], [LToStr[L2]], [r[L1][L2]].volume)
+      end)
+    end
   end
   return statements
 end

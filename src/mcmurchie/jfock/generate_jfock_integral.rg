@@ -10,9 +10,9 @@ local rsqrt = regentlib.rsqrt(double)
 -- Given a pair of angular momentums, this returns a task
 -- to compute electron repulsion integrals between BraKets
 -- using the McMurchie algorithm.
-function generateTaskMcMurchieJFockIntegral(L12, L34)
-  local H12 = computeH(L12)
-  local H34 = computeH(L34)
+function generateTaskMcMurchieJFockIntegral(L1, L2, L3, L4)
+  local L12, L34 = L1 + L2,  L3 + L4
+  local H12, H34 = computeH(L12), computeH(L34)
   -- Create a table of Regent variables to hold Hermite polynomials.
   local R = {}
   for N = 0, L12+L34 do -- inclusive
@@ -31,10 +31,10 @@ function generateTaskMcMurchieJFockIntegral(L12, L34)
   local
   __demand(__leaf)
   __demand(__cuda)
-  task jfock_integral(r_jbras         : region(ispace(int1d), getJBra(L12)),
-                      r_jkets         : region(ispace(int1d), getJKet(L34)),
-                      r_gamma_table   : region(ispace(int2d), double[5]),
-                      threshold       : double)
+  task jfock_integral(r_jbras       : region(ispace(int1d), getJBra(L12)),
+                      r_jkets       : region(ispace(int1d), getJKet(L34)),
+                      r_gamma_table : region(ispace(int2d), double[5]),
+                      threshold     : double)
   where
     reads(r_jbras.{x, y, z, eta, C, bound}, r_jkets, r_gamma_table),
     reduces +(r_jbras.output)
@@ -75,6 +75,6 @@ function generateTaskMcMurchieJFockIntegral(L12, L34)
       r_jbras[jbra_idx].output += accumulator
     end
   end
-  jfock_integral:set_name("JFockMcMurchie"..LToStr[L12]..LToStr[L34])
+  jfock_integral:set_name("JFockMcMurchie"..LToStr[L1]..LToStr[L2]..LToStr[L3]..LToStr[L4])
   return jfock_integral
 end

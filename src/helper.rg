@@ -14,14 +14,13 @@ end
 
 -- The string representation of a given angular momentum
 LToStr = {
-  [0]="SS", [1]="SP", [2]="PP",
-  [3]="PD", [4]="DD", [5]="DF",
-  [6]="FF", [7]="FG", [8]="GG"
+  [0] = "S", [1] = "P", [2] = "D", [3] = "F", [4] = "G"
 }
 
--- TODO: Rename and add documentation
-function computeH(L)
-  return (L + 1) * (L + 2) * (L + 3) / 6
+-- Return the number of atomic orbital functions in shells of momentum 0 to L
+-- TODO: Find a better name
+function computeH(L12)
+  return (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
 end
 
 -- Returns a list of lists where `pattern[i] = {N, L, M}`.
