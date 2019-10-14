@@ -7,8 +7,6 @@ local assert = regentlib.assert
 local c = regentlib.c
 local fabs = regentlib.fabs(double)
 
--- TODO: Verify these functions are correct!
-
 local terra checkFile(filep : &c.FILE)
   assert(filep ~= nil, "Could not open file!")
 end
@@ -148,16 +146,17 @@ end
 -- Verify the output is within `epsilon` of data from `filename`
 function verifyOutput(r_jbras_list, epsilon, filename)
   local filep = regentlib.newsymbol()
+  local max_error = regentlib.newsymbol(double)
   local statements = terralib.newlist({rquote
     var [filep] = c.fopen(filename, "r")
     checkFile(filep)
+    var [max_error] = -1
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
       local H = computeH(L1 + L2)
       local r_jbras = r_jbras_list[L1][L2]
       statements:insert(rquote
-        var max_error : double = 0 -- TODO
         var int_data : int[3]
         var double_data : double[1]
         var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n", int_data+0, int_data+1, int_data+2)
@@ -171,6 +170,7 @@ function verifyOutput(r_jbras_list, epsilon, filename)
             var expected = double_data[0]
             var actual = r_jbras[i].output[j]
             var error = fabs(actual - expected)
+            if error > max_error then max_error = error end
             if [bool](c.isnan(actual)) or [bool](c.isinf(actual)) or error > epsilon then
               c.printf("Value differs at L1 = %d, L2 = %d, JBra[%d].output[%d]: actual = %.12f, expected = %.12f\n",
                        L1, L2, i, j, actual, expected)
@@ -184,7 +184,7 @@ function verifyOutput(r_jbras_list, epsilon, filename)
   end
   statements:insert(rquote
     c.fclose(filep)
-    c.printf("Values are correct!\n")
+    c.printf("Values are correct! Max error = %.12f\n", max_error)
   end)
   return statements
 end

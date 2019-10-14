@@ -4,10 +4,10 @@ function getCompiledMaxMomentum()
   if _max_momentum == nil then
     for i, arg_value in ipairs(arg) do
       if arg[i] == "-L" then
-        _max_momentum = tonumber(arg[i+1])
+        _max_momentum = StrToL[arg[i+1]]
       end
     end
-    assert(_max_momentum ~= nil, "Must have argument `-L [max_momentum]`!")
+    assert(_max_momentum ~= nil, "Must give max angular momentum `-L [S|P|D|F|G]`")
   end
   return _max_momentum
 end
@@ -15,6 +15,9 @@ end
 -- The string representation of a given angular momentum
 LToStr = {
   [0] = "S", [1] = "P", [2] = "D", [3] = "F", [4] = "G"
+}
+StrToL = {
+  ["S"] = 0, ["P"] = 1, ["D"] = 2, ["F"] = 3, ["G"] = 4
 }
 
 -- Return the number of atomic orbital functions in shells of momentum 0 to L
