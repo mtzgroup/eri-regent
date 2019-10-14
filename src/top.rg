@@ -92,7 +92,7 @@ task toplevel()
   end
   var verify_filename = config.verify_filename
   if verify_filename[0] ~= 0 then
-    [verifyOutput(r_jbras_list, 1e-12, verify_filename)]
+    [verifyOutput(r_jbras_list, 1e-7, 1e-8, verify_filename)]
   end
   ----------------------------
 end

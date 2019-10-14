@@ -2,7 +2,7 @@ test_files = [
     ("data/h2", "data/h2/output.dat", "S"),
     ("data/h2o", "data/h2o/output.dat", "P"),
     ("data/co2", "data/co2/output.dat", "P"),
-    # ("data/fe", "data/fe/output.dat", "D"),
+    ("data/fe", "data/fe/output.dat", "D"),
 ]
 
 quick_test_files = test_files[:1]

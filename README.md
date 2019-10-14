@@ -33,6 +33,11 @@ Be sure to select the appropriate angular momentum using the `-L [S|P|D|F|G]` op
 | F                | 49                  | 7 GB       | 7 Minutes  |
 | G                | 81                  | 31 GB      | 1 Hour     |
 
+When more than 1 GB of memory is needed, you must build Regent with `luajit2.1`. 
+```
+./install.py --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
+```
+
 
 ## Testing with Python3
 

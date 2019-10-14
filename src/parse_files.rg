@@ -143,14 +143,18 @@ function writeOutput(r_jbras_list, filename)
   return statements
 end
 
--- Verify the output is within `epsilon` of data from `filename`
-function verifyOutput(r_jbras_list, epsilon, filename)
+-- Verify the output is correct
+-- `delta` is the maximum allowed absolute error
+-- `epsilon` is the maximum allowed relative error
+function verifyOutput(r_jbras_list, delta, epsilon, filename)
   local filep = regentlib.newsymbol()
-  local max_error = regentlib.newsymbol(double)
+  local max_absolute_error = regentlib.newsymbol(double)
+  local max_relative_error = regentlib.newsymbol(double)
   local statements = terralib.newlist({rquote
     var [filep] = c.fopen(filename, "r")
     checkFile(filep)
-    var [max_error] = -1
+    var [max_absolute_error] = -1
+    var [max_relative_error] = -1
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
@@ -169,11 +173,14 @@ function verifyOutput(r_jbras_list, epsilon, filename)
             assert(num_values == 1, "Did not read value!")
             var expected = double_data[0]
             var actual = r_jbras[i].output[j]
-            var error = fabs(actual - expected)
-            if error > max_error then max_error = error end
-            if [bool](c.isnan(actual)) or [bool](c.isinf(actual)) or error > epsilon then
-              c.printf("Value differs at L1 = %d, L2 = %d, JBra[%d].output[%d]: actual = %.12f, expected = %.12f\n",
-                       L1, L2, i, j, actual, expected)
+            var absolute_error = fabs(actual - expected)
+            var relative_error = fabs(absolute_error / actual)
+            if absolute_error > max_absolute_error then max_absolute_error = absolute_error end
+            if relative_error > max_relative_error then max_relative_error = relative_error end
+            if [bool](c.isnan(actual)) or [bool](c.isinf(expected))
+                or absolute_error > delta or relative_error > epsilon then
+              c.printf("Value differs at L1 = %d, L2 = %d, JBra[%d].output[%d]: actual = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
+                       L1, L2, i, j, actual, expected, absolute_error, relative_error)
               assert(false, "Wrong output!")
             end
           end
@@ -184,7 +191,8 @@ function verifyOutput(r_jbras_list, epsilon, filename)
   end
   statements:insert(rquote
     c.fclose(filep)
-    c.printf("Values are correct! Max error = %.12f\n", max_error)
+    c.printf("Values are correct! max_absolue_error = %.12g, max_relative_error = %.12g\n",
+             max_absolute_error, max_relative_error)
   end)
   return statements
 end
