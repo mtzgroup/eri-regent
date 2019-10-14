@@ -8,7 +8,7 @@ Run in Regent using `top.rg` inside `src/` for testing.
 
 ```
 cd src
-regent top.rg -i data/h2_6-311g.dat -v data/h2_6-311g_out.dat
+regent top.rg -L P -i data/h2o -v data/h2o/output.dat
 # Use option `-fflow 0` to compile Regent faster
 ```
 
@@ -23,17 +23,18 @@ make run
 
 ### Higher Angular Momentum Systems
 
-The default maximum angular momentum is `2` for systems with P orbitals (the Bra PP has an angular momentum of `2`). To compute with higher systems, use the option `--max_momentum L` (must be the first option). The table below lists the current compile times and memory usage for each `max_momentum`. Compile time is when Lua generates code before Regent starts executing it.
+Be sure to select the appropriate angular momentum using the `-L [S|P|D|F|G]` option. This will tell Lua to produce the correct number of Regent tasks. Higher angular momentums need more and larger kernels which can take a long time to compile to Cuda code. The number of kernels needed is <code>(L*(L+1)/2)<sup>2</sup></code>.
 
-| Orbital | Angular Momentum | Memory     | Wall-time  |
-|:-------:|:----------------:|:----------:|:----------:|
-| P       | 2                | Negligible | Negligible |
-| D       | 4                | 1.5 GB     | 1 Minute   |
-| F       | 6                | 7 GB       | 7 Minutes  |
-| G       | 8                | 31 GB      | 1 Hour     |
+| Angular Momentum | Number of Kernels | Memory     | Wall-time  |
+|:----------------:|:-----------------:|:----------:|:----------:|
+| S                | 1                 | Negligible | Negligible |
+| P                | 9                 | Negligible | Negligible |
+| D                | 36                | 1.5 GB     | 1 Minute   |
+| F                | 100               | 7 GB       | 7 Minutes  |
+| G                | 256               | 31 GB      | 1 Hour     |
 
 
-## Testing
+## Testing with Python3
 
 ```
 python scripts/test.py

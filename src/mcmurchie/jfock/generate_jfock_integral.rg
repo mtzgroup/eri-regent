@@ -10,9 +10,14 @@ local rsqrt = regentlib.rsqrt(double)
 -- Given a pair of angular momentums, this returns a task
 -- to compute electron repulsion integrals between BraKets
 -- using the McMurchie algorithm.
+local _jfock_integral_cache = {}
 function generateTaskMcMurchieJFockIntegral(L1, L2, L3, L4)
   local L12, L34 = L1 + L2,  L3 + L4
   local H12, H34 = computeH(L12), computeH(L34)
+  if _jfock_integral_cache[LToStr[L12]..LToStr[L34]] ~= nil then
+    return _jfock_integral_cache[LToStr[L12]..LToStr[L34]]
+  end
+
   -- Create a table of Regent variables to hold Hermite polynomials.
   local R = {}
   for N = 0, L12+L34 do -- inclusive
@@ -76,5 +81,6 @@ function generateTaskMcMurchieJFockIntegral(L1, L2, L3, L4)
     end
   end
   jfock_integral:set_name("JFockMcMurchie"..LToStr[L1]..LToStr[L2]..LToStr[L3]..LToStr[L4])
+  _jfock_integral_cache[LToStr[L12]..LToStr[L34]] = jfock_integral
   return jfock_integral
 end
