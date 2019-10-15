@@ -6,8 +6,8 @@ struct Parameters {
   scalfr              : double;
   scallr              : double;
   omega               : double;
-  thresp              : double;
-  thredp              : double;
+  thresp              : float;
+  thredp              : float;
 }
 
 local JBraCache = {}
@@ -18,7 +18,7 @@ function getJBra(L12)
       {x, y, z} : double;    -- Location of gaussian
       eta       : double;    -- Exponent of gaussian
       C         : double;
-      bound     : double;
+      bound     : float;
       output    : double[H]; -- Result of integrals
     }
     JBraCache[L12] = JBra
@@ -34,7 +34,7 @@ function getJKet(L34)
       {x, y, z} : double;    -- Location of gaussian
       eta       : double;    -- Exponent of gaussian
       C         : double;
-      bound     : double;
+      bound     : float;
       density   : double[H]; -- Preprocessed data
     }
     JKetCache[L34] = JKet

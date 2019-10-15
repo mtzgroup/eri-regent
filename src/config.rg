@@ -7,7 +7,6 @@ local assert = regentlib.assert
 local cstring = terralib.includec("string.h")
 
 struct Config {
-  max_momentum         : int;       -- The maximum compiled angular momentum
   parallelism          : int;
   input_directory      : int8[512];
   bras_filename        : int8[512];
@@ -20,7 +19,6 @@ struct Config {
 
 terra Config:dump()
   c.printf("Config:")
-  c.printf("\tmax_momentum: %d\n", self.max_momentum)
   c.printf("\tparallelism: %d\n", self.parallelism)
   c.printf("\tinput_directory: %s\n", self.input_directory)
   c.printf("\toutput_filename: %s\n", self.output_filename)
@@ -44,7 +42,6 @@ terra print_usage_and_abort()
 end
 
 terra Config:initialize_from_command()
-  self.max_momentum = [getCompiledMaxMomentum()]
   self.parallelism = 1
   self.input_directory[0] = 0
   self.output_filename[0] = 0

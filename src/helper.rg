@@ -7,7 +7,8 @@ function getCompiledMaxMomentum()
         _max_momentum = StrToL[arg[i+1]]
       end
     end
-    assert(_max_momentum ~= nil, "Must give max angular momentum `-L [S|P|D|F|G]`")
+    assert(_max_momentum ~= nil,
+           "Must give max angular momentum `-L [S|P|D|F|G]`")
   end
   return _max_momentum
 end
@@ -18,6 +19,11 @@ LToStr = {
 }
 StrToL = {
   ["S"] = 0, ["P"] = 1, ["D"] = 2, ["F"] = 3, ["G"] = 4
+}
+LPairToStr = {
+  [0] = "SS", [1] = "SP", [2] = "PP",
+  [3] = "PD", [4] = "DD", [5] = "DF",
+  [6] = "FF", [7] = "FG", [8] = "GG"
 }
 
 -- Return the number of atomic orbital functions in shells of momentum 0 to L

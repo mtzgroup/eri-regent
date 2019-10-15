@@ -11,11 +11,11 @@ local rsqrt = regentlib.rsqrt(double)
 -- to compute electron repulsion integrals between BraKets
 -- using the McMurchie algorithm.
 local _jfock_integral_cache = {}
-function generateTaskMcMurchieJFockIntegral(L1, L2, L3, L4)
-  local L12, L34 = L1 + L2,  L3 + L4
+function generateTaskMcMurchieJFockIntegral(L12, L34)
   local H12, H34 = computeH(L12), computeH(L34)
-  if _jfock_integral_cache[LToStr[L12]..LToStr[L34]] ~= nil then
-    return _jfock_integral_cache[LToStr[L12]..LToStr[L34]]
+  local L_string = LPairToStr[L12]..LPairToStr[L34]
+  if _jfock_integral_cache[L_string] ~= nil then
+    return _jfock_integral_cache[L_string]
   end
 
   -- Create a table of Regent variables to hold Hermite polynomials.
@@ -39,7 +39,7 @@ function generateTaskMcMurchieJFockIntegral(L1, L2, L3, L4)
   task jfock_integral(r_jbras       : region(ispace(int1d), getJBra(L12)),
                       r_jkets       : region(ispace(int1d), getJKet(L34)),
                       r_gamma_table : region(ispace(int2d), double[5]),
-                      threshold     : double)
+                      threshold     : float)
   where
     reads(r_jbras.{x, y, z, eta, C, bound}, r_jkets, r_gamma_table),
     reduces +(r_jbras.output)
@@ -62,25 +62,27 @@ function generateTaskMcMurchieJFockIntegral(L1, L2, L3, L4)
       for jket_idx = jket_idx_bounds_lo, jket_idx_bounds_hi + 1 do -- exclusive
         var jket = r_jkets[jket_idx]
 
-        var bound : double = jbra_bound * jket.bound
+        var bound : float = jbra_bound * jket.bound
         if bound <= threshold then break end
 
         var a : double = jbra_x - jket.x
         var b : double = jbra_y - jket.y
         var c : double = jbra_z - jket.z
 
+        var alpha : double = jbra_eta * jket.eta * (1.0 / (jbra_eta + jket.eta))
         var lambda : double = jbra_C * jket.C * rsqrt(jbra_eta + jket.eta)
-        var alpha : double = jbra_eta * jket.eta / (jbra_eta + jket.eta)
         var t : double = alpha * (a*a + b*b + c*c);
-        [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda, a, b, c, r_gamma_table)];
+        [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda,
+                                         a, b, c, r_gamma_table)];
 
-        [generateJFockKernelStatements(R, L12, L34, rexpr jket.density end, accumulator)]
+        [generateJFockKernelStatements(R, L12, L34, rexpr jket.density end,
+                                       accumulator)]
       end
 
       r_jbras[jbra_idx].output += accumulator
     end
   end
-  jfock_integral:set_name("JFockMcMurchie"..LToStr[L1]..LToStr[L2]..LToStr[L3]..LToStr[L4])
-  _jfock_integral_cache[LToStr[L12]..LToStr[L34]] = jfock_integral
+  jfock_integral:set_name("JFockMcMurchie"..L_string)
+  _jfock_integral_cache[L_string] = jfock_integral
   return jfock_integral
 end

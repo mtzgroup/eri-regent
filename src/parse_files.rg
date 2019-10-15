@@ -21,7 +21,7 @@ terra readParametersFile(filename : &int8, data : &double)
   c.fclose(filep)
 end
 
--- Writes data found in `filename` to an array of regions given by `region_vars`.
+-- Writes data found in `filename` to an array of regions given by `region_vars`
 function writeJBrasToRegions(filename, region_vars)
   local filep = regentlib.newsymbol()
   local statements = terralib.newlist({rquote
@@ -36,10 +36,12 @@ function writeJBrasToRegions(filename, region_vars)
       statements:insert(rquote
         var int_data : int[3]
         var double_data : double[6]
-        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n", int_data, int_data+1, int_data+2)
+        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n",
+                                  int_data, int_data+1, int_data+2)
         assert(num_values == 3, "Did not read all values in header!")
         var N = int_data[2]
-        assert(L1 == int_data[0] and L2 == int_data[1], "Unexpected angular momentum!")
+        assert(L1 == int_data[0] and L2 == int_data[1],
+               "Unexpected angular momentum!")
         var [r_jbras] = region(ispace(int1d, N), field_space)
         var zeros : double[H]
         for i = 0, H do -- exclusive
@@ -68,7 +70,7 @@ function writeJBrasToRegions(filename, region_vars)
   return statements
 end
 
--- Writes data found in `filename` to an array of regions given by `region_vars`.
+-- Writes data found in `filename` to an array of regions given by `region_vars`
 function writeJKetsToRegions(filename, region_vars)
   local filep = regentlib.newsymbol()
   local statements = terralib.newlist({rquote
@@ -83,10 +85,12 @@ function writeJKetsToRegions(filename, region_vars)
       statements:insert(rquote
         var int_data : int[3]
         var double_data : double[6]
-        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n", int_data, int_data+1, int_data+2)
+        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n",
+                                  int_data, int_data+1, int_data+2)
         assert(num_values == 3, "Did not read all values in header!")
         var N = int_data[2]
-        assert(L1 == int_data[0] and L2 == int_data[1], "Unexpected angular momentum!")
+        assert(L1 == int_data[0] and L2 == int_data[1],
+               "Unexpected angular momentum!")
         var [r_jkets] = region(ispace(int1d, N), field_space)
         for i = 0, N do -- exclusive
           num_values = c.fscanf(filep,
@@ -127,7 +131,8 @@ function writeOutput(r_jbras_list, filename)
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
       local H = computeH(L1 + L2)
       statements:insert(rquote
-        c.fprintf(filep, "L1=%d,L2=%d,N=%d\n", L1, L2, [r_jbras_list[L1][L2]].volume)
+        c.fprintf(filep, "L1=%d,L2=%d,N=%d\n",
+                  L1, L2, [r_jbras_list[L1][L2]].volume)
         for bra in [r_jbras_list[L1][L2]] do
           for i = 0, H do -- exclusive
             c.fprintf(filep, "%A\t", bra.output[i])
@@ -163,9 +168,11 @@ function verifyOutput(r_jbras_list, delta, epsilon, filename)
       statements:insert(rquote
         var int_data : int[3]
         var double_data : double[1]
-        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n", int_data+0, int_data+1, int_data+2)
+        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n",
+                                  int_data+0, int_data+1, int_data+2)
         assert(num_values == 3, "Did not read angular momentum!")
-        assert(L1 == int_data[0] and L2 == int_data[1], "Wrong angular momentum!")
+        assert(L1 == int_data[0] and L2 == int_data[1],
+               "Wrong angular momentum!")
         var N = int_data[2]
         for i = 0, N do -- exclusive
           for j = 0, H do -- exclusive
@@ -175,8 +182,12 @@ function verifyOutput(r_jbras_list, delta, epsilon, filename)
             var actual = r_jbras[i].output[j]
             var absolute_error = fabs(actual - expected)
             var relative_error = fabs(absolute_error / actual)
-            if absolute_error > max_absolute_error then max_absolute_error = absolute_error end
-            if relative_error > max_relative_error then max_relative_error = relative_error end
+            if absolute_error > max_absolute_error then
+              max_absolute_error = absolute_error
+            end
+            if relative_error > max_relative_error then
+              max_relative_error = relative_error
+            end
             if [bool](c.isnan(actual)) or [bool](c.isinf(expected))
                 or absolute_error > delta or relative_error > epsilon then
               c.printf("Value differs at L1 = %d, L2 = %d, JBra[%d].output[%d]: actual = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",

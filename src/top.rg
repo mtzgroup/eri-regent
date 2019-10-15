@@ -23,7 +23,8 @@ function dumpRegionSizes(name, r)
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
       statements:insert(rquote
-        c.printf("* \t\t%s%s  %20d *\n", [LToStr[L1]], [LToStr[L2]], [r[L1][L2]].volume)
+        c.printf("* \t\t%s%s  %20d *\n", [LToStr[L1]], [LToStr[L2]],
+                                         [r[L1][L2]].volume)
       end)
     end
   end
@@ -59,7 +60,6 @@ task toplevel()
   c.printf("******************************************\n")
   c.printf("*    Two-Electron Repulsion Integrals    *\n")
   c.printf("*                                        *\n")
-  c.printf("* Max Angular Momentum : %15u *\n", config.max_momentum)
   c.printf("* Parallelism : %24u *\n", config.parallelism)
   c.printf("* Number of Bras                         *\n");
   [dumpRegionSizes("Bras", r_jbras_list)]
