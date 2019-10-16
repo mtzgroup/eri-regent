@@ -1,33 +1,40 @@
-# Make sure LG_RT_DIR is set to legion/runtime
-ifndef LG_RT_DIR
-$(error LG_RT_DIR is not set)
+ifndef LEGION
+	$(error Please set LEGION to source path)
 endif
+
+REGENT := regent
+REGENT_FLAGS := -fflow 0
 
 CC := c++
 CFLAGS := -O2 -Wall -Werror
-INCLUDES := -I$(LG_RT_DIR)
-LFLAGS := -L$(LG_RT_DIR)/../bindings/regent -L .
-LIBS := -lregent -lcoulomb_tasks
+INCLUDES := -I$(LEGION)/runtime
+LFLAGS := -L$(LEGION)/bindings/regent -L .
+LIBS := -lregent -ljfock_tasks
 
-SRCS_RG := ../coulomb.rg ../fields.rg ../generate_spin_pattern.rg ../generate_lib.rg
-SRCS_RG += ../mcmurchie/generate_integral.rg ../mcmurchie/generate_R_table.rg ../mcmurchie/gamma_table.h ../mcmurchie/populate_gamma_table.rg
-SRCS_RG += ../rys/generate_integral.rg
+SRCS_RG := ../jfock.rg ../fields.rg ../helper.rg ../generate_lib.rg
+SRCS_RG += ../mcmurchie/jfock/generate_jfock_integral.rg
+SRCS_RG += ../mcmurchie/jfock/generate_kernel_statements.rg
+SRCS_RG += ../mcmurchie/jfock/generate_R_table.rg
+# SRCS_RG += ../mcmurchie/gamma_table.h ../mcmurchie/populate_gamma_table.rg
 
 SRCS_CPP := top.cpp
-TARGET := coulomb_cpp
+TARGET := jfock_cpp
 
-.PHONY: run clean
+.PHONY: test clean
 
 all: $(TARGET)
 
-libcoulomb_tasks.so coulomb_tasks.h: $(SRCS_RG)
-	regent ../generate_lib.rg ./ -fflow 0
+libjfock_tasks.so jfock_tasks.h: $(SRCS_RG)
+ifndef MAX_MOMENTUM
+	$(error Please set MAX_MOMENTUM to one of `[S|P|D|F|G]`)
+endif
+	$(REGENT) ../generate_lib.rg -o ./ -L $(MAX_MOMENTUM) $(REGENT_FLAGS)
 
-$(TARGET): $(SRCS_CPP) libcoulomb_tasks.so coulomb_tasks.h
+$(TARGET): $(SRCS_CPP) libjfock_tasks.so jfock_tasks.h
 	$(CC) $(CFLAGS) $(INCLUDES) $(SRCS_CPP) -o $@ $(LFLAGS) $(LIBS)
 
-run: $(TARGET)
-	LD_LIBRARY_PATH=$(LG_RT_DIR)/../bindings/regent:. ./$(TARGET)
+test: $(TARGET)
+	LD_LIBRARY_PATH=$(LEGION)/bindings/regent:. ./$(TARGET)
 
 clean:
-	$(RM) $(TARGET) libcoulomb_tasks.so coulomb_tasks.h
+	$(RM) $(TARGET) libjfock_tasks.so jfock_tasks.h

@@ -16,3 +16,5 @@ before_install:
 script:
   - python scripts/test_boys.py
   - python scripts/test.py
+  - LEGION="$HOME/legion" MAX_MOMENTUM=S make test
+  - LEGION="$HOME/legion" MAX_MOMENTUM=P make test
