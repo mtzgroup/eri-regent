@@ -16,5 +16,5 @@ before_install:
 script:
   - python scripts/test_boys.py
   - python scripts/test.py
-  - cd src/cpp; LEGION="$HOME/legion" MAX_MOMENTUM=S make
-  - cd src/cpp; LEGION="$HOME/legion" MAX_MOMENTUM=P make
+  - cd src/cpp; LEGION="$HOME/legion" MAX_MOMENTUM=S make libjfock_tasks.so
+  - cd src/cpp; LEGION="$HOME/legion" MAX_MOMENTUM=P make libjfock_tasks.so
