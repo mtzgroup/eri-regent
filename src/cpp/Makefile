@@ -10,6 +10,8 @@ CFLAGS := -O2 -Wall -Werror
 INCLUDES := -I$(LEGION)/runtime
 LFLAGS := -L$(LEGION)/bindings/regent -L .
 LIBS := -lregent -ljfock_tasks
+SRCS := eri_regent.cpp
+HEADERS := eri_regent.h fields.h
 
 SRCS_RG := ../jfock.rg ../fields.rg ../helper.rg ../generate_lib.rg
 SRCS_RG += ../mcmurchie/jfock/generate_jfock_integral.rg
@@ -17,7 +19,6 @@ SRCS_RG += ../mcmurchie/jfock/generate_kernel_statements.rg
 SRCS_RG += ../mcmurchie/jfock/generate_R_table.rg
 # SRCS_RG += ../mcmurchie/gamma_table.h ../mcmurchie/populate_gamma_table.rg
 
-SRCS_CPP := top.cpp
 TARGET := jfock_cpp
 
 .PHONY: test clean
@@ -30,8 +31,8 @@ ifndef MAX_MOMENTUM
 endif
 	$(REGENT) ../generate_lib.rg -o ./ -L $(MAX_MOMENTUM) $(REGENT_FLAGS)
 
-$(TARGET): $(SRCS_CPP) libjfock_tasks.so jfock_tasks.h
-	$(CC) $(CFLAGS) $(INCLUDES) $(SRCS_CPP) -o $@ $(LFLAGS) $(LIBS)
+$(TARGET): $(SRCS) $(HEADERS) libjfock_tasks.so jfock_tasks.h
+	$(CC) $(CFLAGS) $(INCLUDES) $(SRCS) -o $@ $(LFLAGS) $(LIBS)
 
 test: $(TARGET)
 	LD_LIBRARY_PATH=$(LEGION)/bindings/regent:. ./$(TARGET)
