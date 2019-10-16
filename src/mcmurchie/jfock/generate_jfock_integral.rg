@@ -52,7 +52,7 @@ function generateTaskMcMurchieJFockIntegral(L12, L34)
       var jbra_z : double = r_jbras[jbra_idx].z
       var jbra_eta : double = r_jbras[jbra_idx].eta
       var jbra_C : double = r_jbras[jbra_idx].C
-      var jbra_bound : double = r_jbras[jbra_idx].bound
+      var jbra_bound : float = r_jbras[jbra_idx].bound
       -- TODO: `accumulator` should be shared
       var accumulator : double[H12]
       for i = 0, H12 do -- exclusive
