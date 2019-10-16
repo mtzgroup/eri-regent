@@ -1,5 +1,5 @@
 ifndef LEGION
-	$(error Please set LEGION to source path)
+$(error Please set LEGION to source path)
 endif
 
 REGENT := regent
