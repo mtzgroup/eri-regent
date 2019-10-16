@@ -3,15 +3,6 @@ import "regent"
 require "fields"
 require "jfock"
 
-local library_directory = nil
-for i, arg_value in ipairs(arg) do
-  if arg[i] == "-o" then
-    library_directory = arg[i+1]
-  end
-end
-assert(library_directory ~= nil,
-       "Must give library output directory `-o [path]`")
-
 task jfock_task(r_jbras00 : region(ispace(int1d), getJBra(0+0)),
                 r_jbras01 : region(ispace(int1d), getJBra(0+1)),
                 r_jbras11 : region(ispace(int1d), getJBra(1+1)),
@@ -66,21 +57,32 @@ where
 do
   [jfock(
     {
-      [0] = {[0] = r_jbras00, [1] = r_jbras01, [2] = r_jbras02, [3] = r_jbras03, [4] = r_jbras04},
-      [1] = {[1] = r_jbras11, [2] = r_jbras12, [3] = r_jbras13, [4] = r_jbras14},
-      [2] = {[2] = r_jbras22, [3] = r_jbras23, [4] = r_jbras24},
-      [3] = {[3] = r_jbras33, [4] = r_jbras34},
-      [4] = {[4] = r_jbras44},
+      [0]={[0]=r_jbras00, [1]=r_jbras01, [2]=r_jbras02, [3]=r_jbras03,
+           [4]=r_jbras04},
+      [1]={[1]=r_jbras11, [2]=r_jbras12, [3]=r_jbras13, [4]=r_jbras14},
+      [2]={[2]=r_jbras22, [3]=r_jbras23, [4]=r_jbras24},
+      [3]={[3]=r_jbras33, [4]=r_jbras34},
+      [4]={[4]=r_jbras44},
     },
     {
-      [0] = {[0] = r_jkets00, [1] = r_jkets01, [2] = r_jkets02, [3] = r_jkets03, [4] = r_jkets04},
-      [1] = {[1] = r_jkets11, [2] = r_jkets12, [3] = r_jkets13, [4] = r_jkets14},
-      [2] = {[2] = r_jkets22, [3] = r_jkets23, [4] = r_jkets24},
-      [3] = {[3] = r_jkets33, [4] = r_jkets34},
-      [4] = {[4] = r_jkets44},
+      [0]={[0]=r_jkets00, [1]=r_jkets01, [2]=r_jkets02, [3]=r_jkets03,
+           [4]=r_jkets04},
+      [1]={[1]=r_jkets11, [2]=r_jkets12, [3]=r_jkets13, [4]=r_jkets14},
+      [2]={[2]=r_jkets22, [3]=r_jkets23, [4]=r_jkets24},
+      [3]={[3]=r_jkets33, [4]=r_jkets34},
+      [4]={[4]=r_jkets44},
     },
     r_gamma_table, threshold, parallelism)]
 end
+
+local library_directory = nil
+for i, arg_value in ipairs(arg) do
+  if arg[i] == "-o" then
+    library_directory = arg[i+1]
+  end
+end
+assert(library_directory ~= nil,
+       "Must give library output directory `-o [path]`")
 
 local header = library_directory .. "/jfock_tasks.h"
 local lib = library_directory .. "/libjfock_tasks.so"
