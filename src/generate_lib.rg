@@ -3,6 +3,17 @@ import "regent"
 require "fields"
 require "jfock"
 
+task toy_task(r_gamma_table : region(ispace(int2d, {18, 700}), double[5]),
+              -- r_jbras00     : region(ispace(int1d), getJBra(0+0)),
+              -- r_jkets00     : region(ispace(int1d), getJKet(0+0)),
+              threshold : float, parallelism : int)
+where
+  -- reads writes(r_jbras00, r_jkets00),
+  reads(r_gamma_table)
+do
+  regentlib.c.printf("Hello from Regent\n");
+end
+
 task jfock_task(r_jbras00 : region(ispace(int1d), getJBra(0+0)),
                 r_jbras01 : region(ispace(int1d), getJBra(0+1)),
                 r_jbras11 : region(ispace(int1d), getJBra(1+1)),

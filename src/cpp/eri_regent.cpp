@@ -31,8 +31,7 @@ int main(int argc, char **argv) {
 }
 
 
-void top_level_task(const Task *task,
-                    const std::vector<PhysicalRegion> &regions,
+void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
                     Context ctx, Runtime *runtime) {
   // TODO: Make sure this line is ok
   const Memory local_sysmem = Machine::MemoryQuery(Machine::get_machine())
@@ -45,14 +44,25 @@ void top_level_task(const Task *task,
   create_gamma_table_region(gamma_table_lr, gamma_table_pr, ctx, runtime,
                             local_sysmem);
 
-  {
-    toy_task_launcher launcher;
-    launcher.add_argument_r_gamma_table(gamma_table_lr, gamma_table_lr,
-                                        {GAMMA_TABLE_FIELD_ID});
-    launcher.execute(runtime, ctx);
-  }
+  // TODO: Get data from terachem and pass here
+  launch_jfock_task(NULL, NULL, gamma_table_lr, 1.234, 1, ctx, runtime);
 
-  destroy_gamma_table_region(gamma_table_lr, gamma_table_pr, ctx, runtime);
+  destroy_attached_region(gamma_table_lr, gamma_table_pr, ctx, runtime);
+}
+
+
+void launch_jfock_task(TeraChemJBraList* jbras_list,
+                       TeraChemJKetList* jkets_list,
+                       LogicalRegion &gamma_table_lr,
+                       float threshold, int parallelism,
+                       Context ctx, Runtime *runtime) {
+  // TODO: Generate regions for jbras and jkets and pass them as arguments
+  toy_task_launcher launcher;
+  launcher.add_argument_r_gamma_table(gamma_table_lr, gamma_table_lr,
+                                      {GAMMA_TABLE_FIELD_ID});
+  launcher.add_argument_threshold(threshold);
+  launcher.add_argument_parallelism(parallelism);
+  launcher.execute(runtime, ctx);
 }
 
 

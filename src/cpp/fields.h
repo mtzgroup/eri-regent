@@ -9,7 +9,7 @@ struct TeraChemJBra {
   double eta;
   double C;
   float bound;
-  double* output;
+  double *output;
 };
 
 struct TeraChemJKet {
@@ -19,23 +19,15 @@ struct TeraChemJKet {
   double eta;
   double C;
   float bound;
-  double* density;
+  double *density;
 };
 
 struct TeraChemJBraList {
-  uint8_t L1;
-  uint8_t L2;
   size_t length;
-  TeraChemJBra* jbras;
+  TeraChemJBra *data;
 };
 
 struct TeraChemJKetList {
-  uint8_t L1;
-  uint8_t L2;
   size_t length;
-  TeraChemJKet* jkets;
-};
-
-enum { // Field IDs
-  GAMMA_TABLE_FIELD_ID,
+  TeraChemJKet *data;
 };
