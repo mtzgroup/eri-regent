@@ -10,6 +10,8 @@ struct TeraChemJBra {
   double C;
   float bound;
   double *output;
+  // TODO: Use variable sized struct
+  // double output[];
 };
 
 struct TeraChemJKet {
@@ -20,6 +22,7 @@ struct TeraChemJKet {
   double C;
   float bound;
   double *density;
+  // double density[];
 };
 
 struct TeraChemJBraList {
