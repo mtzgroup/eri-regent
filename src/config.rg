@@ -4,10 +4,10 @@ require "helper"
 
 local c = regentlib.c
 local assert = regentlib.assert
-local cstring = terralib.includec("string.h")
 
 struct Config {
   parallelism          : int;
+  integral_type        : int8[512];
   input_directory      : int8[512];
   bras_filename        : int8[512];
   kets_filename        : int8[512];
@@ -19,6 +19,7 @@ struct Config {
 
 terra Config:dump()
   c.printf("Config:")
+  c.printf("\tintegral_type: %s\n", self.integral_type)
   c.printf("\tparallelism: %d\n", self.parallelism)
   c.printf("\tinput_directory: %s\n", self.input_directory)
   c.printf("\toutput_filename: %s\n", self.output_filename)
@@ -32,6 +33,7 @@ terra print_usage_and_abort()
   c.printf("Usage: regent coulomb.rg [OPTIONS]\n")
   c.printf("OPTIONS\n")
   c.printf("  -h                   : Print the usage and exit.\n")
+  c.printf("  -t [jfock|jgrad]     : Pick which integral to do.\n")
   c.printf("  -L {value}           : Use {value} as the max momentum (set at compile time).\n")
   c.printf("  -i {directory}       : Use input files in {directory}.\n")
   c.printf("  -p {value}           : Partition bras {value} ways.\n")
@@ -43,6 +45,7 @@ end
 
 terra Config:initialize_from_command()
   self.parallelism = 1
+  c.strncpy(self.integral_type, "jfock", 5)
   self.input_directory[0] = 0
   self.output_filename[0] = 0
   self.verify_filename[0] = 0
@@ -51,37 +54,40 @@ terra Config:initialize_from_command()
   var args = c.legion_runtime_get_input_args()
   var i = 1
   while i < args.argc do
-    if cstring.strcmp(args.argv[i], "-h") == 0 then
+    if c.strcmp(args.argv[i], "-h") == 0 then
       print_usage_and_abort()
-    elseif cstring.strcmp(args.argv[i], "-i") == 0 then
+    elseif c.strcmp(args.argv[i], "-t") == 0 then
+      i = i + 1
+      c.strncpy(self.integral_type, args.argv[i], 512)
+    elseif c.strcmp(args.argv[i], "-i") == 0 then
       if self.input_directory[0] ~= 0 then
         c.printf("Error: Only accepts one input directory!\n")
         c.abort()
       end
       i = i + 1
-      cstring.strncpy(self.input_directory, args.argv[i], 512)
-    elseif cstring.strcmp(args.argv[i], "-o") == 0 then
+      c.strncpy(self.input_directory, args.argv[i], 512)
+    elseif c.strcmp(args.argv[i], "-o") == 0 then
       if self.output_filename[0] ~= 0 then
         c.printf("Error: Only accepts one output file!\n")
         c.abort()
       end
       i = i + 1
-      cstring.strncpy(self.output_filename, args.argv[i], 512)
-    elseif cstring.strcmp(args.argv[i], "-v") == 0 then
+      c.strncpy(self.output_filename, args.argv[i], 512)
+    elseif c.strcmp(args.argv[i], "-v") == 0 then
       if self.verify_filename[0] ~= 0 then
         c.printf("Error: Only accepts one verify file!\n")
         c.abort()
       end
       i = i + 1
-      cstring.strncpy(self.verify_filename, args.argv[i], 512)
-    elseif cstring.strcmp(args.argv[i], "-p") == 0 then
+      c.strncpy(self.verify_filename, args.argv[i], 512)
+    elseif c.strcmp(args.argv[i], "-p") == 0 then
       i = i + 1
       self.parallelism = c.atoi(args.argv[i])
-    elseif cstring.strcmp(args.argv[i], "--trials") == 0 then
+    elseif c.strcmp(args.argv[i], "--trials") == 0 then
       i = i + 1
       self.num_trials = c.atoi(args.argv[i])
       assert(self.num_trials > 0, "Number of trials must be positive.")
-    elseif cstring.strcmp(args.argv[i], "-L") == 0 then
+    elseif c.strcmp(args.argv[i], "-L") == 0 then
       i = i + 1
     else
       c.printf("Warning: Unknown option %s\n", args.argv[i])

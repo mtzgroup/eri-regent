@@ -61,6 +61,7 @@ task toplevel()
   c.printf("*    Two-Electron Repulsion Integrals    *\n")
   c.printf("*                                        *\n")
   c.printf("* Parallelism : %24u *\n", config.parallelism)
+  c.printf("* Integral Type: %23s *\n", config.integral_type)
   c.printf("* Number of Bras                         *\n");
   [dumpRegionSizes("Bras", r_jbras_list)]
   c.printf("* Number of Kets                         *\n");
@@ -75,7 +76,13 @@ task toplevel()
   ---------------------
   var threshold = parameters.thredp
   var parallelism = config.parallelism;
-  [jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism)]
+  if c.strcmp(config.integral_type, "jfock") == 0 then
+    [jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism)]
+  elseif c.strcmp(config.integral_type, "jgrad") == 0 then
+    assert(false, "jgrad is not yet implemented")
+  else
+    assert(false, "Unknown integral type")
+  end
   ---------------------
 
   __fence(__execution, __block) -- Make sure we only time the computation
