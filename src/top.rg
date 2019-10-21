@@ -79,7 +79,8 @@ task toplevel()
   if c.strcmp(config.integral_type, "jfock") == 0 then
     [jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism)]
   elseif c.strcmp(config.integral_type, "jgrad") == 0 then
-    assert(false, "jgrad is not yet implemented")
+    -- [jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism, true)]
+    assert(false, "jgrad unimplemented")
   else
     assert(false, "Unknown integral type")
   end
