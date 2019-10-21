@@ -44,25 +44,93 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
   create_gamma_table_region(gamma_table_lr, gamma_table_pr, ctx, runtime,
                             local_sysmem);
 
-  // TODO: Get data from terachem and pass here
-  launch_jfock_task(NULL, NULL, gamma_table_lr, 1.234, 1, ctx, runtime);
+  TeraChemJBrasList jbras_list = {0};
+  // jbras_list.num_jbras01 = 2;
+  // jbras_list.jbras01 = jbras01;
+  // jbras_list.output01 = output01;
+  TeraChemJKetsList jkets_list = {0};
+  // jkets_list.num_jkets01 = 2;
+  // jkets_list.jkets01 = jkets01;
+  // jkets_list.density01 = density01;
+
+
+  launch_jfock_task(jbras_list, jkets_list, gamma_table_lr, 1.234, 1,
+                    ctx, runtime, local_sysmem);
 
   destroy_attached_region(gamma_table_lr, gamma_table_pr, ctx, runtime);
 }
 
 
-void launch_jfock_task(TeraChemJBraList* jbras_list,
-                       TeraChemJKetList* jkets_list,
+void launch_jfock_task(TeraChemJBrasList& jbras_list,
+                       TeraChemJKetsList& jkets_list,
                        LogicalRegion &gamma_table_lr,
                        float threshold, int parallelism,
-                       Context ctx, Runtime *runtime) {
-  // TODO: Generate regions for jbras and jkets and pass them as arguments
+                       Context ctx, Runtime *runtime,
+                       const Memory memory) {
+  LogicalRegion jbras01_lr;
+  PhysicalRegion jbras01_pr;
+  void *jbras01_data = fill_jbra_data(jbras_list.jbras01,
+                                      jbras_list.num_jbras01, 0+1);
+  create_jbra01_region(jbras01_lr, jbras01_pr,
+                       jbras01_data, jbras_list.num_jbras01,
+                       ctx, runtime, memory);
+
+  LogicalRegion jkets01_lr;
+  PhysicalRegion jkets01_pr;
+  void *jkets01_data = fill_jket_data(jkets_list.jkets01,
+                                      jkets_list.num_jkets01,
+                                      jkets_list.density01, 0+1);
+  create_jket01_region(jkets01_lr, jkets01_pr,
+                       jkets01_data, jkets_list.num_jkets01,
+                       ctx, runtime, memory);
+
   toy_task_launcher launcher;
+  launcher.add_argument_r_jbras01(jbras01_lr, jbras01_lr,
+                                  {JBRA_FIELD_IDS(0, 1)});
+  launcher.add_argument_r_jkets01(jkets01_lr, jkets01_lr,
+                                  {JKET_FIELD_IDS(0, 1)});
   launcher.add_argument_r_gamma_table(gamma_table_lr, gamma_table_lr,
                                       {GAMMA_TABLE_FIELD_ID});
   launcher.add_argument_threshold(threshold);
   launcher.add_argument_parallelism(parallelism);
   launcher.execute(runtime, ctx);
+
+  destroy_attached_region(jbras01_lr, jbras01_pr, ctx, runtime);
+  free(jbras01_data);
+
+  destroy_attached_region(jkets01_lr, jkets01_pr, ctx, runtime);
+  free(jkets01_data);
+}
+
+
+void* fill_jbra_data(const TeraChemJData *jbras, size_t num_jbras, size_t L12) {
+  const size_t H = COMPUTE_H(L12);
+  const size_t stride = sizeof(double) * 5 + sizeof(float) + sizeof(double) * H;
+  void *data = calloc(stride, num_jbras);
+  for (size_t i = 0; i < num_jbras; i++) {
+    memcpy((void *)((char *)data + i * stride),
+           (const void*)(jbras + i),
+           sizeof(TeraChemJData));
+  }
+  return data;
+}
+
+
+void* fill_jket_data(const TeraChemJData *jkets, size_t num_jkets,
+                     const double* density, size_t L12) {
+  const size_t H = COMPUTE_H(L12);
+  const size_t stride = sizeof(double) * 5 + sizeof(float) + sizeof(double) * H;
+  const size_t density_offset = sizeof(double) * 5 + sizeof(float);
+  void *data = calloc(stride, num_jkets);
+  for (size_t i = 0; i < num_jkets; i++) {
+    memcpy((void *)((char *)data + i * stride),
+           (const void*)(jkets + i),
+           sizeof(TeraChemJData));
+    memcpy((void *)((char *)data + i * stride + density_offset),
+           (const void*)(density + i * H),
+           sizeof(double) * H);
+  }
+  return data;
 }
 
 

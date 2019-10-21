@@ -4,14 +4,40 @@ require "fields"
 require "jfock"
 
 task toy_task(r_gamma_table : region(ispace(int2d, {18, 700}), double[5]),
-              -- r_jbras00     : region(ispace(int1d), getJBra(0+0)),
-              -- r_jkets00     : region(ispace(int1d), getJKet(0+0)),
+              r_jbras01     : region(ispace(int1d), getJBra(0+1)),
+              r_jkets01     : region(ispace(int1d), getJKet(0+1)),
               threshold : float, parallelism : int)
 where
-  -- reads writes(r_jbras00, r_jkets00),
+  reads writes(r_jbras01, r_jkets01),
   reads(r_gamma_table)
 do
   regentlib.c.printf("Hello from Regent\n");
+  for e in r_jbras01.ispace do
+    regentlib.c.printf("%d: %f, %f, %f, %f, %f, %f, {%f, %f, %f, %f}\n", e,
+                       r_jbras01[e].x,
+                       r_jbras01[e].y,
+                       r_jbras01[e].z,
+                       r_jbras01[e].eta,
+                       r_jbras01[e].C,
+                       r_jbras01[e].bound,
+                       r_jbras01[e].output[0],
+                       r_jbras01[e].output[1],
+                       r_jbras01[e].output[2],
+                       r_jbras01[e].output[3])
+  end
+  for e in r_jkets01.ispace do
+    regentlib.c.printf("%d: %f, %f, %f, %f, %f, %f, {%f, %f, %f, %f}\n", e,
+                       r_jkets01[e].x,
+                       r_jkets01[e].y,
+                       r_jkets01[e].z,
+                       r_jkets01[e].eta,
+                       r_jkets01[e].C,
+                       r_jkets01[e].bound,
+                       r_jkets01[e].density[0],
+                       r_jkets01[e].density[1],
+                       r_jkets01[e].density[2],
+                       r_jkets01[e].density[3])
+  end
 end
 
 task jfock_task(r_jbras00 : region(ispace(int1d), getJBra(0+0)),
