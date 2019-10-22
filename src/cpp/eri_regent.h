@@ -1,15 +1,11 @@
 #pragma once
 
 #include "fields.h"
+#include "helper.h"
 #include "legion.h"
 
-// TODO: Make a new namespace
+namespace eri_regent {
 
-void top_level_task(const Legion::Task *task,
-                    const std::vector<Legion::PhysicalRegion> &regions,
-                    Legion::Context ctx, Legion::Runtime *runtime);
-
-// TODO: Put launch function in different header
 // TODO: Make a new struct for the "regent context"
 // TODO: Make something like "init_context" and "destroy_context"
 /**
@@ -31,11 +27,6 @@ void initialize_field_spaces(
   Legion::FieldSpace jket_fspaces[MAX_MOMENTUM_INDEX + 1],
   Legion::Context ctx, Legion::Runtime *runtime);
 
-void* fill_jbra_data(const TeraChemJData *jbras, size_t num_jbras, size_t L12);
-
-
-void* fill_jket_data(const TeraChemJData *jkets, size_t num_jkets,
-                     const double *density, size_t L12);
 
 
 /**
@@ -51,11 +42,7 @@ void create_gamma_table_region(Legion::LogicalRegion &lr,
  */
 void destroy_attached_region(Legion::LogicalRegion &lr,
                              Legion::PhysicalRegion &pr,
-                             Legion::Context ctx, Legion::Runtime *runtime) {
-  runtime->detach_external_resource(ctx, pr);
-  runtime->destroy_logical_region(ctx, lr);
-}
-
+                             Legion::Context ctx, Legion::Runtime *runtime);
 
 #define JBRA_FIELD_ID(L1, L2, FIELD_NAME) JBRA##L1##L2##_FIELD_##FIELD_NAME##_ID
 #define JKET_FIELD_ID(L1, L2, FIELD_NAME) JKET##L1##L2##_FIELD_##FIELD_NAME##_ID
@@ -135,3 +122,5 @@ const std::vector<Legion::FieldID> jket_fields_list[MAX_MOMENTUM_INDEX + 1] = {
 
 #undef JBRA_FIELD_IDS
 #undef JKET_FIELD_IDS
+
+}
