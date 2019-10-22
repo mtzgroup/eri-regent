@@ -11,7 +11,7 @@ INCLUDES := -I$(LEGION)/runtime
 LFLAGS := -L$(LEGION)/bindings/regent -L .
 LIBS := -lregent -ljfock_tasks
 SRCS := eri_regent.cpp main.cpp
-HEADERS := eri_regent.h fields.h helper.h
+HEADERS := eri_regent.h helper.h
 
 SRCS_RG := ../jfock.rg ../fields.rg ../helper.rg ../generate_lib.rg
 SRCS_RG += ../mcmurchie/jfock/generate_jfock_integral.rg

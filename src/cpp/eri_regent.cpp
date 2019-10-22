@@ -1,7 +1,6 @@
 #include <cstdlib>
 
 #include "eri_regent.h"
-#include "fields.h"
 #include "helper.h"
 #include "../mcmurchie/gamma_table.h"
 #include "jfock_tasks.h"
@@ -10,20 +9,29 @@
 using namespace std;
 using namespace Legion;
 
-namespace eri_regent {
 
-void* fill_jbra_data(const TeraChemJData *jbras, size_t num_jbras, size_t L12);
-void* fill_jket_data(const TeraChemJData *jkets, size_t num_jkets,
-                     const double *density, size_t L12);
+EriRegent::EriRegent(Context &ctx, Runtime *runtime)
+    : ctx(ctx), runtime(runtime) {
+  // TODO: Make sure this line is ok
+  memory = Machine::MemoryQuery(Machine::get_machine())
+    .has_affinity_to(runtime->get_executing_processor(ctx))
+    .only_kind(Memory::SYSTEM_MEM)
+    .first();
+
+  create_gamma_table_region();
+
+  initialize_field_spaces();
+}
 
 
-void launch_jfock_task(TeraChemJDataList& jdata_list,
-                       LogicalRegion &gamma_table_lr,
-                       float threshold, int parallelism,
-		                   const FieldSpace *jbra_fspaces,
-		                   const FieldSpace *jket_fspaces,
-                       Context ctx, Runtime *runtime,
-                       const Memory memory) {
+EriRegent::~EriRegent() {
+  runtime->detach_external_resource(ctx, gamma_table_pr);
+  runtime->destroy_logical_region(ctx, gamma_table_lr);
+}
+
+
+void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
+                                  float threshold, int parallelism) {
   LogicalRegion jbras_lr_list[MAX_MOMENTUM_INDEX + 1];
   PhysicalRegion jbras_pr_list[MAX_MOMENTUM_INDEX + 1];
   void* jbras_data_list[MAX_MOMENTUM_INDEX + 1] = {0};
@@ -37,8 +45,7 @@ void launch_jfock_task(TeraChemJDataList& jdata_list,
       const IndexSpace ispace = runtime->create_index_space(ctx, rect);
       jbras_lr_list[index] = runtime->create_logical_region(
                                           ctx, ispace, jbra_fspaces[index]);
-      AttachLauncher launcher(EXTERNAL_INSTANCE,
-                              jbras_lr_list[index],
+      AttachLauncher launcher(EXTERNAL_INSTANCE, jbras_lr_list[index],
 		                          jbras_lr_list[index]);
       launcher.attach_array_aos(jbras_data_list[index], /*column major*/false,
 		                            jbra_fields_list[index], memory);
@@ -60,8 +67,7 @@ void launch_jfock_task(TeraChemJDataList& jdata_list,
       const IndexSpace ispace = runtime->create_index_space(ctx, rect);
       jkets_lr_list[index] = runtime->create_logical_region(
                                           ctx, ispace, jket_fspaces[index]);
-      AttachLauncher launcher(EXTERNAL_INSTANCE,
-                              jkets_lr_list[index],
+      AttachLauncher launcher(EXTERNAL_INSTANCE, jkets_lr_list[index],
 		                          jkets_lr_list[index]);
       launcher.attach_array_aos(jkets_data_list[index], /*column major*/false,
 		                            jket_fields_list[index], memory);
@@ -129,23 +135,27 @@ void launch_jfock_task(TeraChemJDataList& jdata_list,
   for (size_t L1 = 0; L1 < MAX_MOMENTUM; L1++) {
     for (size_t L2 = L1; L2 < MAX_MOMENTUM; L2++) {
       const size_t index = L_PAIR_TO_INDEX(L1, L2);
-      // const size_t output_offset = sizeof(double) * 5 + sizeof(float);
-      // memcpy((void *)jdata_list.output[index],
-      //        (const void *)((char *)jbras_data_list[index] + output_offset),
-      //        jdata_list.num_jbras[index] * sizeof(double) * COMPUTE_H(L1 + L2));
+      if (jdata_list.output[index]) {
+        const size_t output_offset = sizeof(double) * 5 + sizeof(float);
+        const size_t H = COMPUTE_H(L1 + L2);
+        memcpy((void *)jdata_list.output[index],
+               (const void *)((char *)jbras_data_list[index] + output_offset),
+               jdata_list.num_jbras[index] * sizeof(double) * H);
+      }
 
-      destroy_attached_region(jbras_lr_list[index], jbras_pr_list[index],
-                              ctx, runtime);
+      runtime->detach_external_resource(ctx, jbras_pr_list[index]);
+      runtime->destroy_logical_region(ctx, jbras_lr_list[index]);
       free(jbras_data_list[index]);
-      destroy_attached_region(jkets_lr_list[index], jkets_pr_list[index],
-                              ctx, runtime);
+      runtime->detach_external_resource(ctx, jkets_pr_list[index]);
+      runtime->destroy_logical_region(ctx, jkets_lr_list[index]);
       free(jkets_data_list[index]);
     }
   }
 }
 
 
-void* fill_jbra_data(const TeraChemJData *jbras, size_t num_jbras, size_t L12) {
+void* EriRegent::fill_jbra_data(const EriRegent::TeraChemJData *jbras,
+                                size_t num_jbras, size_t L12) {
   const size_t H = COMPUTE_H(L12);
   const size_t stride = sizeof(double) * 5 + sizeof(float) + sizeof(double) * H;
   void *data = calloc(stride, num_jbras);
@@ -157,8 +167,9 @@ void* fill_jbra_data(const TeraChemJData *jbras, size_t num_jbras, size_t L12) {
 }
 
 
-void* fill_jket_data(const TeraChemJData *jkets, size_t num_jkets,
-                     const double* density, size_t L12) {
+void* EriRegent::fill_jket_data(const EriRegent::TeraChemJData *jkets,
+                                size_t num_jkets, const double* density,
+                                size_t L12) {
   const size_t H = COMPUTE_H(L12);
   const size_t stride = sizeof(double) * 5 + sizeof(float) + sizeof(double) * H;
   const size_t density_offset = sizeof(double) * 5 + sizeof(float);
@@ -173,9 +184,7 @@ void* fill_jket_data(const TeraChemJData *jkets, size_t num_jkets,
 }
 
 
-void create_gamma_table_region(LogicalRegion &lr, PhysicalRegion &pr,
-                               Context ctx, Runtime *runtime,
-                               const Memory memory) {
+void EriRegent::create_gamma_table_region() {
   const Rect<2> rect({0, 0}, {18 - 1, 700 - 1});
   const IndexSpace ispace = runtime->create_index_space(ctx, rect);
   const FieldSpace fspace = runtime->create_field_space(ctx);
@@ -184,26 +193,17 @@ void create_gamma_table_region(LogicalRegion &lr, PhysicalRegion &pr,
     falloc.allocate_field(5 * sizeof(double), GAMMA_TABLE_FIELD_ID);
   }
 
-  lr = runtime->create_logical_region(ctx, ispace, fspace);
+  gamma_table_lr = runtime->create_logical_region(ctx, ispace, fspace);
 
-  AttachLauncher launcher(EXTERNAL_INSTANCE, lr, lr);
+  AttachLauncher launcher(EXTERNAL_INSTANCE, gamma_table_lr, gamma_table_lr);
 
   launcher.attach_array_aos((void *)gamma_table, /*column major=*/false,
                             {GAMMA_TABLE_FIELD_ID}, memory);
-  pr = runtime->attach_external_resource(ctx, launcher);
+  gamma_table_pr = runtime->attach_external_resource(ctx, launcher);
 }
 
 
-void destroy_attached_region(LogicalRegion &lr, PhysicalRegion &pr,
-                             Context ctx, Runtime *runtime) {
-  runtime->detach_external_resource(ctx, pr);
-  runtime->destroy_logical_region(ctx, lr);
-}
-
-
-void initialize_field_spaces(FieldSpace jbra_fspaces[MAX_MOMENTUM_INDEX + 1],
-                             FieldSpace jket_fspaces[MAX_MOMENTUM_INDEX + 1],
-                             Context ctx, Runtime *runtime) {
+void EriRegent::initialize_field_spaces() {
 #define INIT_FSPACES(L1, L2)                                                   \
 {                                                                              \
   const int H = COMPUTE_H((L1) + (L2));                                        \
@@ -250,6 +250,4 @@ void initialize_field_spaces(FieldSpace jbra_fspaces[MAX_MOMENTUM_INDEX + 1],
   INIT_FSPACES(4, 4)
 
 #undef INIT_FSPACES
-}
-
 }
