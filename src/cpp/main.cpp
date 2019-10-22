@@ -1,7 +1,7 @@
 /**
  * c++ -O2 -Wall -Werror -I[PATH TO legion/runtime] main.cpp eri_regent.cpp \
- *   -L[PATH TO legion/bindings/regent] -lregent -L. -ljfock_tasks \
- *   LD_LIBRARY_PATH=[PATH TO legion/bindings/regent]:. ./a.out
+ *   -L[PATH TO legion/bindings/regent] -lregent -L. -ljfock_tasks
+ * LD_LIBRARY_PATH=[PATH TO legion/bindings/regent]:. ./a.out
  */
 
 #include <iostream>

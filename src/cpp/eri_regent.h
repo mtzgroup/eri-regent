@@ -17,6 +17,10 @@ public:
     float bound;
   };
 
+  /**
+   * A list of JBra and JKet data to be passed to `launch_jfock_task`.
+   * Use L_PAIR_TO_INDEX(L1, L2) to get the index for these arrays.
+   */
   struct TeraChemJDataList {
     size_t num_jbras[MAX_MOMENTUM_INDEX + 1];
     TeraChemJData *jbras[MAX_MOMENTUM_INDEX + 1];
@@ -28,7 +32,8 @@ public:
   };
 
   /**
-   * Launch the jfock regent task
+   * Launch the jfock regent task and copies the result into
+   * `jdata_list.output`.
    */
   void launch_jfock_task(TeraChemJDataList &jdata_list, float threshold,
                          int parallelism);
