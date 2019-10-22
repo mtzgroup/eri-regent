@@ -118,13 +118,55 @@ void launch_jfock_task(TeraChemJDataList& jdata_list,
 
   // TODO: use jfock instead of toy task
   toy_task_launcher launcher;
-  // TODO: Add the rest of the arguments
-  launcher.add_argument_r_jbras01(jbras_lr_list[L_PAIR_TO_INDEX(0, 1)],
-		                              jbras_lr_list[L_PAIR_TO_INDEX(0, 1)],
-				                          jbra_fields_list[L_PAIR_TO_INDEX(0, 1)]);
-  launcher.add_argument_r_jkets01(jkets_lr_list[L_PAIR_TO_INDEX(0, 1)],
-		                              jkets_lr_list[L_PAIR_TO_INDEX(0, 1)],
-				                          jket_fields_list[L_PAIR_TO_INDEX(0, 1)]);
+
+#define ADD_ARGUMENT_R_JBRAS(L1, L2)             \
+  launcher.add_argument_r_jbras##L1##L2(         \
+    jbras_lr_list[L_PAIR_TO_INDEX(L1, L2)],      \
+    jbras_lr_list[L_PAIR_TO_INDEX(L1, L2)],      \
+    jbra_fields_list[L_PAIR_TO_INDEX(L1, L2)])
+
+  // ADD_ARGUMENT_R_JBRAS(0, 0);
+  ADD_ARGUMENT_R_JBRAS(0, 1);
+  // ADD_ARGUMENT_R_JBRAS(1, 1);
+  // ADD_ARGUMENT_R_JBRAS(0, 2);
+  // ADD_ARGUMENT_R_JBRAS(1, 2);
+  // ADD_ARGUMENT_R_JBRAS(2, 2);
+  // ADD_ARGUMENT_R_JBRAS(0, 3);
+  // ADD_ARGUMENT_R_JBRAS(1, 3);
+  // ADD_ARGUMENT_R_JBRAS(2, 3);
+  // ADD_ARGUMENT_R_JBRAS(3, 3);
+  // ADD_ARGUMENT_R_JBRAS(0, 4);
+  // ADD_ARGUMENT_R_JBRAS(1, 4);
+  // ADD_ARGUMENT_R_JBRAS(2, 4);
+  // ADD_ARGUMENT_R_JBRAS(3, 4);
+  // ADD_ARGUMENT_R_JBRAS(4, 4);
+
+#undef ADD_ARGUMENT_R_JBRAS
+
+#define ADD_ARGUMENT_R_JKETS(L1, L2)             \
+  launcher.add_argument_r_jkets##L1##L2(         \
+    jkets_lr_list[L_PAIR_TO_INDEX(L1, L2)],      \
+    jkets_lr_list[L_PAIR_TO_INDEX(L1, L2)],      \
+    jket_fields_list[L_PAIR_TO_INDEX(L1, L2)])
+
+  // ADD_ARGUMENT_R_JKETS(0, 0);
+  ADD_ARGUMENT_R_JKETS(0, 1);
+  // ADD_ARGUMENT_R_JKETS(1, 1);
+  // ADD_ARGUMENT_R_JKETS(0, 2);
+  // ADD_ARGUMENT_R_JKETS(1, 2);
+  // ADD_ARGUMENT_R_JKETS(2, 2);
+  // ADD_ARGUMENT_R_JKETS(0, 3);
+  // ADD_ARGUMENT_R_JKETS(1, 3);
+  // ADD_ARGUMENT_R_JKETS(2, 3);
+  // ADD_ARGUMENT_R_JKETS(3, 3);
+  // ADD_ARGUMENT_R_JKETS(0, 4);
+  // ADD_ARGUMENT_R_JKETS(1, 4);
+  // ADD_ARGUMENT_R_JKETS(2, 4);
+  // ADD_ARGUMENT_R_JKETS(3, 4);
+  // ADD_ARGUMENT_R_JKETS(4, 4);
+
+#undef ADD_ARGUMENT_R_JKETS
+
   launcher.add_argument_r_gamma_table(gamma_table_lr, gamma_table_lr,
                                       {GAMMA_TABLE_FIELD_ID});
   launcher.add_argument_threshold(threshold);
@@ -134,6 +176,7 @@ void launch_jfock_task(TeraChemJDataList& jdata_list,
   for (size_t L1 = 0; L1 < MAX_MOMENTUM; L1++) {
     for (size_t L2 = L1; L2 < MAX_MOMENTUM; L2++) {
       const size_t index = L_PAIR_TO_INDEX(L1, L2);
+      // TODO: Copy output to jdata_list
       destroy_attached_region(jbras_lr_list[index], jbras_pr_list[index],
                               ctx, runtime);
       free(jbras_data_list[index]);
