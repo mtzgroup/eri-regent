@@ -10,6 +10,8 @@
 #include "jfock_tasks.h"
 #include "legion.h"
 
+// #include "test.h"
+
 using namespace std;
 using namespace Legion;
 
@@ -53,6 +55,8 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
   TeraChemJDataList jdata_list = {0};
   // jdata_list.num_jbras[L_PAIR_TO_INDEX(0, 1)] = 2;
   // jdata_list.jbras[L_PAIR_TO_INDEX(0, 1)] = jbras01;
+  // jdata_list.output[L_PAIR_TO_INDEX(0, 1)] = (double *)malloc(sizeof(double) * 2 * 4);
+  //
   // jdata_list.num_jkets[L_PAIR_TO_INDEX(0, 1)] = 2;
   // jdata_list.jkets[L_PAIR_TO_INDEX(0, 1)] = jkets01;
   // jdata_list.density[L_PAIR_TO_INDEX(0, 1)] = density01;
@@ -176,7 +180,11 @@ void launch_jfock_task(TeraChemJDataList& jdata_list,
   for (size_t L1 = 0; L1 < MAX_MOMENTUM; L1++) {
     for (size_t L2 = L1; L2 < MAX_MOMENTUM; L2++) {
       const size_t index = L_PAIR_TO_INDEX(L1, L2);
-      // TODO: Copy output to jdata_list
+      // const size_t output_offset = sizeof(double) * 5 + sizeof(float);
+      // memcpy((void *)jdata_list.output[index],
+      //        (const void *)((char *)jbras_data_list[index] + output_offset),
+      //        jdata_list.num_jbras[index] * sizeof(double) * COMPUTE_H(L1 + L2));
+
       destroy_attached_region(jbras_lr_list[index], jbras_pr_list[index],
                               ctx, runtime);
       free(jbras_data_list[index]);
