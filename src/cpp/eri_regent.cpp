@@ -5,6 +5,7 @@
 
 #include "eri_regent.h"
 #include "fields.h"
+#include "helper.h"
 #include "../mcmurchie/gamma_table.h"
 #include "jfock_tasks.h"
 #include "legion.h"
@@ -39,67 +40,108 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
       .only_kind(Memory::SYSTEM_MEM)
       .first();
 
+  // r_gamma_table is readonly and constant throughout execution
   LogicalRegion gamma_table_lr;
   PhysicalRegion gamma_table_pr;
   create_gamma_table_region(gamma_table_lr, gamma_table_pr, ctx, runtime,
                             local_sysmem);
 
-  TeraChemJBrasList jbras_list = {0};
-  // jbras_list.num_jbras01 = 2;
-  // jbras_list.jbras01 = jbras01;
-  // jbras_list.output01 = output01;
-  TeraChemJKetsList jkets_list = {0};
-  // jkets_list.num_jkets01 = 2;
-  // jkets_list.jkets01 = jkets01;
-  // jkets_list.density01 = density01;
+  FieldSpace jbra_fspaces[MAX_MOMENTUM_INDEX + 1];
+  FieldSpace jket_fspaces[MAX_MOMENTUM_INDEX + 1];
+  initialize_field_spaces(jbra_fspaces, jket_fspaces, ctx, runtime);
 
+  TeraChemJDataList jdata_list = {0};
+  // jdata_list.num_jbras[L_PAIR_TO_INDEX(0, 1)] = 2;
+  // jdata_list.jbras[L_PAIR_TO_INDEX(0, 1)] = jbras01;
+  // jdata_list.num_jkets[L_PAIR_TO_INDEX(0, 1)] = 2;
+  // jdata_list.jkets[L_PAIR_TO_INDEX(0, 1)] = jkets01;
+  // jdata_list.density[L_PAIR_TO_INDEX(0, 1)] = density01;
 
-  launch_jfock_task(jbras_list, jkets_list, gamma_table_lr, 1.234, 1,
-                    ctx, runtime, local_sysmem);
+  launch_jfock_task(jdata_list, gamma_table_lr, 1.234, 1,
+                    jbra_fspaces, jket_fspaces, ctx, runtime, local_sysmem);
 
   destroy_attached_region(gamma_table_lr, gamma_table_pr, ctx, runtime);
 }
 
 
-void launch_jfock_task(TeraChemJBrasList& jbras_list,
-                       TeraChemJKetsList& jkets_list,
+void launch_jfock_task(TeraChemJDataList& jdata_list,
                        LogicalRegion &gamma_table_lr,
                        float threshold, int parallelism,
+		                   const FieldSpace *jbra_fspaces,
+		                   const FieldSpace *jket_fspaces,
                        Context ctx, Runtime *runtime,
                        const Memory memory) {
-  LogicalRegion jbras01_lr;
-  PhysicalRegion jbras01_pr;
-  void *jbras01_data = fill_jbra_data(jbras_list.jbras01,
-                                      jbras_list.num_jbras01, 0+1);
-  create_jbra01_region(jbras01_lr, jbras01_pr,
-                       jbras01_data, jbras_list.num_jbras01,
-                       ctx, runtime, memory);
+  LogicalRegion jbras_lr_list[MAX_MOMENTUM_INDEX + 1];
+  PhysicalRegion jbras_pr_list[MAX_MOMENTUM_INDEX + 1];
+  void* jbras_data_list[MAX_MOMENTUM_INDEX + 1] = {0};
+  for (size_t L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (size_t L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
+      const size_t index = L_PAIR_TO_INDEX(L1, L2);
+      jbras_data_list[index] = fill_jbra_data(jdata_list.jbras[index],
+                                              jdata_list.num_jbras[index],
+					                                    L1 + L2);
+      const Rect<1> rect(0, jdata_list.num_jbras[index] - 1);
+      const IndexSpace ispace = runtime->create_index_space(ctx, rect);
+      jbras_lr_list[index] = runtime->create_logical_region(
+                                          ctx, ispace, jbra_fspaces[index]);
+      AttachLauncher launcher(EXTERNAL_INSTANCE,
+                              jbras_lr_list[index],
+		                          jbras_lr_list[index]);
+      launcher.attach_array_aos(jbras_data_list[index], /*column major*/false,
+		                            jbra_fields_list[index], memory);
+      jbras_pr_list[index] = runtime->attach_external_resource(ctx, launcher);
+    }
+  }
 
-  LogicalRegion jkets01_lr;
-  PhysicalRegion jkets01_pr;
-  void *jkets01_data = fill_jket_data(jkets_list.jkets01,
-                                      jkets_list.num_jkets01,
-                                      jkets_list.density01, 0+1);
-  create_jket01_region(jkets01_lr, jkets01_pr,
-                       jkets01_data, jkets_list.num_jkets01,
-                       ctx, runtime, memory);
+  LogicalRegion jkets_lr_list[MAX_MOMENTUM_INDEX + 1];
+  PhysicalRegion jkets_pr_list[MAX_MOMENTUM_INDEX + 1];
+  void* jkets_data_list[MAX_MOMENTUM_INDEX + 1] = {0};
+  for (size_t L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (size_t L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
+      const size_t index = L_PAIR_TO_INDEX(L1, L2);
+      jkets_data_list[index] = fill_jket_data(jdata_list.jkets[index],
+                                              jdata_list.num_jkets[index],
+                                              jdata_list.density[index],
+					                                    L1 + L2);
+      const Rect<1> rect(0, jdata_list.num_jkets[index] - 1);
+      const IndexSpace ispace = runtime->create_index_space(ctx, rect);
+      jkets_lr_list[index] = runtime->create_logical_region(
+                                          ctx, ispace, jket_fspaces[index]);
+      AttachLauncher launcher(EXTERNAL_INSTANCE,
+                              jkets_lr_list[index],
+		                          jkets_lr_list[index]);
+      launcher.attach_array_aos(jkets_data_list[index], /*column major*/false,
+		                            jket_fields_list[index], memory);
+      jkets_pr_list[index] = runtime->attach_external_resource(ctx, launcher);
+    }
+  }
 
+  // TODO: use jfock instead of toy task
   toy_task_launcher launcher;
-  launcher.add_argument_r_jbras01(jbras01_lr, jbras01_lr,
-                                  {JBRA_FIELD_IDS(0, 1)});
-  launcher.add_argument_r_jkets01(jkets01_lr, jkets01_lr,
-                                  {JKET_FIELD_IDS(0, 1)});
+  // TODO: Add the rest of the arguments
+  launcher.add_argument_r_jbras01(jbras_lr_list[L_PAIR_TO_INDEX(0, 1)],
+		                              jbras_lr_list[L_PAIR_TO_INDEX(0, 1)],
+				                          jbra_fields_list[L_PAIR_TO_INDEX(0, 1)]);
+  launcher.add_argument_r_jkets01(jkets_lr_list[L_PAIR_TO_INDEX(0, 1)],
+		                              jkets_lr_list[L_PAIR_TO_INDEX(0, 1)],
+				                          jket_fields_list[L_PAIR_TO_INDEX(0, 1)]);
   launcher.add_argument_r_gamma_table(gamma_table_lr, gamma_table_lr,
                                       {GAMMA_TABLE_FIELD_ID});
   launcher.add_argument_threshold(threshold);
   launcher.add_argument_parallelism(parallelism);
   launcher.execute(runtime, ctx);
 
-  destroy_attached_region(jbras01_lr, jbras01_pr, ctx, runtime);
-  free(jbras01_data);
-
-  destroy_attached_region(jkets01_lr, jkets01_pr, ctx, runtime);
-  free(jkets01_data);
+  for (size_t L1 = 0; L1 < MAX_MOMENTUM; L1++) {
+    for (size_t L2 = L1; L2 < MAX_MOMENTUM; L2++) {
+      const size_t index = L_PAIR_TO_INDEX(L1, L2);
+      destroy_attached_region(jbras_lr_list[index], jbras_pr_list[index],
+                              ctx, runtime);
+      free(jbras_data_list[index]);
+      destroy_attached_region(jkets_lr_list[index], jkets_pr_list[index],
+                              ctx, runtime);
+      free(jkets_data_list[index]);
+    }
+  }
 }
 
 
@@ -108,8 +150,7 @@ void* fill_jbra_data(const TeraChemJData *jbras, size_t num_jbras, size_t L12) {
   const size_t stride = sizeof(double) * 5 + sizeof(float) + sizeof(double) * H;
   void *data = calloc(stride, num_jbras);
   for (size_t i = 0; i < num_jbras; i++) {
-    memcpy((void *)((char *)data + i * stride),
-           (const void*)(jbras + i),
+    memcpy((void *)((char *)data + i * stride), (const void*)(jbras + i),
            sizeof(TeraChemJData));
   }
   return data;
@@ -123,12 +164,10 @@ void* fill_jket_data(const TeraChemJData *jkets, size_t num_jkets,
   const size_t density_offset = sizeof(double) * 5 + sizeof(float);
   void *data = calloc(stride, num_jkets);
   for (size_t i = 0; i < num_jkets; i++) {
-    memcpy((void *)((char *)data + i * stride),
-           (const void*)(jkets + i),
+    memcpy((void *)((char *)data + i * stride), (const void*)(jkets + i),
            sizeof(TeraChemJData));
     memcpy((void *)((char *)data + i * stride + density_offset),
-           (const void*)(density + i * H),
-           sizeof(double) * H);
+           (const void*)(density + i * H), sizeof(double) * H);
   }
   return data;
 }
@@ -152,4 +191,56 @@ void create_gamma_table_region(LogicalRegion &lr, PhysicalRegion &pr,
   launcher.attach_array_aos((void *)gamma_table, /*column major=*/false,
                             {GAMMA_TABLE_FIELD_ID}, memory);
   pr = runtime->attach_external_resource(ctx, launcher);
+}
+
+
+void initialize_field_spaces(FieldSpace jbra_fspaces[MAX_MOMENTUM_INDEX + 1],
+                             FieldSpace jket_fspaces[MAX_MOMENTUM_INDEX + 1],
+                             Context ctx, Runtime *runtime) {
+#define INIT_FSPACES(L1, L2)                                                   \
+{                                                                              \
+  const int H = COMPUTE_H((L1) + (L2));                                        \
+  jbra_fspaces[L_PAIR_TO_INDEX(L1, L2)] = runtime->create_field_space(ctx);    \
+  jket_fspaces[L_PAIR_TO_INDEX(L1, L2)] = runtime->create_field_space(ctx);    \
+  {                                                                            \
+    FieldAllocator falloc = runtime->create_field_allocator(                   \
+      ctx, jbra_fspaces[L_PAIR_TO_INDEX(L1, L2)]);                             \
+    falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, X));           \
+    falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, Y));           \
+    falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, Z));           \
+    falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, ETA));         \
+    falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, C));           \
+    falloc.allocate_field(sizeof(float), JBRA_FIELD_ID(L1, L2, BOUND));        \
+    falloc.allocate_field(H * sizeof(double), JBRA_FIELD_ID(L1, L2, OUTPUT));  \
+  }                                                                            \
+  {                                                                            \
+    FieldAllocator falloc = runtime->create_field_allocator(                   \
+      ctx, jket_fspaces[L_PAIR_TO_INDEX(L1, L2)]);                             \
+    falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, X));           \
+    falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, Y));           \
+    falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, Z));           \
+    falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, ETA));         \
+    falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, C));           \
+    falloc.allocate_field(sizeof(float), JKET_FIELD_ID(L1, L2, BOUND));        \
+    falloc.allocate_field(H * sizeof(double), JKET_FIELD_ID(L1, L2, DENSITY)); \
+  }                                                                            \
+}
+
+  INIT_FSPACES(0, 0)
+  INIT_FSPACES(0, 1)
+  INIT_FSPACES(1, 1)
+  INIT_FSPACES(0, 2)
+  INIT_FSPACES(1, 2)
+  INIT_FSPACES(2, 2)
+  INIT_FSPACES(0, 3)
+  INIT_FSPACES(1, 3)
+  INIT_FSPACES(2, 3)
+  INIT_FSPACES(3, 3)
+  INIT_FSPACES(0, 4)
+  INIT_FSPACES(1, 4)
+  INIT_FSPACES(2, 4)
+  INIT_FSPACES(3, 4)
+  INIT_FSPACES(4, 4)
+
+#undef INIT_FSPACES
 }

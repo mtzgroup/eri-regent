@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include "helper.h"
 
 struct TeraChemJData {
   double x;
@@ -11,51 +11,12 @@ struct TeraChemJData {
   float bound;
 };
 
-#define TERACHEM_JBRAS_LIST_FIELDS(L1, L2) \
-  size_t num_jbras##L1##L2;                \
-  TeraChemJData *jbras##L1##L2;            \
-  double *output##L1##L2;
-
-#define TERACHEM_JKETS_LIST_FIELDS(L1, L2) \
-  size_t num_jkets##L1##L2;                \
-  TeraChemJData *jkets##L1##L2;            \
-  double *density##L1##L2;
-
-struct TeraChemJBrasList {
-  TERACHEM_JBRAS_LIST_FIELDS(0, 0);
-  TERACHEM_JBRAS_LIST_FIELDS(0, 1);
-  TERACHEM_JBRAS_LIST_FIELDS(1, 1);
-  TERACHEM_JBRAS_LIST_FIELDS(0, 2);
-  TERACHEM_JBRAS_LIST_FIELDS(1, 2);
-  TERACHEM_JBRAS_LIST_FIELDS(2, 2);
-  TERACHEM_JBRAS_LIST_FIELDS(0, 3);
-  TERACHEM_JBRAS_LIST_FIELDS(1, 3);
-  TERACHEM_JBRAS_LIST_FIELDS(2, 3);
-  TERACHEM_JBRAS_LIST_FIELDS(3, 3);
-  TERACHEM_JBRAS_LIST_FIELDS(0, 4);
-  TERACHEM_JBRAS_LIST_FIELDS(1, 4);
-  TERACHEM_JBRAS_LIST_FIELDS(2, 4);
-  TERACHEM_JBRAS_LIST_FIELDS(3, 4);
-  TERACHEM_JBRAS_LIST_FIELDS(4, 4);
+struct TeraChemJDataList {
+  size_t num_jbras[MAX_MOMENTUM_INDEX + 1];
+  TeraChemJData* jbras[MAX_MOMENTUM_INDEX + 1];
+  double* output[MAX_MOMENTUM_INDEX + 1];
+  
+  size_t num_jkets[MAX_MOMENTUM_INDEX + 1];
+  TeraChemJData* jkets[MAX_MOMENTUM_INDEX + 1];
+  double* density[MAX_MOMENTUM_INDEX + 1];
 };
-
-struct TeraChemJKetsList {
-  TERACHEM_JKETS_LIST_FIELDS(0, 0);
-  TERACHEM_JKETS_LIST_FIELDS(0, 1);
-  TERACHEM_JKETS_LIST_FIELDS(1, 1);
-  TERACHEM_JKETS_LIST_FIELDS(0, 2);
-  TERACHEM_JKETS_LIST_FIELDS(1, 2);
-  TERACHEM_JKETS_LIST_FIELDS(2, 2);
-  TERACHEM_JKETS_LIST_FIELDS(0, 3);
-  TERACHEM_JKETS_LIST_FIELDS(1, 3);
-  TERACHEM_JKETS_LIST_FIELDS(2, 3);
-  TERACHEM_JKETS_LIST_FIELDS(3, 3);
-  TERACHEM_JKETS_LIST_FIELDS(0, 4);
-  TERACHEM_JKETS_LIST_FIELDS(1, 4);
-  TERACHEM_JKETS_LIST_FIELDS(2, 4);
-  TERACHEM_JKETS_LIST_FIELDS(3, 4);
-  TERACHEM_JKETS_LIST_FIELDS(4, 4);
-};
-
-#undef TERACHEM_JBRAS_LIST_FIELDS
-#undef TERACHEM_JKETS_LIST_FIELDS
