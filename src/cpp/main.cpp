@@ -1,5 +1,8 @@
-// c++ -O2 -Wall -Werror -I[PATH TO legion/runtime] main.cpp eri_regent.cpp -L[PATH TO legion/bindings/regent] -lregent -L. -ljfock_tasks
-// LD_LIBRARY_PATH=[PATH TO legion/bindings/regent]:. ./a.out
+/**
+ * c++ -O2 -Wall -Werror -I[PATH TO legion/runtime] main.cpp eri_regent.cpp \
+ *   -L[PATH TO legion/bindings/regent] -lregent -L. -ljfock_tasks \
+ *   LD_LIBRARY_PATH=[PATH TO legion/bindings/regent]:. ./a.out
+ */
 
 #include <iostream>
 
@@ -20,7 +23,8 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
   EriRegent::TeraChemJDataList jdata_list = {0};
   // jdata_list.num_jbras[L_PAIR_TO_INDEX(0, 1)] = 2;
   // jdata_list.jbras[L_PAIR_TO_INDEX(0, 1)] = jbras01;
-  // jdata_list.output[L_PAIR_TO_INDEX(0, 1)] = (double *)malloc(sizeof(double) * 2 * 4);
+  // jdata_list.output[L_PAIR_TO_INDEX(0, 1)] = (double *)malloc(sizeof(double)
+  // * 2 * 4);
   //
   // jdata_list.num_jkets[L_PAIR_TO_INDEX(0, 1)] = 2;
   // jdata_list.jkets[L_PAIR_TO_INDEX(0, 1)] = jkets01;
@@ -30,7 +34,7 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
 }
 
 int main(int argc, char **argv) {
-  enum {  // Task IDs
+  enum { // Task IDs
     TOP_LEVEL_TASK_ID,
   };
 
