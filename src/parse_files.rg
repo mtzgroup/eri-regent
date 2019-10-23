@@ -30,8 +30,14 @@ function writeJBrasToRegions(filename, region_vars)
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
-      local H = computeH(L1 + L2)
-      local field_space = getJBra(L1 + L2)
+      local L12
+      if getIntegralType() == "jfock" then
+        L12 = L1 + L2
+      elseif getIntegralType() == "jgrad" then
+        L12 = L1 + L2 + 1
+      end
+      local H = computeH(L12)
+      local field_space = getJBra(L12)
       local r_jbras = region_vars[L1][L2]
       statements:insert(rquote
         var int_data : int[3]
@@ -129,7 +135,13 @@ function writeOutput(r_jbras_list, filename)
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
-      local H = computeH(L1 + L2)
+      local L12
+      if getIntegralType() == "jfock" then
+        L12 = L1 + L2
+      elseif getIntegralType() == "jgrad" then
+        L12 = L1 + L2 + 1
+      end
+      local H = computeH(L12)
       statements:insert(rquote
         c.fprintf(filep, "L1=%d,L2=%d,N=%d\n",
                   L1, L2, [r_jbras_list[L1][L2]].volume)
@@ -163,7 +175,13 @@ function verifyOutput(r_jbras_list, delta, epsilon, filename)
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
-      local H = computeH(L1 + L2)
+      local L12
+      if getIntegralType() == "jfock" then
+        L12 = L1 + L2
+      elseif getIntegralType() == "jgrad" then
+        L12 = L1 + L2 + 1
+      end
+      local H = computeH(L12)
       local r_jbras = r_jbras_list[L1][L2]
       statements:insert(rquote
         var int_data : int[3]
@@ -189,7 +207,7 @@ function verifyOutput(r_jbras_list, delta, epsilon, filename)
               max_relative_error = relative_error
             end
             if [bool](c.isnan(actual)) or [bool](c.isinf(expected))
-                or absolute_error > delta or relative_error > epsilon then
+                or (absolute_error > delta and relative_error > epsilon) then
               c.printf("Value differs at L1 = %d, L2 = %d, JBra[%d].output[%d]: actual = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
                        L1, L2, i, j, actual, expected, absolute_error, relative_error)
               assert(false, "Wrong output!")

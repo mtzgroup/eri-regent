@@ -31,6 +31,17 @@ function dumpRegionSizes(name, r)
   return statements
 end
 
+function launch_integrals(r_jbras_list, r_jkets_list, r_gamma_table, threshold,
+                          parallelism)
+  if getIntegralType() == "jfock" then
+    return jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold,
+                 parallelism, false)
+  else
+    return jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold,
+                 parallelism, true)
+  end
+end
+
 task toplevel()
   var config : Config
   config:initialize_from_command()
@@ -60,11 +71,11 @@ task toplevel()
   c.printf("******************************************\n")
   c.printf("*    Two-Electron Repulsion Integrals    *\n")
   c.printf("*                                        *\n")
-  c.printf("* Parallelism : %24u *\n", config.parallelism)
-  c.printf("* Integral Type: %23s *\n", config.integral_type)
-  c.printf("* Number of Bras                         *\n");
+  c.printf("* Parallelism: %25u *\n", config.parallelism)
+  c.printf("* Integral Type: %23s *\n", [getIntegralType()])
+  c.printf("* Number of Bras:                        *\n");
   [dumpRegionSizes("Bras", r_jbras_list)]
-  c.printf("* Number of Kets                         *\n");
+  c.printf("* Number of Kets:                        *\n");
   [dumpRegionSizes("Kets", r_jkets_list)]
   c.printf("******************************************\n")
 
@@ -76,14 +87,7 @@ task toplevel()
   ---------------------
   var threshold = parameters.thredp
   var parallelism = config.parallelism;
-  if c.strcmp(config.integral_type, "jfock") == 0 then
-    [jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism)]
-  elseif c.strcmp(config.integral_type, "jgrad") == 0 then
-    -- [jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism, true)]
-    assert(false, "jgrad unimplemented")
-  else
-    assert(false, "Unknown integral type")
-  end
+  [launch_integrals(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism)]
   ---------------------
 
   __fence(__execution, __block) -- Make sure we only time the computation

@@ -7,7 +7,6 @@ local assert = regentlib.assert
 
 struct Config {
   parallelism          : int;
-  integral_type        : int8[512];
   input_directory      : int8[512];
   bras_filename        : int8[512];
   kets_filename        : int8[512];
@@ -19,7 +18,7 @@ struct Config {
 
 terra Config:dump()
   c.printf("Config:")
-  c.printf("\tintegral_type: %s\n", self.integral_type)
+  c.printf("\tintegral_type: %s\n", [getIntegralType()])
   c.printf("\tparallelism: %d\n", self.parallelism)
   c.printf("\tinput_directory: %s\n", self.input_directory)
   c.printf("\toutput_filename: %s\n", self.output_filename)
@@ -45,7 +44,6 @@ end
 
 terra Config:initialize_from_command()
   self.parallelism = 1
-  c.strncpy(self.integral_type, "jfock", 5)
   self.input_directory[0] = 0
   self.output_filename[0] = 0
   self.verify_filename[0] = 0
@@ -56,9 +54,6 @@ terra Config:initialize_from_command()
   while i < args.argc do
     if c.strcmp(args.argv[i], "-h") == 0 then
       print_usage_and_abort()
-    elseif c.strcmp(args.argv[i], "-t") == 0 then
-      i = i + 1
-      c.strncpy(self.integral_type, args.argv[i], 512)
     elseif c.strcmp(args.argv[i], "-i") == 0 then
       if self.input_directory[0] ~= 0 then
         c.printf("Error: Only accepts one input directory!\n")
@@ -100,9 +95,15 @@ terra Config:initialize_from_command()
     print_usage_and_abort()
   end
 
-  c.sprintf(self.bras_filename, "%s/bras.dat", self.input_directory)
-  c.sprintf(self.kets_filename, "%s/kets.dat", self.input_directory)
-  c.sprintf(self.parameters_filename, "%s/parameters.dat", self.input_directory)
+  if [getIntegralType() == "jfock"] then
+    c.sprintf(self.bras_filename, "%s/bras.dat", self.input_directory)
+    c.sprintf(self.kets_filename, "%s/kets.dat", self.input_directory)
+    c.sprintf(self.parameters_filename, "%s/parameters.dat", self.input_directory)
+  elseif [getIntegralType() == "jgrad"] then
+    c.sprintf(self.bras_filename, "%s/bras_grad.dat", self.input_directory)
+    c.sprintf(self.kets_filename, "%s/kets_grad.dat", self.input_directory)
+    c.sprintf(self.parameters_filename, "%s/parameters_grad.dat", self.input_directory)
+  end
 end
 
 return Config

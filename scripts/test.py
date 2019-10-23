@@ -1,8 +1,12 @@
 test_files = [
-    ("data/h2", "data/h2/output.dat", "S"),
-    ("data/h2o", "data/h2o/output.dat", "P"),
-    ("data/co2", "data/co2/output.dat", "P"),
-    ("data/fe", "data/fe/output.dat", "D"),
+    ("data/h2", "data/h2/output.dat", "S", "jfock"),
+    ("data/h2", "data/h2/output_grad.dat", "S", "jgrad"),
+    ("data/h2o", "data/h2o/output.dat", "P", "jfock"),
+    ("data/h2o", "data/h2o/output_grad.dat", "P", "jgrad"),
+    ("data/co2", "data/co2/output.dat", "P", "jfock"),
+    ("data/co2", "data/co2/output_grad.dat", "P", "jgrad"),
+    ("data/fe", "data/fe/output.dat", "D", "jfock"),
+    ("data/fe", "data/fe/output_grad.dat", "D", "jgrad"),
 ]
 
 quick_test_files = test_files[:1]
@@ -21,7 +25,7 @@ if __name__ == "__main__":
 
     data_files = quick_test_files if args.quick else test_files
 
-    for (indirectory, outfile, L) in data_files:
+    for (indirectory, outfile, L, integral_type) in data_files:
         # TODO: Test multiple cpu's and partitions
         # TODO: Test gpu and cuda
         try:
@@ -30,7 +34,9 @@ if __name__ == "__main__":
                     "regent",
                     "top.rg",
                     "-L",
-                    str(L),
+                    L,
+                    "-t",
+                    integral_type,
                     "-i",
                     indirectory,
                     "-v",
