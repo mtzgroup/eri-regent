@@ -1,45 +1,22 @@
 import "regent"
 
 require "fields"
+require "helper"
 require "jfock"
 
-task toy_task(r_gamma_table : region(ispace(int2d, {18, 700}), double[5]),
-              r_jbras01     : region(ispace(int1d), getJBra(0+1)),
-              r_jkets01     : region(ispace(int1d), getJKet(0+1)),
-              threshold : float, parallelism : int)
-where
-  reads writes(r_jbras01, r_jkets01),
-  reads(r_gamma_table)
-do
-  regentlib.c.printf("Hello from Regent\n");
-  for e in r_jbras01.ispace do
-    regentlib.c.printf("%d: %f, %f, %f, %f, %f, %f, {%f, %f, %f, %f}\n", e,
-                       r_jbras01[e].x,
-                       r_jbras01[e].y,
-                       r_jbras01[e].z,
-                       r_jbras01[e].eta,
-                       r_jbras01[e].C,
-                       r_jbras01[e].bound,
-                       r_jbras01[e].output[0],
-                       r_jbras01[e].output[1],
-                       r_jbras01[e].output[2],
-                       r_jbras01[e].output[3])
-  end
-  for e in r_jkets01.ispace do
-    regentlib.c.printf("%d: %f, %f, %f, %f, %f, %f, {%f, %f, %f, %f}\n", e,
-                       r_jkets01[e].x,
-                       r_jkets01[e].y,
-                       r_jkets01[e].z,
-                       r_jkets01[e].eta,
-                       r_jkets01[e].C,
-                       r_jkets01[e].bound,
-                       r_jkets01[e].density[0],
-                       r_jkets01[e].density[1],
-                       r_jkets01[e].density[2],
-                       r_jkets01[e].density[3])
-  end
-end
 
+--------------------------------------------------------------------------------
+-- Launch jfock tasks
+--------------------------------------------------------------------------------
+-- r_jbras[L1][L2] - Regions of JBras with angular momentum pair L1, L2
+-- r_jkets[L1][L2] - Regions of JKets with angular momentum pair L1, L2
+-- r_gamma_table   - A region holding a lookup table needed by the kernels
+-- threshold       - A threshold to determine if a BraKet need to contribute
+--                   to output
+-- parallelism     - How many ways should divide the work of each kernel
+-- max_momentum    - A sanity check to make sure eri-regent was compiled with a
+--                   large enough momentum
+--------------------------------------------------------------------------------
 task jfock_task(r_jbras00 : region(ispace(int1d), getJBra(0+0)),
                 r_jbras01 : region(ispace(int1d), getJBra(0+1)),
                 r_jbras11 : region(ispace(int1d), getJBra(1+1)),
@@ -71,27 +48,46 @@ task jfock_task(r_jbras00 : region(ispace(int1d), getJBra(0+0)),
                 r_jkets34 : region(ispace(int1d), getJKet(3+4)),
                 r_jkets44 : region(ispace(int1d), getJKet(4+4)),
                 r_gamma_table : region(ispace(int2d, {18, 700}), double[5]),
-                threshold : float, parallelism : int)
+                threshold : float, parallelism : int, max_momentum : int)
 where
   reads writes(
-    r_jbras00, r_jkets00,
-    r_jbras01, r_jkets01,
-    r_jbras11, r_jkets11,
-    r_jbras02, r_jkets02,
-    r_jbras12, r_jkets12,
-    r_jbras22, r_jkets22,
-    r_jbras03, r_jkets03,
-    r_jbras13, r_jkets13,
-    r_jbras23, r_jkets23,
-    r_jbras33, r_jkets33,
-    r_jbras04, r_jkets04,
-    r_jbras14, r_jkets14,
-    r_jbras24, r_jkets24,
-    r_jbras34, r_jkets34,
-    r_jbras44, r_jkets44
+    r_jbras00,
+    r_jbras01,
+    r_jbras11,
+    r_jbras02,
+    r_jbras12,
+    r_jbras22,
+    r_jbras03,
+    r_jbras13,
+    r_jbras23,
+    r_jbras33,
+    r_jbras04,
+    r_jbras14,
+    r_jbras24,
+    r_jbras34,
+    r_jbras44
   ),
-  reads (r_gamma_table)
+  reads (
+    r_gamma_table,
+    r_jkets00,
+    r_jkets01,
+    r_jkets11,
+    r_jkets02,
+    r_jkets12,
+    r_jkets22,
+    r_jkets03,
+    r_jkets13,
+    r_jkets23,
+    r_jkets33,
+    r_jkets04,
+    r_jkets14,
+    r_jkets24,
+    r_jkets34,
+    r_jkets44
+  )
 do
+  regentlib.assert([getCompiledMaxMomentum()] == max_momentum,
+      "Please recompile eri-regent with the correct max momentum!");
   [jfock(
     {
       [0]={[0]=r_jbras00, [1]=r_jbras01, [2]=r_jbras02, [3]=r_jbras03,

@@ -5,7 +5,7 @@
 
 class EriRegent {
 public:
-  EriRegent(Legion::Context &ctx, Legion::Runtime *runtime);
+  EriRegent(int max_momentum, Legion::Context &ctx, Legion::Runtime *runtime);
   ~EriRegent();
 
   struct TeraChemJData {
@@ -21,12 +21,13 @@ public:
    * A list of JBra and JKet data to be passed to `launch_jfock_task`.
    * Use L_PAIR_TO_INDEX(L1, L2) to get the index for these arrays.
    */
+  // TODO: Make this a class
   struct TeraChemJDataList {
-    size_t num_jbras[MAX_MOMENTUM_INDEX + 1];
+    int num_jbras[MAX_MOMENTUM_INDEX + 1];
     TeraChemJData *jbras[MAX_MOMENTUM_INDEX + 1];
     double *output[MAX_MOMENTUM_INDEX + 1];
 
-    size_t num_jkets[MAX_MOMENTUM_INDEX + 1];
+    int num_jkets[MAX_MOMENTUM_INDEX + 1];
     TeraChemJData *jkets[MAX_MOMENTUM_INDEX + 1];
     double *density[MAX_MOMENTUM_INDEX + 1];
   };
@@ -39,6 +40,9 @@ public:
                          int parallelism);
 
 private:
+  // TODO: Rename `max_momentum`. It should be thought of as a runtime constant
+  //       instead of a compile-time constant.
+  const int max_momentum;
   Legion::Context ctx;
   Legion::Runtime *runtime;
   Legion::Memory memory;
@@ -47,19 +51,12 @@ private:
   Legion::FieldSpace jbra_fspaces[MAX_MOMENTUM_INDEX + 1];
   Legion::FieldSpace jket_fspaces[MAX_MOMENTUM_INDEX + 1];
 
-  void *fill_jbra_data(const TeraChemJData *jbras, size_t num_jbras,
-                       size_t L12);
-  void *fill_jket_data(const TeraChemJData *jkets, size_t num_jkets,
-                       const double *density, size_t L12);
+  void *fill_jbra_data(const TeraChemJData *jbras, int num_jbras, int L12);
+  void *fill_jket_data(const TeraChemJData *jkets, int num_jkets,
+                       const double *density, int L12);
 
-  /*
-   *
-   */
   void initialize_field_spaces();
 
-  /**
-   * Create a region for the gamma table and fill it with the correct values
-   */
   void create_gamma_table_region();
 
 #define JBRA_FIELD_ID(L1, L2, F_NAME) JBRA##L1##L2##_FIELD_##F_NAME##_ID

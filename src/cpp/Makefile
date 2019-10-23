@@ -21,7 +21,7 @@ SRCS_RG += ../mcmurchie/jfock/generate_R_table.rg
 
 TARGET := jfock_cpp
 
-.PHONY: test clean
+.PHONY: test lint clean
 
 all: $(TARGET)
 
@@ -36,6 +36,9 @@ $(TARGET): $(SRCS) $(HEADERS) libjfock_tasks.so jfock_tasks.h
 
 test: $(TARGET)
 	LD_LIBRARY_PATH=$(LEGION)/bindings/regent:. ./$(TARGET)
+
+lint: $(SRCS) $(HEADERS)
+	clang-format -i $(SRCS) $(HEADERS)
 
 clean:
 	$(RM) $(TARGET) libjfock_tasks.so jfock_tasks.h
