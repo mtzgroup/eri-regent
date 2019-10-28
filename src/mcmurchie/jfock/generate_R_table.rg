@@ -8,27 +8,28 @@ local SQRT_PI = math.sqrt(math.pi)
 -- Generates statements that compute `length` Boys values
 function generateStatementsComputeBoys(boys, length, t, r_gamma_table)
 
-  local factors = { -- Lua is indexed by one
-    2.7166345615120040E+01,
-    2.6273691011184581E+01,
-    2.5532392190003377E+01,
-    2.4901182676949695E+01,
-    2.4353368394557731E+01,
-    2.3870740944052123E+01,
-    2.3440355360724957E+01,
-    2.3052697787043194E+01,
-    2.2700582728555508E+01,
-    2.2378458056330899E+01,
-    2.2081949880679126E+01,
-    2.1807554706399655E+01,
-    2.1552425359950535E+01,
-    2.1314218509958917E+01,
-    2.1090983755524045E+01,
-    2.0881081442144000E+01,
-    2.0683120753173197E+01,
+  local factors = {
+    [0] = 2.7166345615120040E+01,
+    [1] = 2.6273691011184581E+01,
+    [2] = 2.5532392190003377E+01,
+    [3] = 2.4901182676949695E+01,
+    [4] = 2.4353368394557731E+01,
+    [5] = 2.3870740944052123E+01,
+    [6] = 2.3440355360724957E+01,
+    [7] = 2.3052697787043194E+01,
+    [8] = 2.2700582728555508E+01,
+    [9] = 2.2378458056330899E+01,
+    [10] = 2.2081949880679126E+01,
+    [11] = 2.1807554706399655E+01,
+    [12] = 2.1552425359950535E+01,
+    [13] = 2.1314218509958917E+01,
+    [14] = 2.1090983755524045E+01,
+    [15] = 2.0881081442144000E+01,
+    [16] = 2.0683120753173197E+01,
+    [17] = 0.0000000000000000E+00,
   }
   local downwardsRecursion = terralib.newlist({rquote
-    var t_scaled : double = [factors[length]] * t
+    var t_scaled : double = [factors[length-1]] * t
     var coefficients : double[5] = r_gamma_table[{length-1, round(t_scaled)}];
     [boys[length-1]] = coefficients[0] + t_scaled * (coefficients[1]
                                        + t_scaled * (coefficients[2]
@@ -42,11 +43,11 @@ function generateStatementsComputeBoys(boys, length, t, r_gamma_table)
   end
 
   local upwardsRecursionAsymptotic = terralib.newlist({rquote
-    [boys[0]] = rsqrt(t) * (SQRT_PI / 2)
+    [boys[0]] = rsqrt(t) * (SQRT_PI / 2.0)
   end})
   for j = 0, length-2 do -- inclusive
     upwardsRecursionAsymptotic:insert(rquote
-      [boys[j+1]] = ((2 * j + 1) / 2.0) * [boys[j]] / t
+      [boys[j+1]] = ((2 * j + 1) / 2.0) * [boys[j]] * (1.0 / t)
     end)
   end
 

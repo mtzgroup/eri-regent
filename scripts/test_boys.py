@@ -7,7 +7,10 @@ def integrand(u, t, j):
 
 
 def boys(t, j):
-    return integrate.quadrature(integrand, 0.0, 1.0, args=(t, j), tol=1e-15, rtol=1e-15)
+    tol = np.finfo(np.float64).resolution
+    val, err = integrate.quadrature(integrand, 0.0, 1.0, args=(t, j), tol=tol, rtol=tol)
+    assert np.max(np.abs(err)) < 2 * tol
+    return val
 
 
 if __name__ == "__main__":
@@ -22,41 +25,41 @@ if __name__ == "__main__":
     boys_pattern = re.compile("boys(\d+)=" + capture_float)
 
     for max_j in range(17):
-        num_inputs = 100
-        input = "\n".join([str(t) for t in np.linspace(0, 34.56, num_inputs)])
+        num_inputs = 400
+        input = "\n".join([f"{t:.16f}" for t in np.linspace(0, 234.567, num_inputs)])
         rg_process = Popen(
             ["regent", "mcmurchie/jfock/test_boys.rg", str(max_j)],
             cwd="src/",
             stdin=PIPE,
             stdout=PIPE,
         )
-        output, _ = rg_process.communicate(input)
+        output, _ = rg_process.communicate(bytes(input, "utf-8"))
 
         num_outputs = 0
-        for line in output.rstrip().split("\n"):
+        for line in str(output).rstrip().split("\\n"):
             try:
-                t = float(t_pattern.findall(line)[0])
+                t = np.float64(t_pattern.findall(line)[0])
             except:
                 continue
             boys_parsed = boys_pattern.findall(line)
-            actual = np.array([float(v) for _, v in boys_parsed])
-            expected = np.array([boys(t, int(j))[0] for j, _ in boys_parsed])
-            atol = 1e-14 if t < 25 else 1e-12
-            if not np.allclose(actual, expected, atol=atol):
-                absolute_error = np.max(np.absolute(actual - expected))
-                relative_error = np.max(
-                    np.absolute(actual - expected) / np.absolute(expected)
-                )
+            assert boys_parsed != [], "Did not read in boys values!"
+            result = np.array([v for _, v in boys_parsed], dtype=np.float64)
+            actual = np.array(
+                [boys(t, int(j)) for j, _ in boys_parsed], dtype=np.float64
+            )
+            if not np.allclose(result, actual, atol=1e-12):
+                absolute_error = np.absolute(result - actual)
+                relative_error = np.absolute(result - actual) / np.absolute(actual)
                 sys.stdout.write(RED)
                 print("Error in Boys computation!")
                 sys.stdout.write(RESET)
-                print("Absolute error = " + str(absolute_error))
-                print("Relative error = " + str(relative_error))
-                print("t = " + str(t))
-                print("Actual:")
-                print(actual)
-                print("Expected:")
-                print(expected)
+                print(
+                    f"t = {t:.16g}\n"
+                    f"Max absolute error: {np.max(absolute_error)}\n"
+                    f"Max relative error: {np.max(relative_error)}\n"
+                    f"Got:            {' '.join(f'{v:.16g}' for v in result)}\n"
+                    f"Expected :      {' '.join(f'{v:.16g}' for v in actual)}"
+                )
                 rg_process.wait()
                 sys.exit(1)
             num_outputs += 1

@@ -25,9 +25,9 @@ local function printValues()
 end
 
 
-terra readInput() : float
-  var input : float
-  if regentlib.c.scanf("%f", &input) == 1 then
+terra readInput() : double
+  var input : double
+  if regentlib.c.scanf("%lf", &input) == 1 then
     return input
   else
     return -1
@@ -39,7 +39,7 @@ task toplevel()
   var r_gamma_table = region(ispace(int2d, {18, 700}), double[5])
   populateGammaTable(r_gamma_table)
   while true do
-    var t : float = readInput()
+    var t : double = readInput()
     if t < 0 then
       break
     end
