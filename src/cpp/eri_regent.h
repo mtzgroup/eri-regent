@@ -112,13 +112,13 @@ private:
 #define JBRA_FIELD_ID(L1, L2, F_NAME) JBRA##L1##L2##_FIELD_##F_NAME##_ID
 #define JKET_FIELD_ID(L1, L2, F_NAME) JKET##L1##L2##_FIELD_##F_NAME##_ID
 
-#define JBRA_FIELD_IDS(L1, L2)                                                  \
+#define JBRA_FIELD_IDS(L1, L2)                                                 \
   JBRA_FIELD_ID(L1, L2, X), JBRA_FIELD_ID(L1, L2, Y),                          \
       JBRA_FIELD_ID(L1, L2, Z), JBRA_FIELD_ID(L1, L2, ETA),                    \
       JBRA_FIELD_ID(L1, L2, C), JBRA_FIELD_ID(L1, L2, BOUND),                  \
       JBRA_FIELD_ID(L1, L2, OUTPUT)
 
-#define JKET_FIELD_IDS(L1, L2)                                                  \
+#define JKET_FIELD_IDS(L1, L2)                                                 \
   JKET_FIELD_ID(L1, L2, X), JKET_FIELD_ID(L1, L2, Y),                          \
       JKET_FIELD_ID(L1, L2, Z), JKET_FIELD_ID(L1, L2, ETA),                    \
       JKET_FIELD_ID(L1, L2, C), JKET_FIELD_ID(L1, L2, BOUND),                  \
