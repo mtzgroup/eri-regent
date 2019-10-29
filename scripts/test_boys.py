@@ -26,7 +26,9 @@ if __name__ == "__main__":
 
     for max_j in range(17):
         num_inputs = 400
-        input = "\n".join([f"{t:.16f}" for t in np.linspace(0, 234.567, num_inputs)])
+        input = "\n".join(
+            ["{:.16f}".format(t) for t in np.linspace(0, 234.567, num_inputs)]
+        )
         rg_process = Popen(
             ["regent", "mcmurchie/jfock/test_boys.rg", str(max_j)],
             cwd="src/",
@@ -44,22 +46,24 @@ if __name__ == "__main__":
             boys_parsed = boys_pattern.findall(line)
             assert boys_parsed != [], "Did not read in boys values!"
             result = np.array([v for _, v in boys_parsed], dtype=np.float64)
-            actual = np.array(
+            expected = np.array(
                 [boys(t, int(j)) for j, _ in boys_parsed], dtype=np.float64
             )
-            if not np.allclose(result, actual, atol=1e-12):
-                absolute_error = np.absolute(result - actual)
-                relative_error = np.absolute(result - actual) / np.absolute(actual)
+            if not np.allclose(result, expected, atol=1e-12):
+                absolute_error = np.absolute(result - expected)
+                relative_error = np.absolute(result - expected) / np.absolute(expected)
                 sys.stdout.write(RED)
                 print("Error in Boys computation!")
                 sys.stdout.write(RESET)
                 print(
-                    f"t = {t:.16g}\n"
-                    f"Max absolute error: {np.max(absolute_error)}\n"
-                    f"Max relative error: {np.max(relative_error)}\n"
-                    f"Got:            {' '.join(f'{v:.16g}' for v in result)}\n"
-                    f"Expected :      {' '.join(f'{v:.16g}' for v in actual)}"
+                    "t = {:.16g}\n"
+                    "Max absolute error: {}\n"
+                    "Max relative error: {}".format(
+                        t, np.max(absolute_error), np.max(relative_error)
+                    )
                 )
+                print("Got:      " + str(result))
+                print("Expected: " + str(expected))
                 rg_process.wait()
                 sys.exit(1)
             num_outputs += 1
