@@ -35,9 +35,8 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
       const int index = L_PAIR_TO_INDEX(L1, L2);
-      jbras_data_list[index] = fill_jbra_data(
-          jdata_list.jbras[index], jdata_list.num_jbras[index], L1 + L2);
-      const Rect<1> rect(0, jdata_list.num_jbras[index] - 1);
+      jbras_data_list[index] = fill_jbra_data(jdata_list, L1, L2);
+      const Rect<1> rect(0, jdata_list.get_num_jbras(L1, L2) - 1);
       const IndexSpace ispace = runtime->create_index_space(ctx, rect);
       jbras_lr_list[index] =
           runtime->create_logical_region(ctx, ispace, jbra_fspaces[index]);
@@ -55,10 +54,8 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
       const int index = L_PAIR_TO_INDEX(L1, L2);
-      jkets_data_list[index] =
-          fill_jket_data(jdata_list.jkets[index], jdata_list.num_jkets[index],
-                         jdata_list.density[index], L1 + L2);
-      const Rect<1> rect(0, jdata_list.num_jkets[index] - 1);
+      jkets_data_list[index] = fill_jket_data(jdata_list, L1, L2);
+      const Rect<1> rect(0, jdata_list.get_num_jkets(L1, L2) - 1);
       const IndexSpace ispace = runtime->create_index_space(ctx, rect);
       jkets_lr_list[index] =
           runtime->create_logical_region(ctx, ispace, jket_fspaces[index]);
@@ -130,17 +127,15 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
   for (int L1 = 0; L1 < MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 < MAX_MOMENTUM; L2++) {
       const int index = L_PAIR_TO_INDEX(L1, L2);
-      if (jdata_list.output[index]) {
-        const int H = COMPUTE_H(L1 + L2);
-        const int stride =
-            sizeof(double) * 5 + sizeof(float) + sizeof(double) * H;
-        const int output_offset = sizeof(double) * 5 + sizeof(float);
-        for (int i = 0; i < jdata_list.num_jbras[index]; i++) {
-          memcpy((void *)(jdata_list.output[index] + i * H),
-                 (const void *)((char *)jbras_data_list[index] + i * stride +
-                                output_offset),
-                 sizeof(double) * H);
-        }
+      const int H = COMPUTE_H(L1 + L2);
+      const int stride =
+          sizeof(double) * 5 + sizeof(float) + sizeof(double) * H;
+      const int output_offset = sizeof(double) * 5 + sizeof(float);
+      for (int i = 0; i < jdata_list.get_num_jbras(L1, L2); i++) {
+        memcpy((void *)jdata_list.get_output(L1, L2, i),
+               (const void *)((char *)jbras_data_list[index] + i * stride +
+                              output_offset),
+               sizeof(double) * H);
       }
 
       runtime->detach_external_resource(ctx, jbras_pr_list[index]);
@@ -153,29 +148,32 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
   }
 }
 
-void *EriRegent::fill_jbra_data(const EriRegent::TeraChemJData *jbras,
-                                int num_jbras, int L12) {
-  const int H = COMPUTE_H(L12);
+void *EriRegent::fill_jbra_data(EriRegent::TeraChemJDataList &jdata_list,
+                                int L1, int L2) {
+  const int num_jbras = jdata_list.get_num_jbras(L1, L2);
+  const int H = COMPUTE_H(L1 + L2);
   const int stride = sizeof(double) * 5 + sizeof(float) + sizeof(double) * H;
   void *data = calloc(stride, num_jbras);
   for (int i = 0; i < num_jbras; i++) {
-    memcpy((void *)((char *)data + i * stride), (const void *)(jbras + i),
-           sizeof(TeraChemJData));
+    memcpy((void *)((char *)data + i * stride),
+           (const void *)jdata_list.get_jbra(L1, L2, i), sizeof(TeraChemJData));
   }
   return data;
 }
 
-void *EriRegent::fill_jket_data(const EriRegent::TeraChemJData *jkets,
-                                int num_jkets, const double *density, int L12) {
-  const int H = COMPUTE_H(L12);
+void *EriRegent::fill_jket_data(EriRegent::TeraChemJDataList &jdata_list,
+                                int L1, int L2) {
+  const int num_jkets = jdata_list.get_num_jkets(L1, L2);
+  const int H = COMPUTE_H(L1 + L2);
   const int stride = sizeof(double) * 5 + sizeof(float) + sizeof(double) * H;
   const int density_offset = sizeof(double) * 5 + sizeof(float);
-  void *data = calloc(stride, num_jkets);
+  void *data = malloc(stride * num_jkets);
   for (int i = 0; i < num_jkets; i++) {
-    memcpy((void *)((char *)data + i * stride), (const void *)(jkets + i),
+    memcpy((void *)((char *)data + i * stride),
+           (const void *)(jdata_list.get_jkets_ptr(L1, L2) + i),
            sizeof(TeraChemJData));
     memcpy((void *)((char *)data + i * stride + density_offset),
-           (const void *)(density + i * H), sizeof(double) * H);
+           (const void *)jdata_list.get_density(L1, L2, i), sizeof(double) * H);
   }
   return data;
 }
@@ -247,4 +245,40 @@ void EriRegent::initialize_field_spaces() {
   INIT_FSPACES(4, 4)
 
 #undef INIT_FSPACES
+}
+
+void EriRegent::TeraChemJDataList::allocate_jbras(int L1, int L2, int n) {
+  const int index = L_PAIR_TO_INDEX(L1, L2);
+  assert(0 <= index && index <= MAX_MOMENTUM_INDEX);
+  if (n > 0) {
+    num_jbras[index] = n;
+    jbras[index] = (TeraChemJData *)malloc(n * sizeof(TeraChemJData));
+    output[index] = (double *)calloc(n * COMPUTE_H(L1 + L2), sizeof(double));
+  }
+}
+
+void EriRegent::TeraChemJDataList::allocate_jkets(int L1, int L2, int n) {
+  const int index = L_PAIR_TO_INDEX(L1, L2);
+  assert(0 <= index && index <= MAX_MOMENTUM_INDEX);
+  if (n > 0) {
+    num_jkets[index] = n;
+    jkets[index] = (TeraChemJData *)malloc(n * sizeof(TeraChemJData));
+    density[index] = (double *)malloc(n * COMPUTE_H(L1 + L2) * sizeof(double));
+  }
+}
+
+void EriRegent::TeraChemJDataList::free_data() {
+  for (int L1 = 0; L1 < MAX_MOMENTUM; L1++) {
+    for (int L2 = L1; L2 < MAX_MOMENTUM; L2++) {
+      const int index = L_PAIR_TO_INDEX(L1, L2);
+      if (num_jbras[index] > 0) {
+        free(jbras[index]);
+        free(output[index]);
+      }
+      if (num_jkets[index] > 0) {
+        free(jkets[index]);
+        free(density[index]);
+      }
+    }
+  }
 }

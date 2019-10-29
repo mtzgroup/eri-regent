@@ -54,33 +54,22 @@ int read_data_files(const char *bra_filename, const char *ket_filename,
   }
 
   int num_values, input_L1, input_L2, n;
-  EriRegent::TeraChemJData *data;
-  double *density;
   for (int L1 = 0; L1 <= max_momentum; L1++) {
     for (int L2 = L1; L2 <= max_momentum; L2++) {
       num_values =
           fscanf(bra_filep, "L1=%d,L2=%d,N=%d\n", &input_L1, &input_L2, &n);
       assert(num_values == 3 && L1 == input_L1 && L2 == input_L2 &&
              "Unexpected angles!");
-      data = (EriRegent::TeraChemJData *)calloc(
-          n, sizeof(EriRegent::TeraChemJData));
-      read_data(bra_filep, L1, L2, n, data);
-      data_list->num_jbras[L_PAIR_TO_INDEX(L1, L2)] = n;
-      data_list->jbras[L_PAIR_TO_INDEX(L1, L2)] = data;
-      data_list->output[L_PAIR_TO_INDEX(L1, L2)] =
-          (double *)calloc(n * COMPUTE_H(L1 + L2), sizeof(double));
+      data_list->allocate_jbras(L1, L2, n);
+      read_data(bra_filep, L1, L2, n, data_list->get_jbras_ptr(L1, L2));
 
       num_values =
           fscanf(ket_filep, "L1=%d,L2=%d,N=%d\n", &input_L1, &input_L2, &n);
       assert(num_values == 3 && L1 == input_L1 && L2 == input_L2 &&
              "Unexpected angles!");
-      data = (EriRegent::TeraChemJData *)calloc(
-          n, sizeof(EriRegent::TeraChemJData));
-      density = (double *)malloc(n * COMPUTE_H(L1 + L2) * sizeof(double));
-      read_data(ket_filep, L1, L2, n, data, density);
-      data_list->num_jkets[L_PAIR_TO_INDEX(L1, L2)] = n;
-      data_list->density[L_PAIR_TO_INDEX(L1, L2)] = density;
-      data_list->jkets[L_PAIR_TO_INDEX(L1, L2)] = data;
+      data_list->allocate_jkets(L1, L2, n);
+      read_data(ket_filep, L1, L2, n, data_list->get_jkets_ptr(L1, L2),
+                data_list->get_density_ptr(L1, L2));
     }
   }
 
@@ -90,15 +79,13 @@ int read_data_files(const char *bra_filename, const char *ket_filename,
 }
 
 void verify_output(const char *filename, int max_momentum,
-                   double *output[MAX_MOMENTUM_INDEX + 1], float delta,
+                   EriRegent::TeraChemJDataList &jdata_list, float delta,
                    float epsilon) {
   FILE *filep = fopen(filename, "r");
   int num_values, input_L1, input_L2, n;
-  double actual;
-  double max_absolue_error = -1, max_relative_error = -1;
+  double expected, max_absolue_error = -1, max_relative_error = -1;
   for (int L1 = 0; L1 <= max_momentum; L1++) {
     for (int L2 = L1; L2 <= max_momentum; L2++) {
-      assert(output[L_PAIR_TO_INDEX(L1, L2)] && "Output is NULL!");
       const int H = COMPUTE_H(L1 + L2);
       num_values =
           fscanf(filep, "L1=%d,L2=%d,N=%d\n", &input_L1, &input_L2, &n);
@@ -106,27 +93,26 @@ void verify_output(const char *filename, int max_momentum,
              "Unexpected angles!");
       for (int i = 0; i < n; i++) {
         for (int j = 0; j < H; j++) {
-          num_values = fscanf(filep, "%lf\t", &actual);
-          double expected = output[L_PAIR_TO_INDEX(L1, L2)][i * H + j];
-          double absolute_error = fabs(actual - expected);
-          double relative_error = fabs(absolute_error / actual);
+          num_values = fscanf(filep, "%lf\t", &expected);
+          double result = jdata_list.get_output(L1, L2, i)[j];
+          double absolute_error = fabs(expected - result);
+          double relative_error = fabs(absolute_error / expected);
           max_absolue_error = fmax(absolute_error, max_absolue_error);
           max_relative_error = fmax(relative_error, max_relative_error);
-          if (isnan(actual) || isinf(actual) || isnan(expected) ||
-              isinf(expected) ||
+          if (isnan(result) || isinf(result) ||
               (absolute_error > delta && relative_error > epsilon)) {
-            printf("Value differs at L1 = %d, L2 = %d, JBra[%d].output[%d]: "
-                   "actual = %.12f, expected = %.12f, absolute_error = %.12g, "
-                   "relative_error = %.12g\n",
-                   L1, L2, i, j, actual, expected, absolute_error,
-                   relative_error);
+            printf(
+                "Value differs at L1 = %d, L2 = %d, JBra[%d].output[%d]:\t"
+                "result = %.12f,\texpected = %.12f,\tabsolute_error = %.12g,\t"
+                "relative_error = %.12g\n",
+                L1, L2, i, j, result, expected, absolute_error, relative_error);
             assert(false);
           }
         }
       }
     }
   }
-  printf("Values are correct! max_absolue_error = %.12g, max_relative_error = "
+  printf("Values are correct!\nmax_absolue_error = %.12g\nmax_relative_error = "
          "%.12g\n",
          max_absolue_error, max_relative_error);
 }
@@ -137,7 +123,7 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
   int max_momentum = 1;
   EriRegent eri_regent(max_momentum, ctx, runtime);
 
-  EriRegent::TeraChemJDataList jdata_list = {0};
+  EriRegent::TeraChemJDataList jdata_list;
   read_data_files("../data/h2o/bras.dat", "../data/h2o/kets.dat", max_momentum,
                   &jdata_list);
 
@@ -146,10 +132,9 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
   int parallelism = 1;
   eri_regent.launch_jfock_task(jdata_list, threshold, parallelism);
 
-  verify_output("../data/h2o/output.dat", max_momentum, jdata_list.output, 1e-7,
-                1e-8);
+  verify_output("../data/h2o/output.dat", max_momentum, jdata_list, 1e-7, 1e-8);
 
-  // TODO: free jdata_list
+  jdata_list.free_data();
 }
 
 int main(int argc, char **argv) {

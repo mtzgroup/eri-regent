@@ -21,8 +21,46 @@ public:
    * A list of JBra and JKet data to be passed to `launch_jfock_task`.
    * Use L_PAIR_TO_INDEX(L1, L2) to get the index for these arrays.
    */
-  // TODO: Make this a class
-  struct TeraChemJDataList {
+  class TeraChemJDataList {
+  public:
+    TeraChemJDataList() : num_jbras{0}, num_jkets{0} {}
+
+    void allocate_jbras(int L1, int L2, int n);
+    void allocate_jkets(int L1, int L2, int n);
+
+    void free_data();
+
+    int get_num_jbras(int L1, int L2) {
+      return num_jbras[L_PAIR_TO_INDEX(L1, L2)];
+    }
+    TeraChemJData *const get_jbra(int L1, int L2, int i) {
+      return &jbras[L_PAIR_TO_INDEX(L1, L2)][i];
+    }
+    double *const get_output(int L1, int L2, int i) {
+      return output[L_PAIR_TO_INDEX(L1, L2)] + i * COMPUTE_H(L1 + L2);
+    }
+    int get_num_jkets(int L1, int L2) {
+      return num_jkets[L_PAIR_TO_INDEX(L1, L2)];
+    }
+    TeraChemJData *const get_jket(int L1, int L2, int i) {
+      return &jkets[L_PAIR_TO_INDEX(L1, L2)][i];
+    }
+    double *const get_density(int L1, int L2, int i) {
+      return density[L_PAIR_TO_INDEX(L1, L2)] + i * COMPUTE_H(L1 + L2);
+    }
+
+    // TODO: Remove
+    TeraChemJData *get_jbras_ptr(int L1, int L2) {
+      return jbras[L_PAIR_TO_INDEX(L1, L2)];
+    }
+    TeraChemJData *get_jkets_ptr(int L1, int L2) {
+      return jkets[L_PAIR_TO_INDEX(L1, L2)];
+    }
+    double *get_density_ptr(int L1, int L2) {
+      return density[L_PAIR_TO_INDEX(L1, L2)];
+    }
+
+  private:
     int num_jbras[MAX_MOMENTUM_INDEX + 1];
     TeraChemJData *jbras[MAX_MOMENTUM_INDEX + 1];
     double *output[MAX_MOMENTUM_INDEX + 1];
@@ -51,9 +89,8 @@ private:
   Legion::FieldSpace jbra_fspaces[MAX_MOMENTUM_INDEX + 1];
   Legion::FieldSpace jket_fspaces[MAX_MOMENTUM_INDEX + 1];
 
-  void *fill_jbra_data(const TeraChemJData *jbras, int num_jbras, int L12);
-  void *fill_jket_data(const TeraChemJData *jkets, int num_jkets,
-                       const double *density, int L12);
+  void *fill_jbra_data(TeraChemJDataList &jdata_list, int L1, int L2);
+  void *fill_jket_data(TeraChemJDataList &jdata_list, int L1, int L2);
 
   void initialize_field_spaces();
 

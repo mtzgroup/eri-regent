@@ -197,19 +197,19 @@ function verifyOutput(r_jbras_list, delta, epsilon, filename)
             num_values = c.fscanf(filep, "%lf\t", double_data)
             assert(num_values == 1, "Did not read value!")
             var expected = double_data[0]
-            var actual = r_jbras[i].output[j]
-            var absolute_error = fabs(actual - expected)
-            var relative_error = fabs(absolute_error / actual)
+            var result = r_jbras[i].output[j]
+            var absolute_error = fabs(result - expected)
+            var relative_error = fabs(absolute_error / expected)
             if absolute_error > max_absolute_error then
               max_absolute_error = absolute_error
             end
             if relative_error > max_relative_error then
               max_relative_error = relative_error
             end
-            if [bool](c.isnan(actual)) or [bool](c.isinf(expected))
+            if [bool](c.isnan(result)) or [bool](c.isinf(result))
                 or (absolute_error > delta and relative_error > epsilon) then
-              c.printf("Value differs at L1 = %d, L2 = %d, JBra[%d].output[%d]: actual = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
-                       L1, L2, i, j, actual, expected, absolute_error, relative_error)
+              c.printf("Value differs at L1 = %d, L2 = %d, JBra[%d].output[%d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
+                       L1, L2, i, j, result, expected, absolute_error, relative_error)
               assert(false, "Wrong output!")
             end
           end
