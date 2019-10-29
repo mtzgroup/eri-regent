@@ -124,8 +124,8 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
   launcher.add_argument_max_momentum(max_momentum);
   launcher.execute(runtime, ctx);
 
-  for (int L1 = 0; L1 < MAX_MOMENTUM; L1++) {
-    for (int L2 = L1; L2 < MAX_MOMENTUM; L2++) {
+  for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
       const int index = L_PAIR_TO_INDEX(L1, L2);
       const int H = COMPUTE_H(L1 + L2);
       const int stride =
@@ -258,8 +258,8 @@ void EriRegent::TeraChemJDataList::allocate_jbras(int L1, int L2, int n) {
 }
 
 void EriRegent::TeraChemJDataList::allocate_jkets(int L1, int L2, int n) {
+  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
   const int index = L_PAIR_TO_INDEX(L1, L2);
-  assert(0 <= index && index <= MAX_MOMENTUM_INDEX);
   if (n > 0) {
     num_jkets[index] = n;
     jkets[index] = (TeraChemJData *)malloc(n * sizeof(TeraChemJData));
@@ -268,8 +268,8 @@ void EriRegent::TeraChemJDataList::allocate_jkets(int L1, int L2, int n) {
 }
 
 void EriRegent::TeraChemJDataList::free_data() {
-  for (int L1 = 0; L1 < MAX_MOMENTUM; L1++) {
-    for (int L2 = L1; L2 < MAX_MOMENTUM; L2++) {
+  for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
       const int index = L_PAIR_TO_INDEX(L1, L2);
       if (num_jbras[index] > 0) {
         free(jbras[index]);

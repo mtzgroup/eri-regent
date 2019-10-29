@@ -31,32 +31,45 @@ public:
     void free_data();
 
     int get_num_jbras(int L1, int L2) {
+      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
       return num_jbras[L_PAIR_TO_INDEX(L1, L2)];
     }
-    TeraChemJData *const get_jbra(int L1, int L2, int i) {
+    TeraChemJData *get_jbra(int L1, int L2, int i) {
+      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+      assert(0 <= i && i < get_num_jbras(L1, L2));
       return &jbras[L_PAIR_TO_INDEX(L1, L2)][i];
     }
-    double *const get_output(int L1, int L2, int i) {
+    double *get_output(int L1, int L2, int i) {
+      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+      assert(0 <= i && i < get_num_jbras(L1, L2));
       return output[L_PAIR_TO_INDEX(L1, L2)] + i * COMPUTE_H(L1 + L2);
     }
     int get_num_jkets(int L1, int L2) {
+      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
       return num_jkets[L_PAIR_TO_INDEX(L1, L2)];
     }
-    TeraChemJData *const get_jket(int L1, int L2, int i) {
+    TeraChemJData *get_jket(int L1, int L2, int i) {
+      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+      assert(0 <= i && i < get_num_jkets(L1, L2));
       return &jkets[L_PAIR_TO_INDEX(L1, L2)][i];
     }
-    double *const get_density(int L1, int L2, int i) {
+    double *get_density(int L1, int L2, int i) {
+      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+      assert(0 <= i && i < get_num_jkets(L1, L2));
       return density[L_PAIR_TO_INDEX(L1, L2)] + i * COMPUTE_H(L1 + L2);
     }
 
     // TODO: Remove
     TeraChemJData *get_jbras_ptr(int L1, int L2) {
+      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
       return jbras[L_PAIR_TO_INDEX(L1, L2)];
     }
     TeraChemJData *get_jkets_ptr(int L1, int L2) {
+      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
       return jkets[L_PAIR_TO_INDEX(L1, L2)];
     }
     double *get_density_ptr(int L1, int L2) {
+      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
       return density[L_PAIR_TO_INDEX(L1, L2)];
     }
 
