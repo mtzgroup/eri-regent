@@ -21,11 +21,12 @@ before_install:
   - sudo ln -s $HOME/legion/language/regent.py /usr/local/bin/regent
 
 script:
-  - python3 scripts/test_boys.py
+  # - python3 scripts/test_boys.py
   - python3 scripts/test.py
-  - cd src/cpp; LEGION="$HOME/legion" MAX_MOMENTUM=S make libjfock_tasks.so
-  - cd src/cpp; LEGION="$HOME/legion" MAX_MOMENTUM=S make clean
-  - cd src/cpp; LEGION="$HOME/legion" MAX_MOMENTUM=P make libjfock_tasks.so
-  - cd src/cpp; LEGION="$HOME/legion" MAX_MOMENTUM=P make clean
-  - cd src/cpp; LEGION="$HOME/legion" MAX_MOMENTUM=D make libjfock_tasks.so
-  - cd src/cpp; LEGION="$HOME/legion" MAX_MOMENTUM=D make clean
+  - cd src/cpp
+  - LEGION="$HOME/legion" MAX_MOMENTUM=S make libjfock_tasks.so
+  - LEGION="$HOME/legion" MAX_MOMENTUM=S make clean
+  - LEGION="$HOME/legion" MAX_MOMENTUM=P make libjfock_tasks.so
+  - LEGION="$HOME/legion" MAX_MOMENTUM=P make clean
+  - LEGION="$HOME/legion" MAX_MOMENTUM=D make libjfock_tasks.so
+  - LEGION="$HOME/legion" MAX_MOMENTUM=D make clean

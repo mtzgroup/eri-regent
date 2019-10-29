@@ -15,6 +15,22 @@
 using namespace std;
 using namespace Legion;
 
+float read_parameters(const char *filename) {
+  FILE *filep = fopen(filename, "r");
+  if (filep == NULL) {
+    printf("Unable to open %s!\n", filename);
+    return -1;
+  }
+  double scalfr, scallr, omega;
+  float thresp, thredp;
+  int num_values =
+      fscanf(filep, "scalfr=%lf\nscallr=%lf\nomega=%lf\nthresp=%f\nthredp=%f\n",
+             &scalfr, &scallr, &omega, &thresp, &thredp);
+  assert(num_values == 5);
+  fclose(filep);
+  return thredp;
+}
+
 // TODO: Maybe add parse code into class with TeraChemJData
 void read_data(FILE *filep, int L1, int L2, int n,
                EriRegent::TeraChemJData *data, double *density = NULL) {
@@ -121,19 +137,37 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
                     Context ctx, Runtime *runtime) {
   // TODO: Take data files as user input
   int max_momentum = 1;
+  int parallelism = 1;
+  const char *input_directory = "../data/h2o";
+
+  char bras_filename[128];
+  char kets_filename[128];
+  char parameters_filename[128];
+  char output_filename[128];
+  strcpy(bras_filename, input_directory);
+  strcpy(kets_filename, input_directory);
+  strcpy(parameters_filename, input_directory);
+  strcpy(output_filename, input_directory);
+  strcat(bras_filename, "/bras.dat");
+  strcat(kets_filename, "/kets.dat");
+  strcat(parameters_filename, "/parameters.dat");
+  strcat(output_filename, "/output.dat");
+
+  float threshold = read_parameters(parameters_filename);
+
+  // `EriRegent` should be initialized once at the start of the program.
   EriRegent eri_regent(max_momentum, ctx, runtime);
 
+  // Create a `TeraChemJDataList` and copy data to it.
   EriRegent::TeraChemJDataList jdata_list;
-  read_data_files("../data/h2o/bras.dat", "../data/h2o/kets.dat", max_momentum,
-                  &jdata_list);
+  read_data_files(bras_filename, kets_filename, max_momentum, &jdata_list);
 
-  // TODO: Read parameters from file
-  float threshold = 0X1.5FD7FEP-37;
-  int parallelism = 1;
+  // Launch the Regent tasks and wait for them to finish.
   eri_regent.launch_jfock_task(jdata_list, threshold, parallelism);
 
-  verify_output("../data/h2o/output.dat", max_momentum, jdata_list, 1e-7, 1e-8);
+  verify_output(output_filename, max_momentum, jdata_list, 1e-7, 1e-8);
 
+  // Free the data.
   jdata_list.free_data();
 }
 
