@@ -4,21 +4,21 @@
 Calculates two-electron repulsion integrals with Regent
 
 ## Running
-Run in Regent using `top.rg` inside `src/` for testing.
+Run with Regent using `top.rg` inside `src/` for testing.
 
-```
+```bash
 cd src
 regent top.rg -L P -i data/h2o -v data/h2o/output.dat
-# Use option `-fflow 0` to compile Regent faster
+# Use option `-fflow 0` to compile eri-regent faster
 ```
 
-Use the Makefile in `src/cpp/` to compile and run inside C++. This will generate a header file and a library for the Coulomb tasks so they can be called within C++. The Makefile assumes the `$LG_RT_DIR` environment variable has been set.
+Use the Makefile in `src/cpp/` to compile and run inside C++. This will generate a header file and a library for the Coulomb tasks so they can be called within C++. The Makefile assumes the `$LEGION` and `$MAX_MOMENTUM` environment variables have been set. Note that if you want to compile for a new `$MAX_MOMENTUM` then you need to run `make clean` before the environment variable affects the build.
 
-```
+```bash
 cd src/cpp
-export LG_RT_DIR=$PATH_TO_LEGION/runtime
-make all
-make run
+export LEGION="/path/to/legion"
+export MAX_MOMENTUM=P
+make test
 ```
 
 ### Higher Angular Momentum Systems
@@ -33,15 +33,15 @@ Be sure to select the appropriate angular momentum using the `-L [S|P|D|F|G]` op
 | F                | 49                  | 7 GB       | 7 Minutes  |
 | G                | 81                  | 31 GB      | 1 Hour     |
 
-When more than 1 GB of memory is needed, you must build Regent with `luajit2.1`. 
-```
+When more than 1 GB of memory is needed, you must build Legion with `luajit2.1`.
+```bash
 ./install.py --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
 ```
 
 
 ## Testing with Python3
 
-```
+```bash
 python scripts/test.py
 python scripts/test_boys.py
 ```
