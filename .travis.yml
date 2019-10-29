@@ -8,8 +8,8 @@ addons:
       - clang-3.5
       - libclang-3.5-dev
       - llvm-3.5-dev
-      - python-numpy
-      - python-scipy
+      - python3-numpy
+      - python3-scipy
 
 os:
   - linux
