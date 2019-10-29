@@ -69,7 +69,7 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
 
   jfock_task_launcher launcher;
 
-#define ADD_ARGUMENT_R_JBRAS(L1, L2)                                           \
+#define ADD_ARGUMENT_R_JBRAS(L1, L2)                                            \
   launcher.add_argument_r_jbras##L1##L2(                                       \
       jbras_lr_list[L_PAIR_TO_INDEX(L1, L2)],                                  \
       jbras_lr_list[L_PAIR_TO_INDEX(L1, L2)],                                  \
@@ -93,7 +93,7 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
 
 #undef ADD_ARGUMENT_R_JBRAS
 
-#define ADD_ARGUMENT_R_JKETS(L1, L2)                                           \
+#define ADD_ARGUMENT_R_JKETS(L1, L2)                                            \
   launcher.add_argument_r_jkets##L1##L2(                                       \
       jkets_lr_list[L_PAIR_TO_INDEX(L1, L2)],                                  \
       jkets_lr_list[L_PAIR_TO_INDEX(L1, L2)],                                  \
@@ -197,33 +197,33 @@ void EriRegent::create_gamma_table_region() {
 }
 
 void EriRegent::initialize_field_spaces() {
-#define INIT_FSPACES(L1, L2)                                                   \
+#define INIT_FSPACES(L1, L2)                                                    \
   {                                                                            \
     const int H = COMPUTE_H((L1) + (L2));                                      \
-    jbra_fspaces[L_PAIR_TO_INDEX(L1, L2)] = runtime->create_field_space(ctx);  \
-    jket_fspaces[L_PAIR_TO_INDEX(L1, L2)] = runtime->create_field_space(ctx);  \
+    jbra_fspaces[L_PAIR_TO_INDEX(L1, L2)] = runtime->create_field_space(ctx);   \
+    jket_fspaces[L_PAIR_TO_INDEX(L1, L2)] = runtime->create_field_space(ctx);   \
     {                                                                          \
-      FieldAllocator falloc = runtime->create_field_allocator(                 \
+      FieldAllocator falloc = runtime->create_field_allocator(                  \
           ctx, jbra_fspaces[L_PAIR_TO_INDEX(L1, L2)]);                         \
-      falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, X));         \
-      falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, Y));         \
-      falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, Z));         \
-      falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, ETA));       \
-      falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, C));         \
-      falloc.allocate_field(sizeof(float), JBRA_FIELD_ID(L1, L2, BOUND));      \
-      falloc.allocate_field(H * sizeof(double),                                \
+      falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, X));          \
+      falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, Y));          \
+      falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, Z));          \
+      falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, ETA));        \
+      falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, C));          \
+      falloc.allocate_field(sizeof(float), JBRA_FIELD_ID(L1, L2, BOUND));        \
+      falloc.allocate_field(H * sizeof(double),                                 \
                             JBRA_FIELD_ID(L1, L2, OUTPUT));                    \
     }                                                                          \
     {                                                                          \
-      FieldAllocator falloc = runtime->create_field_allocator(                 \
+      FieldAllocator falloc = runtime->create_field_allocator(                  \
           ctx, jket_fspaces[L_PAIR_TO_INDEX(L1, L2)]);                         \
-      falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, X));         \
-      falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, Y));         \
-      falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, Z));         \
-      falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, ETA));       \
-      falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, C));         \
-      falloc.allocate_field(sizeof(float), JKET_FIELD_ID(L1, L2, BOUND));      \
-      falloc.allocate_field(H * sizeof(double),                                \
+      falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, X));          \
+      falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, Y));          \
+      falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, Z));          \
+      falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, ETA));        \
+      falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, C));          \
+      falloc.allocate_field(sizeof(float), JKET_FIELD_ID(L1, L2, BOUND));        \
+      falloc.allocate_field(H * sizeof(double),                                 \
                             JKET_FIELD_ID(L1, L2, DENSITY));                   \
     }                                                                          \
   }
