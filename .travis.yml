@@ -2,8 +2,6 @@ language: generic
 
 dist: trusty
 
-python: 3.7
-
 addons:
   apt:
     packages:
@@ -23,8 +21,8 @@ before_install:
   - sudo ln -s $HOME/legion/language/regent.py /usr/local/bin/regent
 
 script:
-  - python scripts/test_boys.py
-  - python scripts/test.py
+  # - python3 scripts/test_boys.py
+  - python3 scripts/test.py
   - cd src/cpp
   - LEGION="$HOME/legion" MAX_MOMENTUM=S make libjfock_tasks.so
   - LEGION="$HOME/legion" MAX_MOMENTUM=S make clean
