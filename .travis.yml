@@ -17,8 +17,6 @@ os:
 before_install:
   # Compile Regent
   - git clone -b master https://github.com/StanfordLegion/legion.git $HOME/legion
-  # TODO: https://github.com/StanfordLegion/legion/issues/667
-  - pushd .; cd $HOME/legion; git checkout 0bd0b591ea33a335f0ea169a14125d9bd85e0ad7; popd;
   - $HOME/legion/language/install.py --rdir auto --no-terra-cmake --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
   - sudo ln -s $HOME/legion/language/regent.py /usr/local/bin/regent
 
