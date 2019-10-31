@@ -9,8 +9,8 @@
 using namespace std;
 using namespace Legion;
 
-EriRegent::EriRegent(int max_momentum, Context &ctx, Runtime *runtime)
-    : max_momentum(max_momentum), ctx(ctx), runtime(runtime) {
+EriRegent::EriRegent(Context &ctx, Runtime *runtime)
+    : ctx(ctx), runtime(runtime) {
   // TODO: Make sure this line is ok
   memory = Machine::MemoryQuery(Machine::get_machine())
                .has_affinity_to(runtime->get_executing_processor(ctx))
@@ -31,18 +31,16 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
                                   float threshold, int parallelism) {
   LogicalRegion jbras_lr_list[MAX_MOMENTUM_INDEX + 1];
   PhysicalRegion jbras_pr_list[MAX_MOMENTUM_INDEX + 1];
-  void *jbras_data_list[MAX_MOMENTUM_INDEX + 1] = {0};
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
       const int index = L_PAIR_TO_INDEX(L1, L2);
-      jbras_data_list[index] = fill_jbra_data(jdata_list, L1, L2);
       const Rect<1> rect(0, jdata_list.get_num_jbras(L1, L2) - 1);
       const IndexSpace ispace = runtime->create_index_space(ctx, rect);
       jbras_lr_list[index] =
           runtime->create_logical_region(ctx, ispace, jbra_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, jbras_lr_list[index],
                               jbras_lr_list[index]);
-      launcher.attach_array_aos(jbras_data_list[index], /*column major*/ false,
+      launcher.attach_array_aos(jdata_list.jbras[index], /*column major*/ false,
                                 jbra_fields_list[index], memory);
       jbras_pr_list[index] = runtime->attach_external_resource(ctx, launcher);
     }
@@ -50,18 +48,16 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
 
   LogicalRegion jkets_lr_list[MAX_MOMENTUM_INDEX + 1];
   PhysicalRegion jkets_pr_list[MAX_MOMENTUM_INDEX + 1];
-  void *jkets_data_list[MAX_MOMENTUM_INDEX + 1] = {0};
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
       const int index = L_PAIR_TO_INDEX(L1, L2);
-      jkets_data_list[index] = fill_jket_data(jdata_list, L1, L2);
       const Rect<1> rect(0, jdata_list.get_num_jkets(L1, L2) - 1);
       const IndexSpace ispace = runtime->create_index_space(ctx, rect);
       jkets_lr_list[index] =
           runtime->create_logical_region(ctx, ispace, jket_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, jkets_lr_list[index],
                               jkets_lr_list[index]);
-      launcher.attach_array_aos(jkets_data_list[index], /*column major*/ false,
+      launcher.attach_array_aos(jdata_list.jkets[index], /*column major*/ false,
                                 jket_fields_list[index], memory);
       jkets_pr_list[index] = runtime->attach_external_resource(ctx, launcher);
     }
@@ -121,61 +117,28 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
                                       {GAMMA_TABLE_FIELD_ID});
   launcher.add_argument_threshold(threshold);
   launcher.add_argument_parallelism(parallelism);
-  launcher.add_argument_max_momentum(max_momentum);
-  launcher.execute(runtime, ctx);
+  int largest_momentum = -1;
+  for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
+      if (jdata_list.get_num_jbras(L1, L2) > 0 ||
+          jdata_list.get_num_jkets(L1, L2) > 0) {
+        largest_momentum = max(largest_momentum, max(L1, L2));
+      }
+    }
+  }
+  launcher.add_argument_largest_momentum(largest_momentum);
+  Future future = launcher.execute(runtime, ctx);
+  future.wait();
 
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
       const int index = L_PAIR_TO_INDEX(L1, L2);
-      const int H = COMPUTE_H(L1 + L2);
-      const int stride =
-          sizeof(double) * 5 + sizeof(float) + sizeof(double) * H;
-      const int output_offset = sizeof(double) * 5 + sizeof(float);
-      for (int i = 0; i < jdata_list.get_num_jbras(L1, L2); i++) {
-        memcpy((void *)jdata_list.get_output(L1, L2, i),
-               (const void *)((char *)jbras_data_list[index] + i * stride +
-                              output_offset),
-               sizeof(double) * H);
-      }
-
       runtime->detach_external_resource(ctx, jbras_pr_list[index]);
       runtime->destroy_logical_region(ctx, jbras_lr_list[index]);
-      free(jbras_data_list[index]);
       runtime->detach_external_resource(ctx, jkets_pr_list[index]);
       runtime->destroy_logical_region(ctx, jkets_lr_list[index]);
-      free(jkets_data_list[index]);
     }
   }
-}
-
-void *EriRegent::fill_jbra_data(EriRegent::TeraChemJDataList &jdata_list,
-                                int L1, int L2) {
-  const int num_jbras = jdata_list.get_num_jbras(L1, L2);
-  const int H = COMPUTE_H(L1 + L2);
-  const int stride = sizeof(double) * 5 + sizeof(float) + sizeof(double) * H;
-  void *data = calloc(stride, num_jbras);
-  for (int i = 0; i < num_jbras; i++) {
-    memcpy((void *)((char *)data + i * stride),
-           (const void *)jdata_list.get_jbra(L1, L2, i), sizeof(TeraChemJData));
-  }
-  return data;
-}
-
-void *EriRegent::fill_jket_data(EriRegent::TeraChemJDataList &jdata_list,
-                                int L1, int L2) {
-  const int num_jkets = jdata_list.get_num_jkets(L1, L2);
-  const int H = COMPUTE_H(L1 + L2);
-  const int stride = sizeof(double) * 5 + sizeof(float) + sizeof(double) * H;
-  const int density_offset = sizeof(double) * 5 + sizeof(float);
-  void *data = malloc(stride * num_jkets);
-  for (int i = 0; i < num_jkets; i++) {
-    memcpy((void *)((char *)data + i * stride),
-           (const void *)(jdata_list.get_jkets_ptr(L1, L2) + i),
-           sizeof(TeraChemJData));
-    memcpy((void *)((char *)data + i * stride + density_offset),
-           (const void *)jdata_list.get_density(L1, L2, i), sizeof(double) * H);
-  }
-  return data;
 }
 
 void EriRegent::create_gamma_table_region() {
@@ -252,8 +215,8 @@ void EriRegent::TeraChemJDataList::allocate_jbras(int L1, int L2, int n) {
   assert(0 <= index && index <= MAX_MOMENTUM_INDEX);
   if (n > 0) {
     num_jbras[index] = n;
-    jbras[index] = (TeraChemJData *)malloc(n * sizeof(TeraChemJData));
-    output[index] = (double *)calloc(n * COMPUTE_H(L1 + L2), sizeof(double));
+    jbras[index] = calloc(n, stride(L1, L2));
+    assert(jbras[index]);
   }
 }
 
@@ -262,8 +225,8 @@ void EriRegent::TeraChemJDataList::allocate_jkets(int L1, int L2, int n) {
   const int index = L_PAIR_TO_INDEX(L1, L2);
   if (n > 0) {
     num_jkets[index] = n;
-    jkets[index] = (TeraChemJData *)malloc(n * sizeof(TeraChemJData));
-    density[index] = (double *)malloc(n * COMPUTE_H(L1 + L2) * sizeof(double));
+    jkets[index] = calloc(n, stride(L1, L2));
+    assert(jkets[index]);
   }
 }
 
@@ -273,12 +236,56 @@ void EriRegent::TeraChemJDataList::free_data() {
       const int index = L_PAIR_TO_INDEX(L1, L2);
       if (num_jbras[index] > 0) {
         free(jbras[index]);
-        free(output[index]);
       }
       if (num_jkets[index] > 0) {
         free(jkets[index]);
-        free(density[index]);
       }
     }
   }
+}
+
+int EriRegent::TeraChemJDataList::get_num_jbras(int L1, int L2) {
+  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+  return num_jbras[L_PAIR_TO_INDEX(L1, L2)];
+}
+int EriRegent::TeraChemJDataList::get_num_jkets(int L1, int L2) {
+  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+  return num_jkets[L_PAIR_TO_INDEX(L1, L2)];
+}
+
+EriRegent::TeraChemJData *
+EriRegent::TeraChemJDataList::get_jbra_ptr(int L1, int L2, int i) {
+  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+  assert(0 <= i && i < get_num_jbras(L1, L2));
+  return (EriRegent::TeraChemJData *)((char *)jbras[L_PAIR_TO_INDEX(L1, L2)] +
+                                      i * stride(L1, L2));
+}
+EriRegent::TeraChemJData *
+EriRegent::TeraChemJDataList::get_jket_ptr(int L1, int L2, int i) {
+  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+  assert(0 <= i && i < get_num_jkets(L1, L2));
+  return (EriRegent::TeraChemJData *)((char *)jkets[L_PAIR_TO_INDEX(L1, L2)] +
+                                      i * stride(L1, L2));
+}
+
+double *EriRegent::TeraChemJDataList::get_output_ptr(int L1, int L2, int i) {
+  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+  assert(0 <= i && i < get_num_jbras(L1, L2));
+  return (double *)((char *)jbras[L_PAIR_TO_INDEX(L1, L2)] +
+                    i * stride(L1, L2) + array_data_offset(L1, L2));
+}
+double *EriRegent::TeraChemJDataList::get_density_ptr(int L1, int L2, int i) {
+  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+  assert(0 <= i && i < get_num_jkets(L1, L2));
+  return (double *)((char *)jkets[L_PAIR_TO_INDEX(L1, L2)] +
+                    i * stride(L1, L2) + array_data_offset(L1, L2));
+}
+
+int EriRegent::TeraChemJDataList::stride(int L1, int L2) {
+  const int H = COMPUTE_H(L1 + L2);
+  return 5 * sizeof(double) + sizeof(float) + H * sizeof(double);
+}
+
+int EriRegent::TeraChemJDataList::array_data_offset(int L1, int L2) {
+  return 5 * sizeof(double) + sizeof(float);
 }

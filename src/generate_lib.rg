@@ -48,7 +48,7 @@ task jfock_task(r_jbras00 : region(ispace(int1d), getJBra(0+0)),
                 r_jkets34 : region(ispace(int1d), getJKet(3+4)),
                 r_jkets44 : region(ispace(int1d), getJKet(4+4)),
                 r_gamma_table : region(ispace(int2d, {18, 700}), double[5]),
-                threshold : float, parallelism : int, max_momentum : int)
+                threshold : float, parallelism : int, largest_momentum : int)
 where
   reads writes(
     r_jbras00,
@@ -86,8 +86,8 @@ where
     r_jkets44
   )
 do
-  regentlib.assert([getCompiledMaxMomentum()] == max_momentum,
-      "Please recompile eri-regent with the correct max momentum!");
+  regentlib.assert(largest_momentum <= [getCompiledMaxMomentum()],
+      "Please recompile eri-regent with a larger max momentum!");
   [jfock(
     {
       [0]={[0]=r_jbras00, [1]=r_jbras01, [2]=r_jbras02, [3]=r_jbras03,

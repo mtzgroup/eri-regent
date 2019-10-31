@@ -31,32 +31,9 @@ float read_parameters(const char *filename) {
   return thredp;
 }
 
-// TODO: Maybe add parse code into class with TeraChemJData
-void read_data(FILE *filep, int L1, int L2, int n,
-               EriRegent::TeraChemJData *data, double *density = NULL) {
-  assert(data);
-  const int H = COMPUTE_H(L1 + L2);
-  int num_values;
-  for (int i = 0; i < n; i++) {
-    num_values = fscanf(filep, "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%f",
-                        &data[i].x, &data[i].y, &data[i].z, &data[i].eta,
-                        &data[i].C, &data[i].bound);
-    assert(num_values == 6 && "Did not read all values in line!");
-    if (density) {
-      num_values = fscanf(filep, ",density=");
-      assert(num_values == 0 && "Could not find density values!");
-      for (int j = 0; j < H; j++) {
-        num_values = fscanf(filep, "%lf;", density + i * H + j);
-        assert(num_values == 1 && "Did not read all density values!");
-      }
-    }
-    num_values = fscanf(filep, "\n");
-    assert(num_values == 0 && "Did not read newline!");
-  }
-}
-
 int read_data_files(const char *bra_filename, const char *ket_filename,
-                    int max_momentum, EriRegent::TeraChemJDataList *data_list) {
+                    int largest_momentum,
+                    EriRegent::TeraChemJDataList *data_list) {
   FILE *bra_filep = fopen(bra_filename, "r");
   if (bra_filep == NULL) {
     printf("Unable to open %s!\n", bra_filename);
@@ -70,22 +47,42 @@ int read_data_files(const char *bra_filename, const char *ket_filename,
   }
 
   int num_values, input_L1, input_L2, n;
-  for (int L1 = 0; L1 <= max_momentum; L1++) {
-    for (int L2 = L1; L2 <= max_momentum; L2++) {
+  for (int L1 = 0; L1 <= largest_momentum; L1++) {
+    for (int L2 = L1; L2 <= largest_momentum; L2++) {
       num_values =
           fscanf(bra_filep, "L1=%d,L2=%d,N=%d\n", &input_L1, &input_L2, &n);
       assert(num_values == 3 && L1 == input_L1 && L2 == input_L2 &&
              "Unexpected angles!");
       data_list->allocate_jbras(L1, L2, n);
-      read_data(bra_filep, L1, L2, n, data_list->get_jbras_ptr(L1, L2));
+      for (int i = 0; i < n; i++) {
+        EriRegent::TeraChemJData *jbra = data_list->get_jbra_ptr(L1, L2, i);
+        num_values = fscanf(
+            bra_filep, "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%f\n", &jbra->x,
+            &jbra->y, &jbra->z, &jbra->eta, &jbra->C, &jbra->bound);
+        assert(num_values == 6 && "Did not read all values in line!");
+      }
 
       num_values =
           fscanf(ket_filep, "L1=%d,L2=%d,N=%d\n", &input_L1, &input_L2, &n);
       assert(num_values == 3 && L1 == input_L1 && L2 == input_L2 &&
              "Unexpected angles!");
       data_list->allocate_jkets(L1, L2, n);
-      read_data(ket_filep, L1, L2, n, data_list->get_jkets_ptr(L1, L2),
-                data_list->get_density_ptr(L1, L2));
+      const int H = COMPUTE_H(L1 + L2);
+      for (int i = 0; i < n; i++) {
+        EriRegent::TeraChemJData *jket = data_list->get_jket_ptr(L1, L2, i);
+        num_values = fscanf(
+            ket_filep,
+            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%f,density=", &jket->x,
+            &jket->y, &jket->z, &jket->eta, &jket->C, &jket->bound);
+        assert(num_values == 6 && "Did not read all values in line!");
+        double *density = data_list->get_density_ptr(L1, L2, i);
+        for (int j = 0; j < H; j++) {
+          num_values = fscanf(ket_filep, "%lf;", density + j);
+          assert(num_values == 1 && "Did not read all density values!");
+        }
+        num_values = fscanf(ket_filep, "\n");
+        assert(num_values == 0 && "Did not read newline!");
+      }
     }
   }
 
@@ -94,14 +91,14 @@ int read_data_files(const char *bra_filename, const char *ket_filename,
   return 0;
 }
 
-void verify_output(const char *filename, int max_momentum,
+void verify_output(const char *filename, int largest_momentum,
                    EriRegent::TeraChemJDataList &jdata_list, float delta,
                    float epsilon) {
   FILE *filep = fopen(filename, "r");
   int num_values, input_L1, input_L2, n;
   double expected, max_absolue_error = -1, max_relative_error = -1;
-  for (int L1 = 0; L1 <= max_momentum; L1++) {
-    for (int L2 = L1; L2 <= max_momentum; L2++) {
+  for (int L1 = 0; L1 <= largest_momentum; L1++) {
+    for (int L2 = L1; L2 <= largest_momentum; L2++) {
       const int H = COMPUTE_H(L1 + L2);
       num_values =
           fscanf(filep, "L1=%d,L2=%d,N=%d\n", &input_L1, &input_L2, &n);
@@ -110,7 +107,7 @@ void verify_output(const char *filename, int max_momentum,
       for (int i = 0; i < n; i++) {
         for (int j = 0; j < H; j++) {
           num_values = fscanf(filep, "%lf\t", &expected);
-          double result = jdata_list.get_output(L1, L2, i)[j];
+          double result = jdata_list.get_output_ptr(L1, L2, i)[j];
           double absolute_error = fabs(expected - result);
           double relative_error = fabs(absolute_error / expected);
           max_absolue_error = fmax(absolute_error, max_absolue_error);
@@ -136,9 +133,9 @@ void verify_output(const char *filename, int max_momentum,
 void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
                     Context ctx, Runtime *runtime) {
   // TODO: Take data files as user input
-  int max_momentum = 1;
+  int largest_momentum = 0;
   int parallelism = 1;
-  const char *input_directory = "../data/h2o";
+  const char *input_directory = "../data/h2";
 
   char bras_filename[128];
   char kets_filename[128];
@@ -156,16 +153,16 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
   float threshold = read_parameters(parameters_filename);
 
   // `EriRegent` should be initialized once at the start of the program.
-  EriRegent eri_regent(max_momentum, ctx, runtime);
+  EriRegent eri_regent(ctx, runtime);
 
   // Create a `TeraChemJDataList` and copy data to it.
   EriRegent::TeraChemJDataList jdata_list;
-  read_data_files(bras_filename, kets_filename, max_momentum, &jdata_list);
+  read_data_files(bras_filename, kets_filename, largest_momentum, &jdata_list);
 
   // Launch the Regent tasks and wait for them to finish.
   eri_regent.launch_jfock_task(jdata_list, threshold, parallelism);
 
-  verify_output(output_filename, max_momentum, jdata_list, 1e-7, 1e-8);
+  verify_output(output_filename, largest_momentum, jdata_list, 1e-7, 1e-8);
 
   // Free the data.
   jdata_list.free_data();

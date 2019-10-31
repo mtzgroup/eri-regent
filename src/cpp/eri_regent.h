@@ -5,7 +5,7 @@
 
 class EriRegent {
 public:
-  EriRegent(int max_momentum, Legion::Context &ctx, Legion::Runtime *runtime);
+  EriRegent(Legion::Context &ctx, Legion::Runtime *runtime);
   ~EriRegent();
 
   struct TeraChemJData {
@@ -19,9 +19,10 @@ public:
 
   /**
    * A list of JBra and JKet data to be passed to `launch_jfock_task`.
-   * Use L_PAIR_TO_INDEX(L1, L2) to get the index for these arrays.
    */
   class TeraChemJDataList {
+    friend class EriRegent;
+
   public:
     TeraChemJDataList() : num_jbras{0}, num_jkets{0} {}
 
@@ -30,57 +31,24 @@ public:
 
     void free_data();
 
-    int get_num_jbras(int L1, int L2) {
-      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
-      return num_jbras[L_PAIR_TO_INDEX(L1, L2)];
-    }
-    TeraChemJData *get_jbra(int L1, int L2, int i) {
-      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
-      assert(0 <= i && i < get_num_jbras(L1, L2));
-      return &jbras[L_PAIR_TO_INDEX(L1, L2)][i];
-    }
-    double *get_output(int L1, int L2, int i) {
-      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
-      assert(0 <= i && i < get_num_jbras(L1, L2));
-      return output[L_PAIR_TO_INDEX(L1, L2)] + i * COMPUTE_H(L1 + L2);
-    }
-    int get_num_jkets(int L1, int L2) {
-      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
-      return num_jkets[L_PAIR_TO_INDEX(L1, L2)];
-    }
-    TeraChemJData *get_jket(int L1, int L2, int i) {
-      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
-      assert(0 <= i && i < get_num_jkets(L1, L2));
-      return &jkets[L_PAIR_TO_INDEX(L1, L2)][i];
-    }
-    double *get_density(int L1, int L2, int i) {
-      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
-      assert(0 <= i && i < get_num_jkets(L1, L2));
-      return density[L_PAIR_TO_INDEX(L1, L2)] + i * COMPUTE_H(L1 + L2);
-    }
+    int get_num_jbras(int L1, int L2);
+    int get_num_jkets(int L1, int L2);
 
-    // TODO: Remove
-    TeraChemJData *get_jbras_ptr(int L1, int L2) {
-      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
-      return jbras[L_PAIR_TO_INDEX(L1, L2)];
-    }
-    TeraChemJData *get_jkets_ptr(int L1, int L2) {
-      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
-      return jkets[L_PAIR_TO_INDEX(L1, L2)];
-    }
-    double *get_density_ptr(int L1, int L2) {
-      assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
-      return density[L_PAIR_TO_INDEX(L1, L2)];
-    }
+    TeraChemJData *get_jbra_ptr(int L1, int L2, int i);
+    TeraChemJData *get_jket_ptr(int L1, int L2, int i);
+
+    double *get_output_ptr(int L1, int L2, int i);
+    double *get_density_ptr(int L1, int L2, int i);
 
   private:
+    int stride(int L1, int L2);
+    int array_data_offset(int L1, int L2);
+
     int num_jbras[MAX_MOMENTUM_INDEX + 1];
-    TeraChemJData *jbras[MAX_MOMENTUM_INDEX + 1];
-    double *output[MAX_MOMENTUM_INDEX + 1];
+    void *jbras[MAX_MOMENTUM_INDEX + 1];
 
     int num_jkets[MAX_MOMENTUM_INDEX + 1];
-    TeraChemJData *jkets[MAX_MOMENTUM_INDEX + 1];
-    double *density[MAX_MOMENTUM_INDEX + 1];
+    void *jkets[MAX_MOMENTUM_INDEX + 1];
   };
 
   /**
@@ -91,9 +59,6 @@ public:
                          int parallelism);
 
 private:
-  // TODO: Rename `max_momentum`. It should be thought of as a runtime constant
-  //       instead of a compile-time constant.
-  const int max_momentum;
   Legion::Context ctx;
   Legion::Runtime *runtime;
   Legion::Memory memory;
@@ -101,9 +66,6 @@ private:
   Legion::PhysicalRegion gamma_table_pr;
   Legion::FieldSpace jbra_fspaces[MAX_MOMENTUM_INDEX + 1];
   Legion::FieldSpace jket_fspaces[MAX_MOMENTUM_INDEX + 1];
-
-  void *fill_jbra_data(TeraChemJDataList &jdata_list, int L1, int L2);
-  void *fill_jket_data(TeraChemJDataList &jdata_list, int L1, int L2);
 
   void initialize_field_spaces();
 
