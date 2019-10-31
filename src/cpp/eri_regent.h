@@ -50,8 +50,7 @@ public:
     int num_jkets[MAX_MOMENTUM_INDEX + 1];
     void *jkets[MAX_MOMENTUM_INDEX + 1];
 
-    // TODO
-    // int largest_momentum;
+    int get_largest_momentum();
   };
 
   /**

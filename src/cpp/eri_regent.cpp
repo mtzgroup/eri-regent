@@ -117,16 +117,7 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
                                       {GAMMA_TABLE_FIELD_ID});
   launcher.add_argument_threshold(threshold);
   launcher.add_argument_parallelism(parallelism);
-  int largest_momentum = -1;
-  for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
-    for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
-      if (jdata_list.get_num_jbras(L1, L2) > 0 ||
-          jdata_list.get_num_jkets(L1, L2) > 0) {
-        largest_momentum = max(largest_momentum, max(L1, L2));
-      }
-    }
-  }
-  launcher.add_argument_largest_momentum(largest_momentum);
+  launcher.add_argument_largest_momentum(jdata_list.get_largest_momentum());
   Future future = launcher.execute(runtime, ctx);
   future.wait();
 
@@ -288,4 +279,16 @@ int EriRegent::TeraChemJDataList::stride(int L1, int L2) {
 
 int EriRegent::TeraChemJDataList::array_data_offset(int L1, int L2) {
   return 5 * sizeof(double) + sizeof(float);
+}
+
+int EriRegent::TeraChemJDataList::get_largest_momentum() {
+  int largest_momentum = -1;
+  for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
+      if (get_num_jbras(L1, L2) > 0 || get_num_jkets(L1, L2) > 0) {
+        largest_momentum = max(largest_momentum, max(L1, L2));
+      }
+    }
+  }
+  return largest_momentum;
 }
