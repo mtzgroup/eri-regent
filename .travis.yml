@@ -2,6 +2,8 @@ language: generic
 
 dist: trusty
 
+env: LG_RT_DIR="$HOME/legion/runtime"
+
 addons:
   apt:
     packages:
@@ -23,10 +25,6 @@ before_install:
 script:
   - python3 scripts/test_boys.py
   - python3 scripts/test.py
+  # TODO: Compile cpp code during install
   - cd src/cpp
-  - LEGION="$HOME/legion" MAX_MOMENTUM=S make libjfock_tasks.so
-  - LEGION="$HOME/legion" MAX_MOMENTUM=S make clean
-  - LEGION="$HOME/legion" MAX_MOMENTUM=P make libjfock_tasks.so
-  - LEGION="$HOME/legion" MAX_MOMENTUM=P make clean
-  - LEGION="$HOME/legion" MAX_MOMENTUM=D make libjfock_tasks.so
-  - LEGION="$HOME/legion" MAX_MOMENTUM=D make clean
+  - MAX_MOMENTUM=D make test
