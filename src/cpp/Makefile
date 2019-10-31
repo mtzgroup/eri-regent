@@ -17,13 +17,14 @@ SRCS_RG := ../jfock.rg ../fields.rg ../helper.rg ../generate_lib.rg
 SRCS_RG += ../mcmurchie/jfock/generate_jfock_integral.rg
 SRCS_RG += ../mcmurchie/jfock/generate_kernel_statements.rg
 SRCS_RG += ../mcmurchie/jfock/generate_R_table.rg
-# SRCS_RG += ../mcmurchie/gamma_table.h ../mcmurchie/populate_gamma_table.rg
 
 TARGET := jfock_cpp
 
-.PHONY: test lint clean
+.PHONY: lib test lint clean
 
-all: $(TARGET)
+all: lib
+
+lib: libjfock_tasks.so jfock_tasks.h
 
 libjfock_tasks.so jfock_tasks.h: $(SRCS_RG)
 ifndef MAX_MOMENTUM
@@ -31,7 +32,7 @@ ifndef MAX_MOMENTUM
 endif
 	$(REGENT) ../generate_lib.rg -o ./ -L $(MAX_MOMENTUM) $(REGENT_FLAGS)
 
-$(TARGET): $(SRCS) $(HEADERS) libjfock_tasks.so jfock_tasks.h
+$(TARGET): $(SRCS) $(HEADERS) lib
 	$(CC) $(CFLAGS) $(INCLUDES) $(SRCS) -o $@ $(LFLAGS) $(LIBS)
 
 test: $(TARGET)

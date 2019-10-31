@@ -17,7 +17,6 @@ Use the Makefile in `src/cpp/` to compile and run inside C++. This will generate
 ```bash
 cd src/cpp
 export LG_RT_DIR="/path/to/legion/runtime"
-# e.g., "/.../legion/"
 export MAX_MOMENTUM=P
 make test
 ```

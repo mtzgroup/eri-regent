@@ -112,7 +112,7 @@ void verify_output(const char *filename, int largest_momentum,
           double relative_error = fabs(absolute_error / expected);
           max_absolue_error = fmax(absolute_error, max_absolue_error);
           max_relative_error = fmax(relative_error, max_relative_error);
-          if (isnan(result) || isinf(result) ||
+          if (std::isnan(result) || std::isinf(result) ||
               (absolute_error > delta && relative_error > epsilon)) {
             printf(
                 "Value differs at L1 = %d, L2 = %d, JBra[%d].output[%d]:\t"

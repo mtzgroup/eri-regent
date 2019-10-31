@@ -154,7 +154,7 @@ void EriRegent::create_gamma_table_region() {
 
   AttachLauncher launcher(EXTERNAL_INSTANCE, gamma_table_lr, gamma_table_lr);
 
-  launcher.attach_array_aos((void *)gamma_table, /*column major=*/false,
+  launcher.attach_array_aos((void *)gamma_table, /*column major*/ false,
                             {GAMMA_TABLE_FIELD_ID}, memory);
   gamma_table_pr = runtime->attach_external_resource(ctx, launcher);
 }
