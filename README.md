@@ -12,11 +12,12 @@ regent top.rg -L P -i data/h2o -v data/h2o/output.dat
 # Use option `-fflow 0` to compile eri-regent faster
 ```
 
-Use the Makefile in `src/cpp/` to compile and run inside C++. This will generate a header file and a library for the Coulomb tasks so they can be called within C++. The Makefile assumes the `$LEGION` and `$MAX_MOMENTUM` environment variables have been set. Note that if you want to compile for a new `$MAX_MOMENTUM` then you need to run `make clean` before the environment variable affects the build.
+Use the Makefile in `src/cpp/` to compile and run inside C++. This will generate a header file and a library for the Coulomb tasks so they can be called within C++. The Makefile assumes the `$LG_RT_DIR` and `$MAX_MOMENTUM` environment variables have been set. Note that if you want to compile for a new `$MAX_MOMENTUM` then you need to run `make clean` before the environment variable affects the build.
 
 ```bash
 cd src/cpp
-export LEGION="/path/to/legion"
+export LG_RT_DIR="/path/to/legion/runtime"
+# e.g., "/.../legion/"
 export MAX_MOMENTUM=P
 make test
 ```

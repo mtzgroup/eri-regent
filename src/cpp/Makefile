@@ -1,5 +1,5 @@
-ifndef LEGION
-$(error Please set LEGION to source path)
+ifndef LG_RT_DIR
+$(error Please set LG_RT_DIR to source path)
 endif
 
 REGENT := regent
@@ -7,8 +7,8 @@ REGENT_FLAGS := -fflow 0
 
 CC := c++
 CFLAGS := -O2 -Wall -Werror
-INCLUDES := -I$(LEGION)/runtime
-LFLAGS := -L$(LEGION)/bindings/regent -L .
+INCLUDES := -I$(LG_RT_DIR) -I$(LG_RT_DIR)/../bindings/regent
+LFLAGS := -L$(LG_RT_DIR)/../bindings/regent -L .
 LIBS := -lregent -ljfock_tasks
 SRCS := eri_regent.cpp main.cpp
 HEADERS := eri_regent.h helper.h
@@ -35,7 +35,7 @@ $(TARGET): $(SRCS) $(HEADERS) libjfock_tasks.so jfock_tasks.h
 	$(CC) $(CFLAGS) $(INCLUDES) $(SRCS) -o $@ $(LFLAGS) $(LIBS)
 
 test: $(TARGET)
-	LD_LIBRARY_PATH=$(LEGION)/bindings/regent:. ./$(TARGET)
+	LD_LIBRARY_PATH=$(LG_RT_DIR)/../bindings/regent:. ./$(TARGET)
 
 lint: $(SRCS) $(HEADERS)
 	clang-format -i $(SRCS) $(HEADERS)
