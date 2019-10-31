@@ -6,7 +6,7 @@ REGENT := regent
 REGENT_FLAGS := -fflow 0
 
 CC := c++
-CFLAGS := -O2 -Wall -Werror
+CFLAGS := -O2 -Wall -Werror -std=c++11
 INCLUDES := -I$(LG_RT_DIR) -I$(LG_RT_DIR)/../bindings/regent
 LFLAGS := -L$(LG_RT_DIR)/../bindings/regent -L .
 LIBS := -lregent -ljfock_tasks
