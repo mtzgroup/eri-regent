@@ -34,9 +34,11 @@ public:
     int get_num_jbras(int L1, int L2);
     int get_num_jkets(int L1, int L2);
 
+    // TODO: Make set methods instead.
     TeraChemJData *get_jbra_ptr(int L1, int L2, int i);
     TeraChemJData *get_jket_ptr(int L1, int L2, int i);
 
+    // TODO: Make set and get methods for output.
     double *get_output_ptr(int L1, int L2, int i);
     double *get_density_ptr(int L1, int L2, int i);
 

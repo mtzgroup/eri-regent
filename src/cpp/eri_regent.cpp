@@ -40,6 +40,7 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
           runtime->create_logical_region(ctx, ispace, jbra_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, jbras_lr_list[index],
                               jbras_lr_list[index]);
+      // TODO: Consider using soa format if it helps performance.
       launcher.attach_array_aos(jdata_list.jbras[index], /*column major*/ false,
                                 jbra_fields_list[index], memory);
       jbras_pr_list[index] = runtime->attach_external_resource(ctx, launcher);
