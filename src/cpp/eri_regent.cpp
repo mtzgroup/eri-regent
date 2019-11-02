@@ -1,5 +1,5 @@
-#include "../mcmurchie/gamma_table.h"
 #include "eri_regent.h"
+#include "../mcmurchie/gamma_table.h"
 #include "helper.h"
 #include "jfock_tasks.h"
 #include "legion.h"
