@@ -1,10 +1,11 @@
 /**
- * c++ -O2 -Wall -Werror -I[PATH TO legion/runtime] main.cpp eri_regent.cpp \
- *   -L[PATH TO legion/bindings/regent] -lregent -L. -ljfock_tasks
- * LD_LIBRARY_PATH=[PATH TO legion/bindings/regent]:. ./a.out
+ * c++ -O2 -Wall -Werror -I[/path/tolegion/runtime] main.cpp eri_regent.cpp \
+ *   -L[/path/to/legion/bindings/regent] -lregent -L. -ljfock_tasks \
+ *   -Wl,-rpath,[/path/to/legion/bindings/regent],-rpath,[/path/to/libjfock]
  */
 
 #include <iostream>
+#include <unistd.h>
 
 #include "eri_regent.h"
 #include "helper.h"
@@ -15,10 +16,10 @@
 using namespace std;
 using namespace Legion;
 
-float read_parameters(const char *filename) {
-  FILE *filep = fopen(filename, "r");
+float read_parameters(const string filename) {
+  FILE *filep = fopen(filename.c_str(), "r");
   if (filep == NULL) {
-    printf("Unable to open %s!\n", filename);
+    printf("Unable to open %s!\n", filename.c_str());
     return -1;
   }
   double scalfr, scallr, omega;
@@ -31,18 +32,18 @@ float read_parameters(const char *filename) {
   return thredp;
 }
 
-int read_data_files(const char *bra_filename, const char *ket_filename,
-                    EriRegent::TeraChemJDataList *data_list) {
-  FILE *bra_filep = fopen(bra_filename, "r");
+void read_data_files(string bra_filename, string ket_filename,
+                     EriRegent::TeraChemJDataList *data_list) {
+  FILE *bra_filep = fopen(bra_filename.c_str(), "r");
   if (bra_filep == NULL) {
-    printf("Unable to open %s!\n", bra_filename);
-    return -1;
+    printf("Unable to open %s!\n", bra_filename.c_str());
+    return;
   }
-  FILE *ket_filep = fopen(ket_filename, "r");
+  FILE *ket_filep = fopen(ket_filename.c_str(), "r");
   if (ket_filep == NULL) {
-    printf("Unable to open %s!\n", ket_filename);
+    printf("Unable to open %s!\n", ket_filename.c_str());
     fclose(bra_filep);
-    return -1;
+    return;
   }
 
   int L1, L2, n;
@@ -80,13 +81,15 @@ int read_data_files(const char *bra_filename, const char *ket_filename,
 
   fclose(bra_filep);
   fclose(ket_filep);
-  return 0;
 }
 
-void verify_output(const char *filename,
-                   EriRegent::TeraChemJDataList &jdata_list, float delta,
-                   float epsilon) {
-  FILE *filep = fopen(filename, "r");
+void verify_output(string filename, EriRegent::TeraChemJDataList &jdata_list,
+                   float delta, float epsilon) {
+  FILE *filep = fopen(filename.c_str(), "r");
+  if (filep == NULL) {
+    fprintf(stderr, "Unable to open %s!\n", filename.c_str());
+    return;
+  }
   double expected, max_absolue_error = -1, max_relative_error = -1;
 
   int L1, L2, n;
@@ -118,24 +121,42 @@ void verify_output(const char *filename,
          max_absolue_error, max_relative_error);
 }
 
+void print_usage_and_abort(int argc, char **argv) {
+  fprintf(stderr, "Usage: %s -i [input directory] -p [parallelism]\n", argv[0]);
+  assert(false);
+}
+
 void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
                     Context ctx, Runtime *runtime) {
-  // TODO: Take data files as user input
-  int parallelism = 1;
-  const char *input_directory = "../data/fe";
+  int argc = Runtime::get_input_args().argc;
+  char **argv = (char **)Runtime::get_input_args().argv;
 
-  char bras_filename[128];
-  char kets_filename[128];
-  char parameters_filename[128];
-  char output_filename[128];
-  strcpy(bras_filename, input_directory);
-  strcpy(kets_filename, input_directory);
-  strcpy(parameters_filename, input_directory);
-  strcpy(output_filename, input_directory);
-  strcat(bras_filename, "/bras.dat");
-  strcat(kets_filename, "/kets.dat");
-  strcat(parameters_filename, "/parameters.dat");
-  strcat(output_filename, "/output.dat");
+  int parallelism = 1;
+  string input_directory;
+
+  opterr = 0;
+  int c;
+  while ((c = getopt(argc, argv, "i:p:")) != -1) {
+    switch (c) {
+    case 'i':
+      input_directory = string(optarg);
+      break;
+    case 'p':
+      parallelism = atoi(optarg);
+      break;
+    default:
+      print_usage_and_abort(argc, argv);
+    }
+  }
+
+  if (parallelism < 1 || input_directory.empty()) {
+    print_usage_and_abort(argc, argv);
+  }
+
+  string bras_filename = input_directory + "/bras.dat";
+  string kets_filename = input_directory + "/kets.dat";
+  string parameters_filename = input_directory + "/parameters.dat";
+  string output_filename = input_directory + "/output.dat";
 
   // `EriRegent` should be initialized once at the start of the program.
   EriRegent eri_regent(ctx, runtime);

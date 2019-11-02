@@ -1,5 +1,3 @@
-#include <cstdlib>
-
 #include "../mcmurchie/gamma_table.h"
 #include "eri_regent.h"
 #include "helper.h"
@@ -11,7 +9,6 @@ using namespace Legion;
 
 EriRegent::EriRegent(Context &ctx, Runtime *runtime)
     : ctx(ctx), runtime(runtime) {
-  // TODO: Make sure this line is ok
   memory = Machine::MemoryQuery(Machine::get_machine())
                .has_affinity_to(runtime->get_executing_processor(ctx))
                .only_kind(Memory::SYSTEM_MEM)
