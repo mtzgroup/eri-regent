@@ -19,8 +19,8 @@ using namespace Legion;
 float read_parameters(const string filename) {
   FILE *filep = fopen(filename.c_str(), "r");
   if (filep == NULL) {
-    printf("Unable to open %s!\n", filename.c_str());
-    return -1;
+    fprintf(stderr, "Unable to open %s!\n", filename.c_str());
+    assert(false);
   }
   double scalfr, scallr, omega;
   float thresp, thredp;
@@ -36,14 +36,14 @@ void read_data_files(string bra_filename, string ket_filename,
                      EriRegent::TeraChemJDataList *data_list) {
   FILE *bra_filep = fopen(bra_filename.c_str(), "r");
   if (bra_filep == NULL) {
-    printf("Unable to open %s!\n", bra_filename.c_str());
-    return;
+    fprintf(stderr, "Unable to open %s!\n", bra_filename.c_str());
+    assert(false);
   }
   FILE *ket_filep = fopen(ket_filename.c_str(), "r");
   if (ket_filep == NULL) {
-    printf("Unable to open %s!\n", ket_filename.c_str());
+    fprintf(stderr, "Unable to open %s!\n", ket_filename.c_str());
     fclose(bra_filep);
-    return;
+    assert(false);
   }
 
   int L1, L2, n;
@@ -88,7 +88,7 @@ void verify_output(string filename, EriRegent::TeraChemJDataList &jdata_list,
   FILE *filep = fopen(filename.c_str(), "r");
   if (filep == NULL) {
     fprintf(stderr, "Unable to open %s!\n", filename.c_str());
-    return;
+    assert(false);
   }
   double expected, max_absolue_error = -1, max_relative_error = -1;
 
