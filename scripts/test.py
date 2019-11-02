@@ -1,15 +1,15 @@
-test_files = [
-    ("data/h2", "data/h2/output.dat", "S", "jfock"),
-    ("data/h2", "data/h2/output_grad.dat", "S", "jgrad"),
-    ("data/h2o", "data/h2o/output.dat", "P", "jfock"),
-    ("data/h2o", "data/h2o/output_grad.dat", "P", "jgrad"),
-    ("data/co2", "data/co2/output.dat", "P", "jfock"),
-    ("data/co2", "data/co2/output_grad.dat", "P", "jgrad"),
-    ("data/fe", "data/fe/output.dat", "D", "jfock"),
-    ("data/fe", "data/fe/output_grad.dat", "D", "jgrad"),
+test_directories = [
+    "src/tests/integ",
+    # "src/tests/unit/s",
+    # "src/tests/unit/p",
+    # "src/tests/unit/sp",
+    # "src/tests/unit/d",
+    # "src/tests/unit/sd",
+    # "src/tests/unit/pd",
+    # "src/tests/unit/spd",
 ]
 
-quick_test_files = test_files[:1]
+quick_test_directories = test_directories[:1]
 
 RED = "\033[1;31m"
 GREEN = "\033[0;32m"
@@ -17,40 +17,39 @@ RESET = "\033[0;0m"
 
 if __name__ == "__main__":
     # TODO: If possible, compile regent code once and run all tests
-    import sys, subprocess, argparse
+    import os, sys, subprocess, argparse
 
     parser = argparse.ArgumentParser(description="Test for correctness.")
     parser.add_argument("--quick", action="store_true", help="Run only one test case")
     args = parser.parse_args()
 
-    data_files = quick_test_files if args.quick else test_files
+    directories = quick_test_directories if args.quick else test_directories
 
-    for (indirectory, outfile, L, integral_type) in data_files:
-        # TODO: Test multiple cpu's and partitions
-        # TODO: Test gpu and cuda
-        try:
-            subprocess.check_call(
-                [
-                    "regent",
-                    "top.rg",
-                    "-L",
-                    L,
-                    "-t",
-                    integral_type,
-                    "-i",
-                    indirectory,
-                    "-v",
-                    outfile,
-                    "-fflow",
-                    "0",
-                ],
-                cwd="src/",
-            )
-        except:
-            sys.stdout.write(RED)
-            print("Failed on input " + indirectory)
-            sys.stdout.write(RESET)
-            sys.exit(1)
+    for directory in directories:
+        for test_case in os.listdir(directory):
+            # TODO: Test multiple cpu's and partitions
+            # TODO: Test gpu and cuda
+            try:
+                subprocess.check_call(
+                    [
+                        "regent",
+                        "top.rg",
+                        "-L",
+                        {"h2": "S", "h2o": "P", "co2": "P", "fe": "D"}[test_case],
+                        "-i",
+                        "../{}/{}".format(directory, test_case),
+                        "-v",
+                        "../{}/{}/output.dat".format(directory, test_case),
+                        "-fflow",
+                        "0",
+                    ],
+                    cwd="src/",
+                )
+            except:
+                sys.stdout.write(RED)
+                print("Failed on test case {}/{}".format(directory, test_case))
+                sys.stdout.write(RESET)
+                sys.exit(1)
 
     sys.stdout.write(GREEN)
     print("All tests passed!")
