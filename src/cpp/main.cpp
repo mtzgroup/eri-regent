@@ -158,6 +158,8 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
   string parameters_filename = input_directory + "/parameters.dat";
   string output_filename = input_directory + "/output.dat";
 
+  cout << "Verifying with input data from " << input_directory << endl;
+
   // `EriRegent` should be initialized once at the start of the program.
   EriRegent eri_regent(ctx, runtime);
 
@@ -169,7 +171,7 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
   // Launch the Regent tasks and wait for them to finish.
   eri_regent.launch_jfock_task(jdata_list, threshold, parallelism);
 
-  verify_output(output_filename, jdata_list, 1e-7, 1e-8);
+  verify_output(output_filename, jdata_list, 1e-11, 1e-11);
 
   // Free the data.
   jdata_list.free_data();

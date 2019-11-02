@@ -30,5 +30,3 @@ install:
 script:
   - python3 scripts/test_boys.py
   - python3 scripts/test.py
-  # - cd src/cpp
-  # - make test
