@@ -4,6 +4,27 @@
 #include "helper.h"
 #include "legion.h"
 
+template <void (*TASK_PTR)(const Legion::Task *,
+                           const std::vector<Legion::PhysicalRegion> &,
+                           Legion::Context, Legion::Runtime *)>
+int start_eri_regent_runtime(int argc, char **argv) {
+  using namespace Legion;
+  enum { // Task IDs
+    TOP_LEVEL_TASK_ID,
+  };
+
+  Runtime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
+
+  {
+    TaskVariantRegistrar registrar(TOP_LEVEL_TASK_ID, "top_level");
+    registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
+    Runtime::preregister_task_variant<TASK_PTR>(registrar, "top_level");
+  }
+
+  eri_regent_tasks_h_register();
+  return Runtime::start(argc, argv);
+}
+
 class EriRegent {
 public:
   EriRegent(Legion::Context &ctx, Legion::Runtime *runtime);

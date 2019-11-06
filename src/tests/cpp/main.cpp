@@ -177,18 +177,5 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
 }
 
 int main(int argc, char **argv) {
-  enum { // Task IDs
-    TOP_LEVEL_TASK_ID,
-  };
-
-  Runtime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
-
-  {
-    TaskVariantRegistrar registrar(TOP_LEVEL_TASK_ID, "top_level");
-    registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
-    Runtime::preregister_task_variant<top_level_task>(registrar, "top_level");
-  }
-
-  eri_regent_tasks_h_register();
-  return Runtime::start(argc, argv);
+  return start_eri_regent_runtime<top_level_task>(argc, argv);
 }
