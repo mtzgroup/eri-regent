@@ -1,20 +1,19 @@
 #include "eri_regent.h"
 #include "helper.h"
 #include "legion.h"
-#include "mcmurchie/gamma_table.h"
 
 using namespace std;
 using namespace Legion;
 
-// TODO: Take gamma table as input.
-EriRegent::EriRegent(Context &ctx, Runtime *runtime)
+EriRegent::EriRegent(Context &ctx, Runtime *runtime,
+                     const double gamma_table[18][700][5])
     : ctx(ctx), runtime(runtime) {
   memory = Machine::MemoryQuery(Machine::get_machine())
                .has_affinity_to(runtime->get_executing_processor(ctx))
                .only_kind(Memory::SYSTEM_MEM)
                .first();
 
-  create_gamma_table_region();
+  create_gamma_table_region(gamma_table);
 
   initialize_field_spaces();
 }
@@ -130,7 +129,8 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
   }
 }
 
-void EriRegent::create_gamma_table_region() {
+void EriRegent::create_gamma_table_region(
+    const double gamma_table[18][700][5]) {
   const Rect<2> rect({0, 0}, {18 - 1, 700 - 1});
   const IndexSpace ispace = runtime->create_index_space(ctx, rect);
   const FieldSpace fspace = runtime->create_field_space(ctx);

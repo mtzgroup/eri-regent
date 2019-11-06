@@ -27,7 +27,8 @@ int start_eri_regent_runtime(int argc, char **argv) {
 
 class EriRegent {
 public:
-  EriRegent(Legion::Context &ctx, Legion::Runtime *runtime);
+  EriRegent(Legion::Context &ctx, Legion::Runtime *runtime,
+            const double gamma_table[18][700][5]);
   ~EriRegent();
 
   struct TeraChemJData {
@@ -95,7 +96,7 @@ private:
 
   void initialize_field_spaces();
 
-  void create_gamma_table_region();
+  void create_gamma_table_region(const double gamma_table[18][700][5]);
 
 #define JBRA_FIELD_ID(L1, L2, F_NAME) JBRA##L1##L2##_FIELD_##F_NAME##_ID
 #define JKET_FIELD_ID(L1, L2, F_NAME) JKET##L1##L2##_FIELD_##F_NAME##_ID
