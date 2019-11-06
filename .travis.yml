@@ -2,8 +2,6 @@ language: generic
 
 dist: trusty
 
-env: LG_RT_DIR="$HOME/legion/runtime"
-
 addons:
   apt:
     packages:
@@ -20,11 +18,14 @@ before_install:
   - git clone -b master https://github.com/StanfordLegion/legion.git $HOME/legion
   - $HOME/legion/language/install.py --rdir auto --no-terra-cmake --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
   - sudo ln -s $HOME/legion/language/regent.py /usr/local/bin/regent
+  - export LG_RT_DIR="$HOME/legion/runtime"
 
 install:
   - pushd .
-  - cd src/cpp
-  - MAX_MOMENTUM=D make
+  - # Compile libERIRegent.so
+  - cd src; MAX_MOMENTUM=D make
+  - # Compile test binary
+  - cd tests/cpp; make
   - popd
 
 script:

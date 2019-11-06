@@ -117,7 +117,7 @@ end
 assert(library_directory ~= nil,
        "Must give library output directory `-o [path]`")
 
-local header = library_directory .. "/jfock_tasks.h"
-local lib = library_directory .. "/libjfock_tasks.so"
+local header = library_directory .. "/eri_regent_tasks.h"
+local lib = library_directory .. "/libERIRegent.so"
 regentlib.save_tasks(header, lib)
 print("Generated header at "..header.." and library at "..lib)

@@ -9,7 +9,7 @@ test_directories = [
     "src/tests/unit/spd",
 ]
 
-binary = "src/cpp/jfock_cpp"
+binary = "src/tests/cpp/jfock_test"
 
 RED = "\033[1;31m"
 GREEN = "\033[0;32m"

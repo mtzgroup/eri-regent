@@ -1,5 +1,6 @@
 #pragma once
 
+#include "eri_regent_tasks.h"
 #include "helper.h"
 #include "legion.h"
 

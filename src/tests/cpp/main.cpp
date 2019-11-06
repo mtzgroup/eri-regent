@@ -9,7 +9,6 @@
 
 #include "eri_regent.h"
 #include "helper.h"
-#include "jfock_tasks.h"
 #include "legion.h"
 #include "math.h"
 
@@ -106,8 +105,8 @@ void verify_output(string filename, EriRegent::TeraChemJDataList &jdata_list,
         max_relative_error = fmax(relative_error, max_relative_error);
         if (std::isnan(result) || std::isinf(result) ||
             (absolute_error > delta && relative_error > epsilon)) {
-          printf("Value differs at L1 = %d, L2 = %d, JBra[%d].output[%d]:\t"
-                 "result = %.12f,\texpected = %.12f,\tabsolute_error = %.12g,\t"
+          printf("Value differs at L1 = %d, L2 = %d, JBra[%d].output[%d]:\n"
+                 "result = %.12f\nexpected = %.12f\nabsolute_error = %.12g\n"
                  "relative_error = %.12g\n",
                  L1, L2, i, j, result, expected, absolute_error,
                  relative_error);
@@ -171,7 +170,7 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
   // Launch the Regent tasks and wait for them to finish.
   eri_regent.launch_jfock_task(jdata_list, threshold, parallelism);
 
-  verify_output(output_filename, jdata_list, 1e-11, 1e-11);
+  verify_output(output_filename, jdata_list, 1e-11, 1e-12);
 
   // Free the data.
   jdata_list.free_data();
@@ -190,6 +189,6 @@ int main(int argc, char **argv) {
     Runtime::preregister_task_variant<top_level_task>(registrar, "top_level");
   }
 
-  jfock_tasks_h_register();
+  eri_regent_tasks_h_register();
   return Runtime::start(argc, argv);
 }

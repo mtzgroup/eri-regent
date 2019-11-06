@@ -1,12 +1,12 @@
 #include "eri_regent.h"
-#include "../mcmurchie/gamma_table.h"
 #include "helper.h"
-#include "jfock_tasks.h"
 #include "legion.h"
+#include "mcmurchie/gamma_table.h"
 
 using namespace std;
 using namespace Legion;
 
+// TODO: Take gamma table as input.
 EriRegent::EriRegent(Context &ctx, Runtime *runtime)
     : ctx(ctx), runtime(runtime) {
   memory = Machine::MemoryQuery(Machine::get_machine())
