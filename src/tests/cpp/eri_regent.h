@@ -57,17 +57,16 @@ public:
     int get_num_jbras(int L1, int L2);
     int get_num_jkets(int L1, int L2);
 
-    // TODO: Make set methods instead.
-    TeraChemJData *get_jbra_ptr(int L1, int L2, int i);
-    TeraChemJData *get_jket_ptr(int L1, int L2, int i);
+    void set_jbra(int L1, int L2, int i, TeraChemJData &src);
+    void set_jket(int L1, int L2, int i, TeraChemJData &src);
 
-    // TODO: Make set and get methods for output.
-    double *get_output_ptr(int L1, int L2, int i);
-    double *get_density_ptr(int L1, int L2, int i);
+    void set_density(int L1, int L2, int i, double *src);
+    double *get_output(int L1, int L2, int i);
 
   private:
-    int stride(int L1, int L2);
-    int array_data_offset(int L1, int L2);
+    size_t sizeof_jdata();
+    size_t sizeof_jdata_array(int L1, int L2);
+    size_t stride(int L1, int L2);
 
     int num_jbras[MAX_MOMENTUM_INDEX + 1];
     void *jbras[MAX_MOMENTUM_INDEX + 1];

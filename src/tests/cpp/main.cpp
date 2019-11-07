@@ -51,11 +51,12 @@ void read_data_files(string bra_filename, string ket_filename,
   while (fscanf(bra_filep, "L1=%d,L2=%d,N=%d\n", &L1, &L2, &n) == 3) {
     data_list->allocate_jbras(L1, L2, n);
     for (int i = 0; i < n; i++) {
-      EriRegent::TeraChemJData *jbra = data_list->get_jbra_ptr(L1, L2, i);
-      int num_values = fscanf(
-          bra_filep, "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%f\n", &jbra->x,
-          &jbra->y, &jbra->z, &jbra->eta, &jbra->C, &jbra->bound);
+      EriRegent::TeraChemJData jbra;
+      int num_values =
+          fscanf(bra_filep, "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%f\n",
+                 &jbra.x, &jbra.y, &jbra.z, &jbra.eta, &jbra.C, &jbra.bound);
       assert(num_values == 6 && "Did not read all values in line!");
+      data_list->set_jbra(L1, L2, i, jbra);
     }
   }
 
@@ -63,17 +64,19 @@ void read_data_files(string bra_filename, string ket_filename,
     data_list->allocate_jkets(L1, L2, n);
     const int H = COMPUTE_H(L1 + L2);
     for (int i = 0; i < n; i++) {
-      EriRegent::TeraChemJData *jket = data_list->get_jket_ptr(L1, L2, i);
+      EriRegent::TeraChemJData jket;
       int num_values =
           fscanf(ket_filep,
-                 "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%f,density=", &jket->x,
-                 &jket->y, &jket->z, &jket->eta, &jket->C, &jket->bound);
+                 "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%f,density=", &jket.x,
+                 &jket.y, &jket.z, &jket.eta, &jket.C, &jket.bound);
       assert(num_values == 6 && "Did not read all values in line!");
-      double *density = data_list->get_density_ptr(L1, L2, i);
+      data_list->set_jket(L1, L2, i, jket);
+      double density[COMPUTE_H(L1 + L2)];
       for (int j = 0; j < H; j++) {
-        num_values = fscanf(ket_filep, "%lf;", density + j);
+        num_values = fscanf(ket_filep, "%lf;", &density[j]);
         assert(num_values == 1 && "Did not read all density values!");
       }
+      data_list->set_density(L1, L2, i, density);
       num_values = fscanf(ket_filep, "\n");
       assert(num_values == 0 && "Did not read newline!");
     }
@@ -99,7 +102,7 @@ void verify_output(string filename, EriRegent::TeraChemJDataList &jdata_list,
       for (int j = 0; j < H; j++) {
         int num_values = fscanf(filep, "%lf\t", &expected);
         assert(num_values == 1 && "Output value not read!");
-        double result = jdata_list.get_output_ptr(L1, L2, i)[j];
+        double result = jdata_list.get_output(L1, L2, i)[j];
         double absolute_error = fabs(expected - result);
         double relative_error = fabs(absolute_error / expected);
         max_absolue_error = fmax(absolute_error, max_absolue_error);

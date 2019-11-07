@@ -237,46 +237,52 @@ int EriRegent::TeraChemJDataList::get_num_jbras(int L1, int L2) {
   assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
   return num_jbras[L_PAIR_TO_INDEX(L1, L2)];
 }
+
 int EriRegent::TeraChemJDataList::get_num_jkets(int L1, int L2) {
   assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
   return num_jkets[L_PAIR_TO_INDEX(L1, L2)];
 }
 
-EriRegent::TeraChemJData *
-EriRegent::TeraChemJDataList::get_jbra_ptr(int L1, int L2, int i) {
-  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+void EriRegent::TeraChemJDataList::set_jbra(int L1, int L2, int i,
+                                            EriRegent::TeraChemJData &src) {
   assert(0 <= i && i < get_num_jbras(L1, L2));
-  return (EriRegent::TeraChemJData *)((char *)jbras[L_PAIR_TO_INDEX(L1, L2)] +
-                                      i * stride(L1, L2));
-}
-EriRegent::TeraChemJData *
-EriRegent::TeraChemJDataList::get_jket_ptr(int L1, int L2, int i) {
-  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
-  assert(0 <= i && i < get_num_jkets(L1, L2));
-  return (EriRegent::TeraChemJData *)((char *)jkets[L_PAIR_TO_INDEX(L1, L2)] +
-                                      i * stride(L1, L2));
+  void *dest = (char *)jbras[L_PAIR_TO_INDEX(L1, L2)] + i * stride(L1, L2);
+  memcpy(dest, (const void *)&src, sizeof_jdata());
 }
 
-double *EriRegent::TeraChemJDataList::get_output_ptr(int L1, int L2, int i) {
-  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+void EriRegent::TeraChemJDataList::set_jket(int L1, int L2, int i,
+                                            EriRegent::TeraChemJData &src) {
+  assert(0 <= i && i < get_num_jkets(L1, L2));
+  void *dest = (char *)jkets[L_PAIR_TO_INDEX(L1, L2)] + i * stride(L1, L2);
+  memcpy(dest, (const void *)&src, sizeof_jdata());
+}
+
+double *EriRegent::TeraChemJDataList::get_output(int L1, int L2, int i) {
   assert(0 <= i && i < get_num_jbras(L1, L2));
   return (double *)((char *)jbras[L_PAIR_TO_INDEX(L1, L2)] +
-                    i * stride(L1, L2) + array_data_offset(L1, L2));
+                    i * stride(L1, L2) + sizeof_jdata());
 }
-double *EriRegent::TeraChemJDataList::get_density_ptr(int L1, int L2, int i) {
-  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+
+void EriRegent::TeraChemJDataList::set_density(int L1, int L2, int i,
+                                               double *src) {
   assert(0 <= i && i < get_num_jkets(L1, L2));
-  return (double *)((char *)jkets[L_PAIR_TO_INDEX(L1, L2)] +
-                    i * stride(L1, L2) + array_data_offset(L1, L2));
+  void *dest = (char *)jkets[L_PAIR_TO_INDEX(L1, L2)] + i * stride(L1, L2) +
+               sizeof_jdata();
+  memcpy(dest, (const void *)src, sizeof_jdata_array(L1, L2));
 }
 
-int EriRegent::TeraChemJDataList::stride(int L1, int L2) {
-  const int H = COMPUTE_H(L1 + L2);
-  return 5 * sizeof(double) + sizeof(float) + H * sizeof(double);
-}
-
-int EriRegent::TeraChemJDataList::array_data_offset(int L1, int L2) {
+size_t EriRegent::TeraChemJDataList::sizeof_jdata() {
   return 5 * sizeof(double) + sizeof(float);
+}
+
+size_t EriRegent::TeraChemJDataList::sizeof_jdata_array(int L1, int L2) {
+  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+  return sizeof(double) * COMPUTE_H(L1 + L2);
+}
+
+size_t EriRegent::TeraChemJDataList::stride(int L1, int L2) {
+  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
+  return sizeof_jdata() + sizeof_jdata_array(L1, L2);
 }
 
 int EriRegent::TeraChemJDataList::get_largest_momentum() {
