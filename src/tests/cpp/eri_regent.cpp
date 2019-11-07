@@ -13,7 +13,19 @@ EriRegent::EriRegent(Context &ctx, Runtime *runtime,
                .only_kind(Memory::SYSTEM_MEM)
                .first();
 
-  create_gamma_table_region(gamma_table);
+  // Create gamma table region
+  const Rect<2> rect({0, 0}, {18 - 1, 700 - 1});
+  const IndexSpace ispace = runtime->create_index_space(ctx, rect);
+  const FieldSpace fspace = runtime->create_field_space(ctx);
+  {
+    FieldAllocator falloc = runtime->create_field_allocator(ctx, fspace);
+    falloc.allocate_field(5 * sizeof(double), GAMMA_TABLE_FIELD_ID);
+  }
+  gamma_table_lr = runtime->create_logical_region(ctx, ispace, fspace);
+  AttachLauncher launcher(EXTERNAL_INSTANCE, gamma_table_lr, gamma_table_lr);
+  launcher.attach_array_aos((void *)gamma_table, /*column major*/ false,
+                            {GAMMA_TABLE_FIELD_ID}, memory);
+  gamma_table_pr = runtime->attach_external_resource(ctx, launcher);
 
   initialize_field_spaces();
 }
@@ -25,6 +37,7 @@ EriRegent::~EriRegent() {
 
 void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
                                   float threshold, int parallelism) {
+  // Create jbra regions
   LogicalRegion jbras_lr_list[MAX_MOMENTUM_INDEX + 1];
   PhysicalRegion jbras_pr_list[MAX_MOMENTUM_INDEX + 1];
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
@@ -43,6 +56,7 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
     }
   }
 
+  // Create jket regions
   LogicalRegion jkets_lr_list[MAX_MOMENTUM_INDEX + 1];
   PhysicalRegion jkets_pr_list[MAX_MOMENTUM_INDEX + 1];
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
@@ -127,25 +141,6 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
       runtime->destroy_logical_region(ctx, jkets_lr_list[index]);
     }
   }
-}
-
-void EriRegent::create_gamma_table_region(
-    const double gamma_table[18][700][5]) {
-  const Rect<2> rect({0, 0}, {18 - 1, 700 - 1});
-  const IndexSpace ispace = runtime->create_index_space(ctx, rect);
-  const FieldSpace fspace = runtime->create_field_space(ctx);
-  {
-    FieldAllocator falloc = runtime->create_field_allocator(ctx, fspace);
-    falloc.allocate_field(5 * sizeof(double), GAMMA_TABLE_FIELD_ID);
-  }
-
-  gamma_table_lr = runtime->create_logical_region(ctx, ispace, fspace);
-
-  AttachLauncher launcher(EXTERNAL_INSTANCE, gamma_table_lr, gamma_table_lr);
-
-  launcher.attach_array_aos((void *)gamma_table, /*column major*/ false,
-                            {GAMMA_TABLE_FIELD_ID}, memory);
-  gamma_table_pr = runtime->attach_external_resource(ctx, launcher);
 }
 
 void EriRegent::initialize_field_spaces() {
@@ -257,14 +252,14 @@ void EriRegent::TeraChemJDataList::set_jket(int L1, int L2, int i,
   memcpy(dest, (const void *)&src, sizeof_jdata());
 }
 
-double *EriRegent::TeraChemJDataList::get_output(int L1, int L2, int i) {
+const double *EriRegent::TeraChemJDataList::get_output(int L1, int L2, int i) {
   assert(0 <= i && i < get_num_jbras(L1, L2));
   return (double *)((char *)jbras[L_PAIR_TO_INDEX(L1, L2)] +
                     i * stride(L1, L2) + sizeof_jdata());
 }
 
 void EriRegent::TeraChemJDataList::set_density(int L1, int L2, int i,
-                                               double *src) {
+                                               const double *src) {
   assert(0 <= i && i < get_num_jkets(L1, L2));
   void *dest = (char *)jkets[L_PAIR_TO_INDEX(L1, L2)] + i * stride(L1, L2) +
                sizeof_jdata();
