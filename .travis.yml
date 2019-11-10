@@ -21,11 +21,11 @@ before_install:
   - export LG_RT_DIR="$HOME/legion/runtime"
 
 install:
-  - pushd .
   - # Compile libERIRegent.so
-  - cd src; MAX_MOMENTUM=D make
+  - MAX_MOMENTUM=D make
+  - pushd .
   - # Compile test binary
-  - cd tests/cpp; make
+  - cd src/tests/cpp; make
   - popd
 
 script:
