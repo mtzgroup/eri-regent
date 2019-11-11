@@ -108,18 +108,16 @@ do
     r_gamma_table, threshold, parallelism)]
 end
 
-local library_directory = nil
+local header, lib = nil, nil
 for i, arg_value in ipairs(arg) do
   if arg[i] == "--lib" then
-    library_directory = arg[i+1]
+    lib = arg[i+1]
   elseif arg[i] == "--header" then
-    header_directory = arg[i+1]
+    header = arg[i+1]
   end
 end
-assert(library_directory ~= nil and header_directory ~= nil,
-       "Must give library and header directories `--lib [path] --header [path]`")
+assert(header ~= nil and lib ~= nil,
+       "Must give library and header path `--lib [path] --header [path]`")
 
-local header = header_directory .. "/eri_regent_tasks.h"
-local lib = library_directory .. "/libERIRegent.so"
 regentlib.save_tasks(header, lib)
 print("Generated header at "..header.." and library at "..lib)
