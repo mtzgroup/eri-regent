@@ -21,7 +21,7 @@ $(TARGETS): $(RGSRCS)
 ifndef MAX_MOMENTUM
 	$(error Please set MAX_MOMENTUM to one of `[S|P|D|F|G]`)
 endif
-  @mkdir -p $(PREFIX)/lib $(PREFIX)/include
+	@mkdir -p $(PREFIX)/lib $(PREFIX)/include
 	$(REGENT) src/generate_lib.rg --lib $(PREFIX)/lib/libERIRegent.so \
 	                              --header $(PREFIX)/include/eri_regent_tasks.h \
 															  -L $(MAX_MOMENTUM) $(RGFLAGS)
