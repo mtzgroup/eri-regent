@@ -11,7 +11,7 @@ RG_RT_DIR := $(LG_RT_DIR)/../bindings/regent
 
 CXX := c++
 CFLAGS := -O2 -Wall -Werror -std=c++11
-INCLUDES := -I$(LG_RT_DIR) -I$(RG_RT_DIR) -I$(ERI_REGENT_HEADERS)
+INCLUDES := -I$(LG_RT_DIR) -I$(RG_RT_DIR) -I$(PREFIX)/include -I$(PREFIX)/../src
 LFLAGS := -L$(RG_RT_DIR) -L$(ERI_REGENT_LIB)
 LIBS := -lregent -lERIRegent
 LDDFLAGS := -Wl,-rpath,$(RG_RT_DIR),-rpath,$(ERI_REGENT_LIB)
