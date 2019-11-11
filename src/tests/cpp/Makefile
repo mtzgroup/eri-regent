@@ -3,7 +3,7 @@ $(error Please set LG_RT_DIR to `/path/to/legion/runtime`)
 endif
 
 PREFIX := $(PWD)/../../../build
-TARGET := jfock_test
+TARGET := $(PREFIX)/jfock_test
 ERI_REGENT_LIB := $(PREFIX)/lib
 ERI_REGENT_HEADERS := $(PREFIX)/include/eri_regent_tasks.h
 
