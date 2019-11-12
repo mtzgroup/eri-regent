@@ -1,50 +1,20 @@
 #pragma once
 
-#include "eri_regent_tasks.h"
 #include "helper.h"
 #include "legion.h"
-
-// TODO: Move to EriRegent namespace.
-// TODO: Move definition to `eri_regent.cpp`.
-// TODO: I might not want this function at all.
-/**
- * Starts the legion runtime and then calls the given function. This should be
- * the only function called inside `int main(int argc, char **argv)`.
- *
- * Usage:
- *
- * void original_main(const Task *task, const vector<PhysicalRegion> &regions,
- *                    Context ctx, Runtime *runtime) {
- *   int argc = Runtime::get_input_args().argc;
- *   char **argv = (char **)Runtime::get_input_args().argv;
- *   // Do computations
- * }
- *
- * int main(int argc, char **argv) {
- *   return start_eri_regent_runtime<original_main>(argc, argv);
- * }
- */
-template <void (*TASK_PTR)(const Legion::Task *,
-                           const std::vector<Legion::PhysicalRegion> &,
-                           Legion::Context, Legion::Runtime *)>
-int start_eri_regent_runtime(int argc, char **argv) {
-  using namespace Legion;
-  enum { TOP_LEVEL_TASK_ID }; // Task IDs
-  Runtime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
-  {
-    TaskVariantRegistrar registrar(TOP_LEVEL_TASK_ID, "top_level");
-    registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
-    Runtime::preregister_task_variant<TASK_PTR>(registrar, "top_level");
-  }
-  eri_regent_tasks_h_register();
-  return Runtime::start(argc, argv);
-}
 
 class EriRegent {
 public:
   EriRegent(Legion::Context &ctx, Legion::Runtime *runtime,
             const double gamma_table[18][700][5]);
   ~EriRegent();
+
+  /**
+   * Register Regent tasks defined in eri-regent. This is useful because we
+   * don't want to import all of `eri_regent_tasks.h` just to use
+   * `eri_regent_tasks_h_register()`.
+   */
+  static void register_tasks();
 
   struct TeraChemJData {
     double x;
@@ -90,13 +60,14 @@ public:
 
     /**
      * Copy the data from `src` to the density values of jket `i` for a given
-     * angular momentum pair.
+     * angular momentum pair. `src` should have length `COMPUTE_H(L1 + L2)`.
      */
     void set_density(int L1, int L2, int i, const double *src);
 
     /**
      * Get a pointer to the output data of jbra `i` for a given angular
-     * momentum.
+     * momentum. The resulting array has length `COMPUTE_H(L1 + L2)`. Should NOT
+     * be free'd.
      */
     const double *get_output(int L1, int L2, int i);
 
@@ -127,7 +98,7 @@ public:
   };
 
   /**
-   * Launch the jfock regent tasks.
+   * Launch the jfock regent tasks and wait for them to finish.
    */
   void launch_jfock_task(TeraChemJDataList &jdata_list, float threshold,
                          int parallelism);

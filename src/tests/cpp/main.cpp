@@ -7,11 +7,11 @@
 #include <iostream>
 #include <unistd.h>
 
+#include "../mcmurchie/gamma_table.h"
 #include "eri_regent.h"
 #include "helper.h"
 #include "legion.h"
 #include "math.h"
-#include "../mcmurchie/gamma_table.h"
 
 using namespace std;
 using namespace Legion;
@@ -181,5 +181,13 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
 }
 
 int main(int argc, char **argv) {
-  return start_eri_regent_runtime<top_level_task>(argc, argv);
+  enum { TOP_LEVEL_TASK_ID }; // Task IDs
+  Runtime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
+  {
+    TaskVariantRegistrar registrar(TOP_LEVEL_TASK_ID, "top_level");
+    registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
+    Runtime::preregister_task_variant<top_level_task>(registrar, "top_level");
+  }
+  EriRegent::register_tasks();
+  return Runtime::start(argc, argv);
 }

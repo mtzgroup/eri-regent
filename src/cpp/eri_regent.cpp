@@ -1,4 +1,5 @@
 #include "eri_regent.h"
+#include "eri_regent_tasks.h"
 #include "helper.h"
 #include "legion.h"
 
@@ -34,6 +35,8 @@ EriRegent::~EriRegent() {
   runtime->detach_external_resource(ctx, gamma_table_pr);
   runtime->destroy_logical_region(ctx, gamma_table_lr);
 }
+
+void EriRegent::register_tasks() { eri_regent_tasks_h_register(); }
 
 void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
                                   float threshold, int parallelism) {
