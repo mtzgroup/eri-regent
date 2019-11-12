@@ -11,7 +11,7 @@
 #include "helper.h"
 #include "legion.h"
 #include "math.h"
-#include "../../mcmurchie/gamma_table.h"
+#include "../mcmurchie/gamma_table.h"
 
 using namespace std;
 using namespace Legion;
