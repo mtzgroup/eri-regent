@@ -30,4 +30,4 @@ lint: $(SRCS) $(HEADERS)
 	clang-format -i $(SRCS) $(HEADERS)
 
 clean:
-	$(RM) $(TARGET)
+	@rm -f $(TARGET)

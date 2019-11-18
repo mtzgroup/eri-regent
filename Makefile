@@ -28,4 +28,4 @@ endif
 	$(REGENT) src/generate_lib.rg --lib $(RGLIB)/libERIRegent.so --header $(RGINCLUDE)/eri_regent_tasks.h -L $(RG_MAX_MOMENTUM) $(RGFLAGS)
 
 rg.clean:
-	$(RM) $(RGTARGETS)
+	@rm -f $(RGTARGETS)
