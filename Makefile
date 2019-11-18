@@ -25,9 +25,7 @@ ifndef RG_MAX_MOMENTUM
 	$(error Please set RG_MAX_MOMENTUM to one of `[S|P|D|F|G]`)
 endif
 	@mkdir -p $(RGLIB) $(RGINCLUDE)
-	$(REGENT) src/generate_lib.rg --lib $(RGLIB)/libERIRegent.so \
-	                              --header $(RGINCLUDE)/eri_regent_tasks.h \
-															  -L $(RG_MAX_MOMENTUM) $(RGFLAGS)
+	$(REGENT) src/generate_lib.rg --lib $(RGLIB)/libERIRegent.so --header $(RGINCLUDE)/eri_regent_tasks.h -L $(RG_MAX_MOMENTUM) $(RGFLAGS)
 
 rg.clean:
 	$(RM) $(RGTARGETS)
