@@ -1,6 +1,12 @@
-PREFIX := $(PWD)/build
+ifndef RGLIB
+RGLIB := $(PWD)/build/lib
+endif
 
-TARGETS := $(PREFIX)/lib/libERIRegent.so $(PREFIX)/include/eri_regent_tasks.h
+ifndef RGINCLUDE
+RGINCLUDE := $(PWD)/build/include
+endif
+
+RGTARGETS := $(RGLIB)/libERIRegent.so $(RGINCLUDE)/eri_regent_tasks.h
 
 REGENT := regent
 RGFLAGS := -fflow 0
@@ -10,21 +16,18 @@ RGSRCS += src/mcmurchie/jfock/generate_jfock_integral.rg
 RGSRCS += src/mcmurchie/jfock/generate_kernel_statements.rg
 RGSRCS += src/mcmurchie/jfock/generate_R_table.rg
 
-# TODO: Compile api and add to lib
-# TODO: Make module.mk
+.PHONY: rg.clean
 
-.PHONY: clean
+all: $(RGTARGETS)
 
-all: $(TARGETS)
-
-$(TARGETS): $(RGSRCS)
-ifndef MAX_MOMENTUM
-	$(error Please set MAX_MOMENTUM to one of `[S|P|D|F|G]`)
+$(RGTARGETS): $(RGSRCS)
+ifndef RG_MAX_MOMENTUM
+	$(error Please set RG_MAX_MOMENTUM to one of `[S|P|D|F|G]`)
 endif
-	@mkdir -p $(PREFIX)/lib $(PREFIX)/include
-	$(REGENT) src/generate_lib.rg --lib $(PREFIX)/lib/libERIRegent.so \
-	                              --header $(PREFIX)/include/eri_regent_tasks.h \
-															  -L $(MAX_MOMENTUM) $(RGFLAGS)
+	@mkdir -p $(RGLIB) $(RGINCLUDE)
+	$(REGENT) src/generate_lib.rg --lib $(RGLIB)/libERIRegent.so \
+	                              --header $(RGINCLUDE)/eri_regent_tasks.h \
+															  -L $(RG_MAX_MOMENTUM) $(RGFLAGS)
 
-clean:
-	$(RM) $(TARGETS)
+rg.clean:
+	$(RM) $(RGTARGETS)

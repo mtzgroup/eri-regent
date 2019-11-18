@@ -55,8 +55,8 @@ public:
      * Copy the data from `src` to jbra/jket `i` for a given angular momentum
      * pair.
      */
-    void set_jbra(int L1, int L2, int i, TeraChemJData &src);
-    void set_jket(int L1, int L2, int i, TeraChemJData &src);
+    void set_jbra(int L1, int L2, int i, const TeraChemJData &src);
+    void set_jket(int L1, int L2, int i, const TeraChemJData &src);
 
     /**
      * Copy the data from `src` to the density values of jket `i` for a given

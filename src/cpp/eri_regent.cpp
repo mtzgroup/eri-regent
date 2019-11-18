@@ -241,15 +241,15 @@ int EriRegent::TeraChemJDataList::get_num_jkets(int L1, int L2) {
   return num_jkets[L_PAIR_TO_INDEX(L1, L2)];
 }
 
-void EriRegent::TeraChemJDataList::set_jbra(int L1, int L2, int i,
-                                            EriRegent::TeraChemJData &src) {
+void EriRegent::TeraChemJDataList::set_jbra(
+    int L1, int L2, int i, const EriRegent::TeraChemJData &src) {
   assert(0 <= i && i < get_num_jbras(L1, L2));
   void *dest = (char *)jbras[L_PAIR_TO_INDEX(L1, L2)] + i * stride(L1, L2);
   memcpy(dest, (const void *)&src, sizeof_jdata());
 }
 
-void EriRegent::TeraChemJDataList::set_jket(int L1, int L2, int i,
-                                            EriRegent::TeraChemJData &src) {
+void EriRegent::TeraChemJDataList::set_jket(
+    int L1, int L2, int i, const EriRegent::TeraChemJData &src) {
   assert(0 <= i && i < get_num_jkets(L1, L2));
   void *dest = (char *)jkets[L_PAIR_TO_INDEX(L1, L2)] + i * stride(L1, L2);
   memcpy(dest, (const void *)&src, sizeof_jdata());
