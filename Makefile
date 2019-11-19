@@ -25,7 +25,7 @@ RGSRCS += $(RGSRC)/mcmurchie/jfock/generate_R_table.rg
 
 .PHONY: rg.clean
 
-all: $(RGLIB)/libERIRegent.so
+all: $(RGTARGETS)
 
 $(RGLIB)/libERIRegent.so: $(RGSRCS)
 ifndef RG_MAX_MOMENTUM
@@ -33,6 +33,8 @@ ifndef RG_MAX_MOMENTUM
 endif
 	@mkdir -p $(RGLIB) $(RGINCLUDE)
 	$(REGENT) $(RGSRC)/generate_lib.rg --lib $(RGLIB)/libERIRegent.so --header $(RGINCLUDE)/eri_regent_tasks.h -L $(RG_MAX_MOMENTUM) $(RGFLAGS)
+
+$(RGINCLUDE)/eri_regent_tasks.h: $(RGLIB)/libERIRegent.so
 
 rg.clean:
 	@rm -f $(RGTARGETS)
