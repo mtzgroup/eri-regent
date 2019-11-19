@@ -25,9 +25,9 @@ RGSRCS += $(RGSRC)/mcmurchie/jfock/generate_R_table.rg
 
 .PHONY: rg.clean
 
-all: $(RGTARGETS)
+all: $(RGLIB)/libERIRegent.so
 
-$(RGTARGETS): $(RGSRCS)
+$(RGLIB)/libERIRegent.so: $(RGSRCS)
 ifndef RG_MAX_MOMENTUM
 	$(error Please set RG_MAX_MOMENTUM to one of `[S|P|D|F|G]`)
 endif
