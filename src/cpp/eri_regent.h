@@ -32,7 +32,12 @@ public:
     friend class EriRegent;
 
   public:
-    TeraChemJDataList() : num_jbras{0}, num_jkets{0} {}
+    TeraChemJDataList() {
+      for (int i = 0; i < MAX_MOMENTUM_INDEX + 1; i++) {
+        num_jbras[i] = 0;
+        num_jkets[i] = 0;
+      }
+    }
 
     /**
      * Allocate `n` jbras/jkets for a given angular momentum pair.
