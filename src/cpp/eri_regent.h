@@ -5,8 +5,11 @@
 
 class EriRegent {
 public:
+  /**
+   * `gamma_table` must have size 18 x 700 x 5
+   */
   EriRegent(Legion::Context &ctx, Legion::Runtime *runtime,
-            const double gamma_table[18][700][5]);
+            const double *gamma_table);
   ~EriRegent();
 
   /**

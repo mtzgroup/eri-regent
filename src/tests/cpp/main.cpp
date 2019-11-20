@@ -164,7 +164,7 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
   cout << "Verifying with input data from " << input_directory << endl;
 
   // `EriRegent` should be initialized once at the start of the program.
-  EriRegent eri_regent(ctx, runtime, gamma_table);
+  EriRegent eri_regent(ctx, runtime, (const double *)gamma_table);
 
   // Create a `TeraChemJDataList` and copy data to it.
   EriRegent::TeraChemJDataList jdata_list;

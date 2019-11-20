@@ -6,8 +6,7 @@
 using namespace std;
 using namespace Legion;
 
-EriRegent::EriRegent(Context &ctx, Runtime *runtime,
-                     const double gamma_table[18][700][5])
+EriRegent::EriRegent(Context &ctx, Runtime *runtime, const double *gamma_table)
     : ctx(ctx), runtime(runtime) {
   memory = Machine::MemoryQuery(Machine::get_machine())
                .has_affinity_to(runtime->get_executing_processor(ctx))
