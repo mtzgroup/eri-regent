@@ -123,6 +123,9 @@ private:
 /**
  * Generate a list of all fields for a given fspace.
  */
+#define NUM_JBRA_FIELDS (7)
+#define NUM_JKET_FIELDS (7)
+
 #define JBRA_FIELD_IDS(L1, L2)                                                 \
   JBRA_FIELD_ID(L1, L2, X), JBRA_FIELD_ID(L1, L2, Y),                          \
       JBRA_FIELD_ID(L1, L2, Z), JBRA_FIELD_ID(L1, L2, ETA),                    \
@@ -177,16 +180,16 @@ private:
    * `jbra_fields_list[L_PAIR_TO_INDEX(L1, L2)] = JBRA_FIELD_IDS(L1, L2)`. This
    * is useful because we need to index them at runtime.
    */
-  const std::vector<Legion::FieldID> jbra_fields_list[MAX_MOMENTUM_INDEX +
-                                                      1] = {
+  const Legion::FieldID jbra_fields_list[MAX_MOMENTUM_INDEX +
+                                         1][NUM_JBRA_FIELDS]{
       {JBRA_FIELD_IDS(0, 0)}, {JBRA_FIELD_IDS(0, 1)}, {JBRA_FIELD_IDS(0, 2)},
       {JBRA_FIELD_IDS(0, 3)}, {JBRA_FIELD_IDS(0, 4)}, {JBRA_FIELD_IDS(1, 1)},
       {JBRA_FIELD_IDS(1, 2)}, {JBRA_FIELD_IDS(1, 3)}, {JBRA_FIELD_IDS(1, 4)},
       {JBRA_FIELD_IDS(2, 2)}, {JBRA_FIELD_IDS(2, 3)}, {JBRA_FIELD_IDS(2, 4)},
       {JBRA_FIELD_IDS(3, 3)}, {JBRA_FIELD_IDS(3, 4)}, {JBRA_FIELD_IDS(4, 4)},
   };
-  const std::vector<Legion::FieldID> jket_fields_list[MAX_MOMENTUM_INDEX +
-                                                      1] = {
+  const Legion::FieldID jket_fields_list[MAX_MOMENTUM_INDEX +
+                                         1][NUM_JKET_FIELDS] = {
       {JKET_FIELD_IDS(0, 0)}, {JKET_FIELD_IDS(0, 1)}, {JKET_FIELD_IDS(0, 2)},
       {JKET_FIELD_IDS(0, 3)}, {JKET_FIELD_IDS(0, 4)}, {JKET_FIELD_IDS(1, 1)},
       {JKET_FIELD_IDS(1, 2)}, {JKET_FIELD_IDS(1, 3)}, {JKET_FIELD_IDS(1, 4)},

@@ -52,9 +52,11 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
           runtime->create_logical_region(ctx, ispace, jbra_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, jbras_lr_list[index],
                               jbras_lr_list[index]);
+      const vector<FieldID> field_list(
+          jbra_fields_list[index], jbra_fields_list[index] + NUM_JBRA_FIELDS);
       // TODO: Consider using soa format if it helps performance.
       launcher.attach_array_aos(jdata_list.jbras[index], /*column major*/ false,
-                                jbra_fields_list[index], memory);
+                                field_list, memory);
       jbras_pr_list[index] = runtime->attach_external_resource(ctx, launcher);
     }
   }
@@ -71,8 +73,10 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
           runtime->create_logical_region(ctx, ispace, jket_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, jkets_lr_list[index],
                               jkets_lr_list[index]);
+      const vector<FieldID> field_list(
+          jket_fields_list[index], jket_fields_list[index] + NUM_JKET_FIELDS);
       launcher.attach_array_aos(jdata_list.jkets[index], /*column major*/ false,
-                                jket_fields_list[index], memory);
+                                field_list, memory);
       jkets_pr_list[index] = runtime->attach_external_resource(ctx, launcher);
     }
   }
@@ -80,10 +84,14 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
   jfock_task_launcher launcher;
 
 #define ADD_ARGUMENT_R_JBRAS(L1, L2)                                           \
-  launcher.add_argument_r_jbras##L1##L2(                                       \
-      jbras_lr_list[L_PAIR_TO_INDEX(L1, L2)],                                  \
-      jbras_lr_list[L_PAIR_TO_INDEX(L1, L2)],                                  \
-      jbra_fields_list[L_PAIR_TO_INDEX(L1, L2)])
+  {                                                                            \
+    const vector<FieldID> field_list(                                          \
+        jbra_fields_list[L_PAIR_TO_INDEX(L1, L2)],                             \
+        jbra_fields_list[L_PAIR_TO_INDEX(L1, L2)] + NUM_JBRA_FIELDS);          \
+    launcher.add_argument_r_jbras##L1##L2(                                     \
+        jbras_lr_list[L_PAIR_TO_INDEX(L1, L2)],                                \
+        jbras_lr_list[L_PAIR_TO_INDEX(L1, L2)], field_list);                   \
+  }
 
   ADD_ARGUMENT_R_JBRAS(0, 0);
   ADD_ARGUMENT_R_JBRAS(0, 1);
@@ -104,10 +112,14 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
 #undef ADD_ARGUMENT_R_JBRAS
 
 #define ADD_ARGUMENT_R_JKETS(L1, L2)                                           \
-  launcher.add_argument_r_jkets##L1##L2(                                       \
-      jkets_lr_list[L_PAIR_TO_INDEX(L1, L2)],                                  \
-      jkets_lr_list[L_PAIR_TO_INDEX(L1, L2)],                                  \
-      jket_fields_list[L_PAIR_TO_INDEX(L1, L2)])
+  {                                                                            \
+    const vector<FieldID> field_list(                                          \
+        jket_fields_list[L_PAIR_TO_INDEX(L1, L2)],                             \
+        jket_fields_list[L_PAIR_TO_INDEX(L1, L2)] + NUM_JKET_FIELDS);          \
+    launcher.add_argument_r_jkets##L1##L2(                                     \
+        jkets_lr_list[L_PAIR_TO_INDEX(L1, L2)],                                \
+        jkets_lr_list[L_PAIR_TO_INDEX(L1, L2)], field_list);                   \
+  }
 
   ADD_ARGUMENT_R_JKETS(0, 0);
   ADD_ARGUMENT_R_JKETS(0, 1);
