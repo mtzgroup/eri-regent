@@ -40,6 +40,14 @@ When more than 1 GB of memory is needed, you must build Legion with `luajit2.1`.
 
 
 ## Testing with Python3
+First compile the test cpp code which creates `jfock_test` inside the `build` directory.
+
+```bash
+cd src/test/cpp
+make
+```
+
+Then use `python3` to run the tests.
 
 ```bash
 python scripts/test.py
