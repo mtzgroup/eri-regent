@@ -6,8 +6,12 @@
 using namespace std;
 using namespace Legion;
 
-EriRegent::EriRegent(Context &ctx, Runtime *runtime, const double *gamma_table)
-    : ctx(ctx), runtime(runtime) {
+EriRegent::EriRegent(const double *gamma_table) {
+  runtime = Runtime::get_runtime();
+  ctx = runtime->begin_implicit_task(ERI_REGENT_TASK_ID,
+                                     /*mapper_id=*/0, Processor::LOC_PROC,
+                                     "eri_regent_toplevel_task",
+                                     /*control_replicable=*/true);
   memory = Machine::MemoryQuery(Machine::get_machine())
                .has_affinity_to(runtime->get_executing_processor(ctx))
                .only_kind(Memory::SYSTEM_MEM)

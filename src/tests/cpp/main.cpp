@@ -129,11 +129,7 @@ void print_usage_and_abort(int argc, char **argv) {
   assert(false);
 }
 
-void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
-                    Context ctx, Runtime *runtime) {
-  int argc = Runtime::get_input_args().argc;
-  char **argv = (char **)Runtime::get_input_args().argv;
-
+int main(int argc, char **argv) {
   int parallelism = 1;
   string input_directory;
 
@@ -163,8 +159,14 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
 
   cout << "Verifying with input data from " << input_directory << endl;
 
+  // `register_tasks` should be called once before starting the Legion runtime
+  EriRegent::register_tasks();
+
+  // Pass Realm arguments and start the Legion runtime
+  Runtime::start(argc, argv, /*background=*/true);
+
   // `EriRegent` should be initialized once at the start of the program.
-  EriRegent eri_regent(ctx, runtime, (const double *)gamma_table);
+  EriRegent eri_regent((const double *)gamma_table);
 
   // Create a `TeraChemJDataList` and copy data to it.
   EriRegent::TeraChemJDataList jdata_list;
@@ -178,16 +180,4 @@ void top_level_task(const Task *task, const vector<PhysicalRegion> &regions,
 
   // Free the data.
   jdata_list.free_data();
-}
-
-int main(int argc, char **argv) {
-  enum { TOP_LEVEL_TASK_ID }; // Task IDs
-  Runtime::set_top_level_task_id(TOP_LEVEL_TASK_ID);
-  {
-    TaskVariantRegistrar registrar(TOP_LEVEL_TASK_ID, "top_level");
-    registrar.add_constraint(ProcessorConstraint(Processor::LOC_PROC));
-    Runtime::preregister_task_variant<top_level_task>(registrar, "top_level");
-  }
-  EriRegent::register_tasks();
-  return Runtime::start(argc, argv);
 }

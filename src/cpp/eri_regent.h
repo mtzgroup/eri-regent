@@ -8,8 +8,7 @@ public:
   /**
    * `gamma_table` must have size 18 x 700 x 5
    */
-  EriRegent(Legion::Context &ctx, Legion::Runtime *runtime,
-            const double *gamma_table);
+  EriRegent(const double *gamma_table);
   ~EriRegent();
 
   /**
@@ -147,9 +146,11 @@ private:
       JKET_FIELD_ID(L1, L2, DENSITY)
 
   /**
-   * An enum of all the fields so that we can uniquely identify them
+   * An enum containing all the tasks and fields so that we can uniquely
+   * identify them
    */
-  enum { // Field IDs
+  enum { // Task IDs and Field IDs
+    ERI_REGENT_TASK_ID,
     GAMMA_TABLE_FIELD_ID,
     JBRA_FIELD_IDS(0, 0),
     JKET_FIELD_IDS(0, 0),
