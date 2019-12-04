@@ -12,9 +12,9 @@ public:
   ~EriRegent();
 
   /**
-   * Register Regent tasks defined in eri-regent. This is useful because we
-   * don't want to import all of `eri_regent_tasks.h` just to use
-   * `eri_regent_tasks_h_register()`.
+   * Register Regent tasks defined in eri-regent. Must be called before starting
+   * the Legion runtime. This is useful because we don't want to import all of
+   * `eri_regent_tasks.h` just to use `eri_regent_tasks_h_register()`.
    */
   static void register_tasks();
 
