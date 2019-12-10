@@ -15,8 +15,10 @@ REGENT := regent
 endif
 
 ifndef RGFLAGS
-RGFLAGS := -fflow 0
+RGFLAGS :=
 endif
+
+RGFLAGS += -fflow 0
 
 RGTARGETS := $(RGLIB)/libERIRegent.so $(RGINCLUDE)/eri_regent_tasks.h
 
