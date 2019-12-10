@@ -14,9 +14,11 @@ ifndef REGENT
 REGENT := regent
 endif
 
-RGTARGETS := $(RGLIB)/libERIRegent.so $(RGINCLUDE)/eri_regent_tasks.h
-
+ifndef RGFLAGS
 RGFLAGS := -fflow 0
+endif
+
+RGTARGETS := $(RGLIB)/libERIRegent.so $(RGINCLUDE)/eri_regent_tasks.h
 
 RGSRCS := $(RGSRC)/jfock.rg $(RGSRC)/fields.rg $(RGSRC)/helper.rg $(RGSRC)/generate_lib.rg
 RGSRCS += $(RGSRC)/mcmurchie/jfock/generate_jfock_integral.rg
