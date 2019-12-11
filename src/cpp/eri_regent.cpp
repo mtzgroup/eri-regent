@@ -213,8 +213,8 @@ void EriRegent::initialize_field_spaces() {
 }
 
 void EriRegent::TeraChemJDataList::allocate_jbras(int L1, int L2, int n) {
+  assert(0 <= L1 && L1 <= L2 && L2 <= MAX_MOMENTUM);
   const int index = L_PAIR_TO_INDEX(L1, L2);
-  assert(0 <= index && index <= MAX_MOMENTUM_INDEX);
   if (n > 0) {
     num_jbras[index] = n;
     jbras[index] = calloc(n, stride(L1, L2));
