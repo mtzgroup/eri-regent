@@ -30,12 +30,7 @@ function writeJBrasToRegions(filename, region_vars)
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
-      local L12
-      if getIntegralType() == "jfock" then
-        L12 = L1 + L2
-      elseif getIntegralType() == "jgrad" then
-        L12 = L1 + L2 + 1
-      end
+      local L12 = L1 + L2
       local H = computeH(L12)
       local field_space = getJBra(L12)
       local r_jbras = region_vars[L1][L2]
@@ -135,12 +130,7 @@ function writeOutput(r_jbras_list, filename)
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
-      local L12
-      if getIntegralType() == "jfock" then
-        L12 = L1 + L2
-      elseif getIntegralType() == "jgrad" then
-        L12 = L1 + L2 + 1
-      end
+      local L12 = L1 + L2
       local H = computeH(L12)
       statements:insert(rquote
         c.fprintf(filep, "L1=%d,L2=%d,N=%d\n",
@@ -175,12 +165,7 @@ function verifyOutput(r_jbras_list, delta, epsilon, filename)
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
-      local L12
-      if getIntegralType() == "jfock" then
-        L12 = L1 + L2
-      elseif getIntegralType() == "jgrad" then
-        L12 = L1 + L2 + 1
-      end
+      local L12 = L1 + L2
       local H = computeH(L12)
       local r_jbras = r_jbras_list[L1][L2]
       statements:insert(rquote

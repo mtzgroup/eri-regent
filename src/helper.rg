@@ -13,22 +13,6 @@ function getCompiledMaxMomentum()
   return _max_momentum
 end
 
--- Returns the integral type determined at Regent compile time
-local _integral_type = nil
-function getIntegralType()
-  if _integral_type == nil then
-    _integral_type = "jfock"
-    for i, arg_value in ipairs(arg) do
-      if arg[i] == "-t" then
-        _integral_type = arg[i+1]
-      end
-    end
-    assert(_integral_type == "jfock" or _integral_type == "jgrad",
-           "Please specify valid integral type `-t [jfock|jgrad]`")
-  end
-  return _integral_type
-end
-
 -- The string representation of a given angular momentum
 LToStr = {
   [0] = "S", [1] = "P", [2] = "D", [3] = "F", [4] = "G"

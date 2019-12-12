@@ -86,7 +86,7 @@ where
     r_jkets44
   )
 do
-  regentlib.assert(largest_momentum <= [getCompiledMaxMomentum()],
+  regentlib.assert(largest_momentum <= [getCompiledMaxMomentum()] + 1,
       "Please recompile eri-regent with a larger max momentum!");
   [jfock(
     {

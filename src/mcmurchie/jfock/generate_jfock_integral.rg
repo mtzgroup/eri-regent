@@ -35,7 +35,8 @@ function generateTaskMcMurchieJFockIntegral(L12, L34)
 
   local
   __demand(__leaf)
-  __demand(__cuda)
+  -- FIXME: This pragma is unstable in Legion
+  -- __demand(__cuda)
   task jfock_integral(r_jbras       : region(ispace(int1d), getJBra(L12)),
                       r_jkets       : region(ispace(int1d), getJKet(L34)),
                       r_gamma_table : region(ispace(int2d), double[5]),

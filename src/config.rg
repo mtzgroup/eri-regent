@@ -18,7 +18,6 @@ struct Config {
 
 terra Config:dump()
   c.printf("Config:")
-  c.printf("\tintegral_type: %s\n", [getIntegralType()])
   c.printf("\tparallelism: %d\n", self.parallelism)
   c.printf("\tinput_directory: %s\n", self.input_directory)
   c.printf("\toutput_filename: %s\n", self.output_filename)
@@ -32,7 +31,6 @@ terra print_usage_and_abort()
   c.printf("Usage: regent coulomb.rg [OPTIONS]\n")
   c.printf("OPTIONS\n")
   c.printf("  -h                   : Print the usage and exit.\n")
-  c.printf("  -t [jfock|jgrad]     : Pick which integral to do.\n")
   c.printf("  -L {value}           : Use {value} as the max momentum (set at compile time).\n")
   c.printf("  -i {directory}       : Use input files in {directory}.\n")
   c.printf("  -p {value}           : Partition bras {value} ways.\n")
@@ -95,15 +93,9 @@ terra Config:initialize_from_command()
     print_usage_and_abort()
   end
 
-  if [getIntegralType() == "jfock"] then
-    c.sprintf(self.bras_filename, "%s/bras.dat", self.input_directory)
-    c.sprintf(self.kets_filename, "%s/kets.dat", self.input_directory)
-    c.sprintf(self.parameters_filename, "%s/parameters.dat", self.input_directory)
-  elseif [getIntegralType() == "jgrad"] then
-    c.sprintf(self.bras_filename, "%s/bras_grad.dat", self.input_directory)
-    c.sprintf(self.kets_filename, "%s/kets_grad.dat", self.input_directory)
-    c.sprintf(self.parameters_filename, "%s/parameters_grad.dat", self.input_directory)
-  end
+  c.sprintf(self.bras_filename, "%s/bras.dat", self.input_directory)
+  c.sprintf(self.kets_filename, "%s/kets.dat", self.input_directory)
+  c.sprintf(self.parameters_filename, "%s/parameters.dat", self.input_directory)
 end
 
 return Config
