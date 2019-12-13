@@ -25,26 +25,28 @@ data_files = [
 # ]
 
 
-def time_regent(file, num_gpus, num_trials):
+def time_eri_regent(eri_binary, directory, num_gpus, num_trials):
     import subprocess, re
 
-    regent_args = "-i %s " % file + "-p %d " % num_gpus + "--trials %d " % num_trials
-    legion_args = (
-        "-ll:cpu 1 -ll:util 1 -ll:gpu %d -ll:csize 1024 -ll:fsize 1024 " % num_gpus
+    args = " -i %s" % directory + " -p %d" % num_gpus + " -t %d" % num_trials
+    realm_args = (
+        " -ll:cpu 1 -ll:util 1 -ll:gpu %d -ll:csize 1024 -ll:fsize 1024" % num_gpus
     )
     output = subprocess.check_output(
-        "regent top.rg " + regent_args + legion_args, cwd="src/", shell=True
+        eri_binary + args + " --" + realm_args, cwd="src/tests", shell=True
     )
-    pattern = re.compile("Coulomb operator: ([0-9.]+) sec")
-    return map(float, pattern.findall(output))
+    pattern = re.compile("Average runtime: ([0-9.]+) seconds.")
+    average_runtime = pattern.findall(str(output))
+    assert len(average_runtime) == 1
+    return float(average_runtime[0])
 
 
 def plot_timings(timings_data):
     from matplotlib import pyplot as plt
 
     for num_molecules, experiments in sorted(timing_data.items()):
-        num_gpus = np.array([n for n, _ in experiments])
-        runtimes = np.mean([r for _, r in experiments], axis=1)
+        num_gpus = np.array([n for n, _ in experiments.items()])
+        runtimes = np.array([r for _, r in experiments.items()])
         efficiency = runtimes[0] / (num_gpus * runtimes)
         plt.plot(num_gpus, efficiency, label=str(num_molecules) + " " + molecule_name)
 
@@ -55,30 +57,30 @@ def plot_timings(timings_data):
     plt.legend()
     plt.show()
 
-    num_molecules = [n for n, _ in timing_data.items()]
-    order = np.argsort(num_molecules)
-    num_molecules = np.sort(num_molecules)
-    num_gpu_trials = np.min([len(r) for _, r in timing_data.items()])
-    for i in range(num_gpu_trials):
-        runtimes = np.mean([r[i][1] for _, r in timing_data.items()], axis=1)
-        runtimes = runtimes[order]
-        num_gpus = [r[i][0] for _, r in timing_data.items()]
-        for n in num_gpus:
-            assert num_gpus[0] == n
-        plt.plot(num_molecules, runtimes, label=str(num_gpus[0]) + " GPUs")
-    plt.plot([50, 10, 250], [0.63, 2.98, 7.6], label="TeraChem")
-
-    plt.title("Runtime of eri-regent for " + molecule_name)
-    plt.ylabel("Runtime (seconds)")
-    plt.xlabel("Number of " + molecule_name)
-    plt.xticks(num_molecules)
-    plt.legend()
-    plt.show()
+    # TODO
+    # num_molecules = [n for n, _ in timing_data.items()]
+    # order = np.argsort(num_molecules)
+    # num_molecules = np.sort(num_molecules)
+    # num_gpu_trials = np.min([len(r) for _, r in timing_data.items()])
+    # for i in range(1, num_gpu_trials + 1):
+    #     runtimes = np.array([r[i] for _, r in timing_data.items()])
+    #     runtimes = runtimes[order]
+    #     plt.plot(num_molecules, runtimes, label=str(i) + " GPUs")
+    # plt.plot([50, 10, 250], [0.63, 2.98, 7.6], label="TeraChem")
+    #
+    # plt.title("Runtime of eri-regent for " + molecule_name)
+    # plt.ylabel("Runtime (seconds)")
+    # plt.xlabel("Number of " + molecule_name)
+    # plt.xticks(num_molecules)
+    # plt.legend()
+    # plt.show()
 
 
 if __name__ == "__main__":
     import numpy as np
-    import argparse
+    import os, argparse
+
+    eri_binary = os.getcwd() + "/build/jfock_test"
 
     parser = argparse.ArgumentParser(description="Benchmark code.")
     parser.add_argument(
@@ -105,23 +107,24 @@ if __name__ == "__main__":
 
     print("Running on up to %d GPUs for %d trials" % (args.max_gpus, args.num_trials))
     timing_data = dict(
-        [
-            (
-                num_molecules,
-                [
-                    (num_gpus, time_regent(file, num_gpus, args.num_trials))
-                    for num_gpus in range(1, args.max_gpus + 1)
-                ],
-            )
-            for num_molecules, file in data_files
-        ]
+        (
+            num_molecules,
+            dict(
+                (
+                    num_gpus,
+                    time_eri_regent(eri_binary, directory, num_gpus, args.num_trials),
+                )
+                for num_gpus in range(1, args.max_gpus + 1)
+            ),
+        )
+        for num_molecules, directory in data_files
     )
 
     for num_molecules, experiments in timing_data.items():
-        for num_gpus, runtimes in experiments:
+        for num_gpus, runtime in experiments.items():
             print(
                 "Average runtime for %d %s molecules on %d GPUs: %f"
-                % (num_molecules, molecule_name, num_gpus, np.mean(runtimes))
+                % (num_molecules, molecule_name, num_gpus, runtime)
             )
 
     if args.output_file is not None:
