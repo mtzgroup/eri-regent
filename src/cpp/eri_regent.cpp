@@ -37,6 +37,7 @@ EriRegent::EriRegent(const double *gamma_table) {
 EriRegent::~EriRegent() {
   runtime->detach_external_resource(ctx, gamma_table_pr);
   runtime->destroy_logical_region(ctx, gamma_table_lr);
+  runtime->finish_implicit_task(ctx);
 }
 
 void EriRegent::register_tasks() { eri_regent_tasks_h_register(); }
