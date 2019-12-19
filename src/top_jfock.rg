@@ -38,8 +38,13 @@ task toplevel()
 
   -- Read regions and parameters from file --
   -------------------------------------------
-  ;[writeJBrasToRegions(rexpr config.bras_filename end, r_jbras_list)]
-  ;[writeJKetsToRegions(rexpr config.kets_filename end, r_jkets_list)]
+  var bras_filename : int8[512]
+  var kets_filename : int8[512]
+  c.sprintf([&int8](bras_filename), "%s/bras.dat", config.input_directory)
+  c.sprintf([&int8](kets_filename), "%s/kets.dat", config.input_directory)
+
+  ;[writeJBrasToRegions(rexpr bras_filename end, r_jbras_list)]
+  ;[writeJKetsToRegions(rexpr kets_filename end, r_jkets_list)]
   var data : double[5]
   readParametersFile(config.parameters_filename, data)
   var parameters = [Parameters]{
@@ -59,7 +64,7 @@ task toplevel()
 
   c.printf("******************************************\n")
   c.printf("*    Two-Electron Repulsion Integrals    *\n")
-  c.printf("*                                        *\n")
+  c.printf("*                 JFock                  *\n")
   c.printf("* Parallelism: %25u *\n", config.parallelism)
   c.printf("* Number of Bras:                        *\n");
   [dumpRegionSizes("Bras", r_jbras_list)]

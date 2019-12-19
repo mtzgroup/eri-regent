@@ -8,8 +8,6 @@ local assert = regentlib.assert
 struct Config {
   parallelism          : int;
   input_directory      : int8[512];
-  bras_filename        : int8[512];
-  kets_filename        : int8[512];
   parameters_filename  : int8[512];
   output_filename      : int8[512];
   verify_filename      : int8[512];
@@ -22,8 +20,6 @@ terra Config:dump()
   c.printf("\tinput_directory: %s\n", self.input_directory)
   c.printf("\toutput_filename: %s\n", self.output_filename)
   c.printf("\tverify_filename: %s\n", self.verify_filename)
-  c.printf("\tbras_filename: %s\n", self.bras_filename)
-  c.printf("\tkets_filename: %s\n", self.kets_filename)
   c.printf("\tnum_trials: %d\n", self.num_trials)
 end
 
@@ -93,8 +89,6 @@ terra Config:initialize_from_command()
     print_usage_and_abort()
   end
 
-  c.sprintf(self.bras_filename, "%s/bras.dat", self.input_directory)
-  c.sprintf(self.kets_filename, "%s/kets.dat", self.input_directory)
   c.sprintf(self.parameters_filename, "%s/parameters.dat", self.input_directory)
 end
 
