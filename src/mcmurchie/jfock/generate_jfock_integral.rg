@@ -41,15 +41,13 @@ function generateTaskMcMurchieJFockIntegral(L12, L34)
                       r_gamma_table : region(ispace(int2d), double[5]),
                       threshold     : float)
   where
-    reads(r_jbras.{x, y, z, eta, C, bound}, r_jkets, r_gamma_table),
+    reads(r_jbras.{location, eta, C, bound}, r_jkets, r_gamma_table),
     reduces +(r_jbras.output)
   do
     var jket_idx_bounds_lo : int = r_jkets.ispace.bounds.lo
     var jket_idx_bounds_hi : int = r_jkets.ispace.bounds.hi
     for jbra_idx in r_jbras.ispace do
-      var jbra_x : double = r_jbras[jbra_idx].x
-      var jbra_y : double = r_jbras[jbra_idx].y
-      var jbra_z : double = r_jbras[jbra_idx].z
+      var jbra_location : Point = r_jbras[jbra_idx].location
       var jbra_eta : double = r_jbras[jbra_idx].eta
       var jbra_C : double = r_jbras[jbra_idx].C
       var jbra_bound : float = r_jbras[jbra_idx].bound
@@ -65,9 +63,9 @@ function generateTaskMcMurchieJFockIntegral(L12, L34)
         var bound : float = jbra_bound * jket.bound
         if bound <= threshold then break end
 
-        var a : double = jbra_x - jket.x
-        var b : double = jbra_y - jket.y
-        var c : double = jbra_z - jket.z
+        var a : double = jbra_location.x - jket.location.x
+        var b : double = jbra_location.y - jket.location.y
+        var c : double = jbra_location.z - jket.location.z
 
         var alpha : double = jbra_eta * jket.eta * (1.0 / (jbra_eta + jket.eta))
         var lambda : double = jbra_C * jket.C * rsqrt(jbra_eta + jket.eta)

@@ -56,7 +56,7 @@ function writeJBrasToRegions(filename, region_vars)
           )
           assert(num_values == 6, "Did not read all values in line!");
           r_jbras[i] = {
-            x=double_data[0], y=double_data[1], z=double_data[2],
+            location={x=double_data[0], y=double_data[1], z=double_data[2]},
             eta=double_data[3], C=double_data[4], bound=double_data[5],
             output=zeros
           }
@@ -106,7 +106,7 @@ function writeJKetsToRegions(filename, region_vars)
             assert(num_values == 1, "Could not read density value!")
           end
           r_jkets[i] = {
-            x=double_data[0], y=double_data[1], z=double_data[2],
+            location={x=double_data[0], y=double_data[1], z=double_data[2]},
             eta=double_data[3], C=double_data[4], bound=double_data[5],
             density=density
           }

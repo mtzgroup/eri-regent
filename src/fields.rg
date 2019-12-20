@@ -3,11 +3,17 @@ import "regent"
 require "helper"
 
 struct Parameters {
-  scalfr              : double;
-  scallr              : double;
-  omega               : double;
-  thresp              : float;
-  thredp              : float;
+  scalfr : double;
+  scallr : double;
+  omega  : double;
+  thresp : float;
+  thredp : float;
+}
+
+struct Point {
+  x : double;
+  y : double;
+  z : double;
 }
 
 local JBraCache = {}
@@ -15,11 +21,11 @@ function getJBra(L12)
   if JBraCache[L12] == nil then
     local H = computeH(L12)
     local fspace JBra {
-      {x, y, z} : double;    -- Location of gaussian
-      eta       : double;    -- Exponent of gaussian
-      C         : double;
-      bound     : float;
-      output    : double[H]; -- Result of integrals
+      location : Point;     -- Location of gaussian
+      eta      : double;    -- Exponent of gaussian
+      C        : double;
+      bound    : float;
+      output   : double[H]; -- Result of integrals
     }
     JBraCache[L12] = JBra
   end
@@ -31,11 +37,11 @@ function getJKet(L34)
   if JKetCache[L34] == nil then
     local H = computeH(L34)
     local fspace JKet {
-      {x, y, z} : double;    -- Location of gaussian
-      eta       : double;    -- Exponent of gaussian
-      C         : double;
-      bound     : float;
-      density   : double[H]; -- Preprocessed data
+      location : Point;     -- Location of gaussian
+      eta      : double;    -- Exponent of gaussian
+      C        : double;
+      bound    : float;
+      density  : double[H]; -- Preprocessed data
     }
     JKetCache[L34] = JKet
   end
