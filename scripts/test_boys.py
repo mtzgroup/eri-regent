@@ -30,7 +30,7 @@ if __name__ == "__main__":
             ["{:.16f}".format(t) for t in np.linspace(0, 234.567, num_inputs)]
         )
         rg_process = Popen(
-            ["regent", "mcmurchie/jfock/test_boys.rg", str(max_j)],
+            ["regent", "mcmurchie/test_boys.rg", str(max_j)],
             cwd="src/",
             stdin=PIPE,
             stdout=PIPE,

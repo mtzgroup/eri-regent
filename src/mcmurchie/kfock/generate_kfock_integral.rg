@@ -2,8 +2,7 @@ import "regent"
 
 require "fields"
 require "helper"
--- TODO: Move out of jfock
-require "mcmurchie.jfock.generate_R_table"
+require "mcmurchie.generate_R_table"
 
 local rsqrt = regentlib.rsqrt(double)
 

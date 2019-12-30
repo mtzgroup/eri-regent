@@ -2,7 +2,7 @@ import "regent"
 
 require "fields"
 require "helper"
-require "mcmurchie.jfock.generate_R_table"
+require "mcmurchie.generate_R_table"
 require "mcmurchie.jfock.generate_kernel_statements"
 
 local rsqrt = regentlib.rsqrt(double)

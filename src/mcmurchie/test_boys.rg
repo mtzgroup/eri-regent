@@ -1,6 +1,6 @@
 import "regent"
 
-require "mcmurchie.jfock.generate_R_table"
+require "mcmurchie.generate_R_table"
 require "mcmurchie.populate_gamma_table"
 
 if arg[1] == nil then
