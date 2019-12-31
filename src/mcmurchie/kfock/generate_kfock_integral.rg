@@ -33,7 +33,7 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
   __demand(__cuda)
   task kfock_integral(r_bras        : region(ispace(int1d), getKFockPair(L1, L2)),
                       r_kets        : region(ispace(int1d), getKFockPair(L3, L4)),
-                      r_density     : region(ispace(int2d), getKFockDensity(L1, L2)),
+                      r_density     : region(ispace(int2d), getKFockDensity(L2, L4)),
                       r_output      : region(ispace(int2d), getKFockOutput(L3, L4)),
                       r_gamma_table : region(ispace(int2d), double[5]),
                       threshold : float, threshold2 : float, kguard : float)
@@ -48,17 +48,23 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
         var bra = r_bras[bra_idx]
         var ket = r_kets[ket_idx]
 
+        -- TODO: Figure out which threshold to use
+        -- TODO: There is another bound to compute
+        if bra.bound * ket.bound <= threshold then break end
+
+        -- TODO: Is this the right index?
+        var density = r_density[{bra.jshell_index, ket.jshell_index}]
+
         var a = bra.location.x - ket.location.x
         var b = bra.location.y - ket.location.y
         var c = bra.location.z - ket.location.z
 
         var alpha = bra.eta * ket.eta * (1.0 / (bra.eta + ket.eta))
         var lambda = bra.C * ket.C * rsqrt(bra.eta + ket.eta)
-        var t = alpha * (a*a + b*b + c*c);
-        [generateStatementsComputeRTable(R, L1+L2+L3+L4+1, t, alpha, lambda,
-                                         a, b, c, r_gamma_table)];
-        -- TODO: Compute output
-        assert(false, "Unimplemented")
+        var t = alpha * (a*a + b*b + c*c)
+        ;[generateStatementsComputeRTable(R, L1+L2+L3+L4+1, t, alpha, lambda,
+                                          a, b, c, r_gamma_table)]
+        ;[generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket, density)]
       end
     end
   end

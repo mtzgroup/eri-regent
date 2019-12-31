@@ -60,7 +60,7 @@ function getKFockPair(L1, L2)
       ishell_location : Point;
       jshell_location : Point;
       ishell_index    : int1d;
-      jshell_index    : int1d;
+      jshell_index    : int1d;  -- Index for density?
       -- prevals         : double[N];
     }
     KFockPairCache[index] = KFockPair
@@ -69,11 +69,11 @@ function getKFockPair(L1, L2)
 end
 
 local KFockDensityCache = {}
-function getKFockDensity(L1, L2)
-  local index = LToStr[L1]..LToStr[L2]
+function getKFockDensity(L2, L4)
+  local index = LToStr[L2]..LToStr[L4]
   if KFockDensityCache[index] == nil then
-    local N1 = (L1 + 1) * (L1 + 2) / 2
-    local N2 = (L2 + 1) * (L2 + 2) / 2
+    local N1 = (L2 + 1) * (L2 + 2) / 2
+    local N2 = (L4 + 1) * (L4 + 2) / 2
     local fspace KFockDensity {
       values : double[N1][N2];
       bound  : float;
