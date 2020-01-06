@@ -9,9 +9,9 @@ require "kfock"
 local assert = regentlib.assert
 local c = regentlib.c
 
-local r_kfock_list, r_density_list = {}, {}
+local r_pairs_list, r_density_list = {}, {}
 for L1 = 0, getCompiledMaxMomentum() do -- inclusive
-  r_kfock_list, r_density_list[L1] = {}, {}
+  r_pairs_list[L1], r_density_list[L1] = {}, {}
   for L2 = L1, getCompiledMaxMomentum() do -- inclusive
     r_density_list[L1][L2] = regentlib.newsymbol("r_kfock_density"..L1..L2)
   end
@@ -32,9 +32,8 @@ task toplevel()
   c.sprintf([&int8](kfock_filename), "%s/kfock_sym.dat", config.input_directory)
   c.sprintf([&int8](kfock_density_filename), "%s/kfock_sym_density.dat", config.input_directory)
 
-  -- TODO
-  -- ;[writeKFockToRegions(rexpr kfock_filename end, r_pairs_list]
-  -- ;[writeKFockDensityToRegions(rexpr kfock_density_filename end, r_density_list)]
+  ;[writeKFockToRegions(rexpr kfock_filename end, r_pairs_list)]
+  ;[writeKFockDensityToRegions(rexpr kfock_density_filename end, r_density_list)]
 
   var data : double[5]
   readParametersFile(config.parameters_filename, data)
@@ -67,7 +66,7 @@ task toplevel()
   ---------------------
   var threshold = parameters.thredp
   var parallelism = config.parallelism;
-  [kfock(r_pairs_list, r_density, r_gamma_table, threshold, parallelism)]
+  [kfock(r_pairs_list, r_density_list, r_gamma_table, threshold, parallelism)]
   ---------------------
 
   __fence(__execution, __block) -- Make sure we only time the computation

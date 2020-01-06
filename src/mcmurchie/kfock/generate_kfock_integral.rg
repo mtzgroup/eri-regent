@@ -2,6 +2,7 @@ import "regent"
 
 require "fields"
 require "helper"
+require "mcmurchie.kfock.generate_kernel"
 require "mcmurchie.generate_R_table"
 
 local rsqrt = regentlib.rsqrt(double)
@@ -13,6 +14,7 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
     return _kfock_integral_cache[L_string]
   end
 
+  local L12, L34 = L1 + L2, L3 + L4
   -- Create a table of Regent variables to hold Hermite polynomials.
   local R = {}
   for N = 0, L12+L34 do -- inclusive
@@ -30,7 +32,8 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
 
   local
   __demand(__leaf)
-  __demand(__cuda)
+  -- TODO
+  -- __demand(__cuda)
   task kfock_integral(r_bras        : region(ispace(int1d), getKFockPair(L1, L2)),
                       r_kets        : region(ispace(int1d), getKFockPair(L3, L4)),
                       r_density     : region(ispace(int2d), getKFockDensity(L2, L4)),
@@ -38,7 +41,7 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
                       r_gamma_table : region(ispace(int2d), double[5]),
                       threshold : float, threshold2 : float, kguard : float)
   where
-    reads(r_bras, r_kets, r_density),
+    reads(r_bras, r_kets, r_density, r_gamma_table),
     reduces +(r_output)
   do
     var ket_idx_bounds_lo : int = r_kets.ispace.bounds.lo

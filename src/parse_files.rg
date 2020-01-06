@@ -121,6 +121,92 @@ function writeJKetsToRegions(filename, region_vars)
   return statements
 end
 
+-- Writes data found in `filename` to an array of regions given by `region_vars`
+function writeKFockToRegions(filename, region_vars)
+  local filep = regentlib.newsymbol()
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
+  end})
+  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L2 = L1, getCompiledMaxMomentum() do -- inclusive
+      local field_space = getKFockPair(L1, L2)
+      local r_kpairs = region_vars[L1][L2]
+      statements:insert(rquote
+        var int_data : int[3]
+        var double_data : double[6]
+        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n",
+                                  int_data, int_data+1, int_data+2)
+        assert(num_values == 3, "Did not read all values in header!")
+        var N = int_data[2]
+        assert(L1 == int_data[0] and L2 == int_data[1],
+               "Unexpected angular momentum!")
+        var [r_kpairs] = region(ispace(int1d, N), field_space)
+        for i = 0, N do -- exclusive
+          num_values = c.fscanf(filep,
+            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,use_upper_diag=%d,shell_idx=%d\n",
+            double_data+0, double_data+1, double_data+2,
+            double_data+3, double_data+4, double_data+5,
+            int_data+0, int_data+1
+          )
+          assert(num_values == 8, "Did not read all values in line!");
+          -- TODO
+          r_kpairs[i] = {
+            location={x=double_data[0], y=double_data[1], z=double_data[2]},
+            eta=double_data[3], C=double_data[4], bound=double_data[5],
+            ishell_location={x=0, y=0, z=0}, jshell_location={x=0, y=0, z=0},
+            ishell_index=-1, jshell_index=-1,
+          }
+        end
+      end)
+    end
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+  end)
+  return statements
+end
+
+-- Writes data found in `filename` to an array of regions given by `region_vars`
+function writeKFockDensityToRegions(filename, region_vars)
+  local filep = regentlib.newsymbol()
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
+  end})
+  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L2 = L1, getCompiledMaxMomentum() do -- inclusive
+      local field_space = getKFockDensity(L1, L2)
+      local r_density = region_vars[L1][L2]
+      statements:insert(rquote
+        var int_data : int[4]
+        var double_data : double[6]
+        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N1=%d,N2=%d\n",
+                                  int_data, int_data+1, int_data+2, int_data+3)
+        assert(num_values == 4, "Did not read all values in header!")
+        var N1, N2 = int_data[2], int_data[3]
+        assert(L1 == int_data[0] and L2 == int_data[1],
+               "Unexpected angular momentum!")
+        var [r_density] = region(ispace(int2d, {N1, N2}), field_space)
+        for i = 0, N1 do -- exclusive
+          for j = 0, N2 do -- exclusive
+            num_values = c.fscanf(filep, "i=%d,j=%d,value=%lf\n",
+                                  int_data+0, int_data+1, double_data+0)
+            assert(num_values == 3, "Did not read all values in line!");
+            -- TODO
+            -- r_density[i, j] = {
+            -- }
+          end
+        end
+      end)
+    end
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+  end)
+  return statements
+end
+
 -- Writes the output to `filename`
 function writeOutput(r_jbras_list, filename)
   local filep = regentlib.newsymbol()

@@ -83,15 +83,16 @@ function getKFockDensity(L2, L4)
   return KFockDensityCache[index]
 end
 
--- local KFockOutputCache = {}
--- function getKFockOutput()
---   local index
---   if KFockOutputCache[index] == nil then
---     local N
---     local fspace KFockOutput {
---       values : double[N]
---     }
---     KFockOutputCache[index] = KFockOutput
---   end
---   return KFockOutputCache[index]
--- end
+local KFockOutputCache = {}
+function getKFockOutput()
+    -- TODO
+  local index = 1
+  if KFockOutputCache[index] == nil then
+    local N = 1
+    local fspace KFockOutput {
+      values : double[N]
+    }
+    KFockOutputCache[index] = KFockOutput
+  end
+  return KFockOutputCache[index]
+end
