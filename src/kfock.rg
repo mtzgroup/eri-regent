@@ -3,7 +3,8 @@ import "regent"
 require "helper"
 require "mcmurchie.kfock.generate_kfock_integral"
 
-function kfock(r_pairs_list, r_density_list, r_gamma_table, threshold, parallelism)
+function kfock(r_pairs_list, r_density_list, r_output, r_gamma_table,
+               threshold, parallelism)
   local statements = terralib.newlist()
   -- TODO: Reverse the launch order so that large kernels launch first
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive

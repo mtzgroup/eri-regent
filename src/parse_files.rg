@@ -296,3 +296,52 @@ function verifyOutput(r_jbras_list, delta, epsilon, filename)
   end)
   return statements
 end
+
+-- Verify the output is correct
+-- `delta` is the maximum allowed absolute error
+-- `epsilon` is the maximum allowed relative error
+task verifyKFockOutput(r_output : region(ispace(int2d), double),
+                       delta : double, epsilon : double,
+                       filename : int8[512])
+where
+  reads(r_output)
+do
+  var filep = c.fopen(filename, "r")
+  checkFile(filep)
+  var max_absolute_error = -1
+  var max_relative_error = -1
+  var int_data : int[3]
+  var double_data : double[1]
+  var num_values = c.fscanf(filep, "N=%d\n", int_data + 0)
+  assert(num_values == 1, "Did not read N!")
+  var N = int_data[0]
+  assert(N * N == r_output.volume, "Output does not have correct size!")
+  for i = 0, N do -- exclusive
+    for j = 0, N do -- exclusive
+      num_values = c.fscanf(filep, "i=%d,j=%d,value=%lf\n",
+                            int_data + 0, int_data + 1, double_data + 0)
+      assert(num_values == 3, "Did not read all values!")
+      assert(int_data[0] == i and int_data[1] == j, "Index is not correct!")
+      var expected = double_data[0]
+      var result = r_output[{i, j}]
+      var absolute_error = fabs(result - expected)
+      var relative_error = fabs(absolute_error / expected)
+      if absolute_error > max_absolute_error then
+        max_absolute_error = absolute_error
+      end
+      if relative_error > max_relative_error then
+        max_relative_error = relative_error
+      end
+      if [bool](c.isnan(result)) or [bool](c.isinf(result))
+          or (absolute_error > delta and relative_error > epsilon) then
+        c.printf("Value differs at output[%d, %d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
+                 i, j, result, expected, absolute_error, relative_error)
+        assert(false, "Wrong output!")
+      end
+    end
+  end
+  c.fclose(filep)
+  c.printf("Values are correct!\n")
+  c.printf("Values are correct! max_absolute_error = %.12g, max_relative_error = %.12g\n",
+           max_absolute_error, max_relative_error)
+end

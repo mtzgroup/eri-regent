@@ -46,8 +46,10 @@ task toplevel()
   }
   -------------------------------------------
 
-  -- Generate region for the gamma table --
+  -- Generate region for the output and gamma table --
   -----------------------------------------
+  var r_output = region(ispace(int2d, {6, 6}), double)
+  fill(r_output, 0.0)
   var r_gamma_table = region(ispace(int2d, {18, 700}), double[5])
   populateGammaTable(r_gamma_table)
   -----------------------------------------
@@ -66,7 +68,7 @@ task toplevel()
   ---------------------
   var threshold = parameters.thredp
   var parallelism = config.parallelism;
-  [kfock(r_pairs_list, r_density_list, r_gamma_table, threshold, parallelism)]
+  [kfock(r_pairs_list, r_density_list, r_output, r_gamma_table, threshold, parallelism)]
   ---------------------
 
   __fence(__execution, __block) -- Make sure we only time the computation
@@ -83,7 +85,7 @@ task toplevel()
   end
   var verify_filename = config.verify_filename
   if verify_filename[0] ~= 0 then
-    assert(false, "Unimplemented")
+    verifyKFockOutput(r_output, 1e-7, 1e-8, verify_filename)
   end
   ----------------------------
 end
