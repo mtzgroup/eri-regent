@@ -122,7 +122,8 @@ function writeJKetsToRegions(filename, region_vars)
 end
 
 -- Writes data found in `filename` to an array of regions given by `region_vars`
-function writeKFockToRegions(filename, region_vars)
+function writeKFockToRegions(filename, region_vars,
+                             r_bra_prevals_list, r_ket_prevals_list)
   local filep = regentlib.newsymbol()
   local statements = terralib.newlist({rquote
     var [filep] = c.fopen(filename, "r")
@@ -132,31 +133,49 @@ function writeKFockToRegions(filename, region_vars)
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
       local field_space = getKFockPair(L1, L2)
       local r_kpairs = region_vars[L1][L2]
+      local r_bra_prevals = r_bra_prevals_list[L1][L2]
+      local r_ket_prevals = r_ket_prevals_list[L1][L2]
+      local BraN, KetN = KFockNumBraPrevals[L1][L2], KFockNumKetPrevals[L1][L2]
       statements:insert(rquote
         var int_data : int[3]
-        var double_data : double[6]
+        var double_data : double[12]
         var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n",
                                   int_data, int_data+1, int_data+2)
-        assert(num_values == 3, "Did not read all values in header!")
+        assert(num_values == 3, "Did not read all values in input header!")
         var N = int_data[2]
         assert(L1 == int_data[0] and L2 == int_data[1],
                "Unexpected angular momentum!")
         var [r_kpairs] = region(ispace(int1d, N), field_space)
+        var [r_bra_prevals] = region(ispace(int1d, N), double[BraN])
+        var [r_ket_prevals] = region(ispace(int1d, N), double[KetN])
         for i = 0, N do -- exclusive
           num_values = c.fscanf(filep,
-            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,use_upper_diag=%d,shell_idx=%d\n",
+            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,i_shell_idx=%d,j_shell_idx=%d,PIx=%lf,PIy=%lf,PIz=%lf,PJx=%lf,PJy=%lf,PJz=%lf,",
             double_data+0, double_data+1, double_data+2,
             double_data+3, double_data+4, double_data+5,
-            int_data+0, int_data+1
+            int_data+0, int_data+1,
+            double_data+6, double_data+7, double_data+8,
+            double_data+9, double_data+10, double_data+11
           )
-          assert(num_values == 8, "Did not read all values in line!");
-          -- TODO
+          assert(num_values == 14, "Did not read all values in line!");
           r_kpairs[i] = {
             location={x=double_data[0], y=double_data[1], z=double_data[2]},
             eta=double_data[3], C=double_data[4], bound=double_data[5],
-            ishell_location={x=0, y=0, z=0}, jshell_location={x=0, y=0, z=0},
-            ishell_index=-1, jshell_index=-1,
+            ishell_index=int_data[0], jshell_index=int_data[1],
+            ishell_location={x=double_data[6], y=double_data[7], z=double_data[8]},
+            jshell_location={x=double_data[9], y=double_data[10], z=double_data[11]},
           }
+          assert(c.fscanf(filep, "bra_prevals=") == 0, "Did not read bra prevals!")
+          for k = 0, BraN do -- exclusive
+            num_values = c.fscanf(filep, "%lf,", double_data + 0)
+            r_bra_prevals[i][k] = double_data[0]
+          end
+          assert(c.fscanf(filep, "ket_prevals=") == 0, "Did not read ket prevals!")
+          for k = 0, KetN do -- exclusive
+            num_values = c.fscanf(filep, "%lf,", double_data + 0)
+            r_ket_prevals[i][k] = double_data[0]
+          end
+          assert(c.fscanf(filep, "\n") == 0, "Did not read newline!")
         end
       end)
     end
@@ -183,7 +202,7 @@ function writeKFockDensityToRegions(filename, region_vars)
         var double_data : double[6]
         var num_values = c.fscanf(filep, "L1=%d,L2=%d,N1=%d,N2=%d\n",
                                   int_data, int_data+1, int_data+2, int_data+3)
-        assert(num_values == 4, "Did not read all values in header!")
+        assert(num_values == 4, "Did not read all values in density header!")
         var N1, N2 = int_data[2], int_data[3]
         assert(L1 == int_data[0] and L2 == int_data[1],
                "Unexpected angular momentum!")

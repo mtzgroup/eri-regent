@@ -59,14 +59,25 @@ function getKFockPair(L1, L2)
       bound           : float;
       ishell_location : Point;
       jshell_location : Point;
-      ishell_index    : int1d;
-      jshell_index    : int1d;  -- Index for density?
-      -- prevals         : double[N];
+      ishell_index    : int1d;  -- Unused?
+      jshell_index    : int1d;  -- Index for density.
     }
     KFockPairCache[index] = KFockPair
   end
   return KFockPairCache[index]
 end
+
+KFockNumBraPrevals = {
+  [0] = {[0] = 0, [1] = 4, [2] = 16},
+  [1] = {[0] = 4, [1] = 25, [2] = 91},
+  [2] = {[0] = 16, [1] = 91, [2] = 301},
+}
+
+KFockNumKetPrevals = {
+  [0] = {[0] = 0, [1] = 4, [2] = 16},
+  [1] = {[0] = 6, [1] = 27, [2] = 93},
+  [2] = {[0] = 21, [1] = 96, [2] = 306},
+}
 
 local KFockDensityCache = {}
 function getKFockDensity(L2, L4)

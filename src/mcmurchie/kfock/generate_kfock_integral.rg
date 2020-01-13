@@ -30,18 +30,21 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
     end
   end
 
+  local N12, N34 = KFockNumBraPrevals[L1][L2], KFockNumKetPrevals[L3][L4]
   local
   __demand(__leaf)
   -- TODO
   -- __demand(__cuda)
   task kfock_integral(r_bras        : region(ispace(int1d), getKFockPair(L1, L2)),
                       r_kets        : region(ispace(int1d), getKFockPair(L3, L4)),
+                      r_bra_prevals : region(ispace(int1d), double[N12]),
+                      r_ket_prevals : region(ispace(int1d), double[N34]),
                       r_density     : region(ispace(int2d), getKFockDensity(L2, L4)),
                       r_output      : region(ispace(int2d), getKFockOutput(L3, L4)),
                       r_gamma_table : region(ispace(int2d), double[5]),
                       threshold : float, threshold2 : float, kguard : float)
   where
-    reads(r_bras, r_kets, r_density, r_gamma_table),
+    reads(r_bras, r_kets, r_bra_prevals, r_ket_prevals, r_density, r_gamma_table),
     reduces +(r_output)
   do
     var ket_idx_bounds_lo : int = r_kets.ispace.bounds.lo
@@ -50,12 +53,13 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
       for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do -- exclusive
         var bra = r_bras[bra_idx]
         var ket = r_kets[ket_idx]
+        var bra_prevals : double[N12] = r_bra_prevals[bra_idx]
+        var ket_prevals : double[N34] = r_ket_prevals[ket_idx]
 
         -- TODO: Figure out which threshold to use
         -- TODO: There is another bound to compute
         if bra.bound * ket.bound <= threshold then break end
 
-        -- TODO: Is this the right index?
         var density = r_density[{bra.jshell_index, ket.jshell_index}]
 
         var a = bra.location.x - ket.location.x
@@ -67,7 +71,8 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
         var t = alpha * (a*a + b*b + c*c)
         ;[generateStatementsComputeRTable(R, L1+L2+L3+L4+1, t, alpha, lambda,
                                           a, b, c, r_gamma_table)]
-        ;[generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket, density)]
+        ;[generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
+                                        bra_prevals, ket_prevals, density)]
       end
     end
   end
