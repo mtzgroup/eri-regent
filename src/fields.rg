@@ -83,10 +83,10 @@ local KFockDensityCache = {}
 function getKFockDensity(L2, L4)
   local index = LToStr[L2]..LToStr[L4]
   if KFockDensityCache[index] == nil then
-    local N1 = (L2 + 1) * (L2 + 2) / 2
-    local N2 = (L4 + 1) * (L4 + 2) / 2
+    local N2 = (L2 + 1) * (L2 + 2) / 2
+    local N4 = (L4 + 1) * (L4 + 2) / 2
     local fspace KFockDensity {
-      values : double[N1][N2];
+      values : double[N2][N4];
       bound  : float;
     }
     KFockDensityCache[index] = KFockDensity

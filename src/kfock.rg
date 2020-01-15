@@ -10,8 +10,8 @@ function kfock(r_pairs_list, r_bra_prevals_list, r_ket_prevals_list,
   -- TODO: Reverse the launch order so that large kernels launch first
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = 0, getCompiledMaxMomentum() do -- inclusive
-      for L3 = 0, getCompiledMaxMomentum() do -- inclusive
-        for L4 = 0, getCompiledMaxMomentum() do -- inclusive
+      for L3 = L1, getCompiledMaxMomentum() do -- inclusive
+        for L4 = L2, getCompiledMaxMomentum() do -- inclusive
           local r_bras, r_kets = r_pairs_list[L1][L2], r_pairs_list[L3][L4]
           local r_bra_prevals = r_bra_prevals_list[L1][L2]
           local r_ket_prevals = r_ket_prevals_list[L3][L4]
