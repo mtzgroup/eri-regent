@@ -30,22 +30,21 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
     end
   end
 
-  local N12, N34 = KFockNumBraPrevals[L1][L2], KFockNumKetPrevals[L3][L4]
+  local NPre12, NPre34 = KFockNumBraPrevals[L1][L2], KFockNumKetPrevals[L3][L4]
   local
   __demand(__leaf)
-  -- TODO
-  -- __demand(__cuda)
+  __demand(__cuda)
   task kfock_integral(r_bras        : region(ispace(int1d), getKFockPair(L1, L2)),
                       r_kets        : region(ispace(int1d), getKFockPair(L3, L4)),
-                      r_bra_prevals : region(ispace(int1d), double[N12]),
-                      r_ket_prevals : region(ispace(int1d), double[N34]),
+                      r_bra_prevals : region(ispace(int1d), double[NPre12]),
+                      r_ket_prevals : region(ispace(int1d), double[NPre34]),
                       r_density     : region(ispace(int2d), getKFockDensity(L2, L4)),
-                      r_output      : region(ispace(int2d), getKFockOutput(L3, L4)),
+                      r_output      : region(ispace(int2d), getKFockOutput(L1, L3)),
                       r_gamma_table : region(ispace(int2d), double[5]),
                       threshold : float, threshold2 : float, kguard : float)
   where
     reads(r_bras, r_kets, r_bra_prevals, r_ket_prevals, r_density, r_gamma_table),
-    reduces +(r_output)
+    reads writes(r_output)
   do
     var ket_idx_bounds_lo : int = r_kets.ispace.bounds.lo
     var ket_idx_bounds_hi : int = r_kets.ispace.bounds.hi
@@ -53,8 +52,8 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
       for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do -- exclusive
         var bra = r_bras[bra_idx]
         var ket = r_kets[ket_idx]
-        var bra_prevals : double[N12] = r_bra_prevals[bra_idx]
-        var ket_prevals : double[N34] = r_ket_prevals[ket_idx]
+        var bra_prevals : double[NPre12] = r_bra_prevals[bra_idx]
+        var ket_prevals : double[NPre34] = r_ket_prevals[ket_idx]
 
         -- TODO: Figure out which threshold to use
         -- TODO: There is another bound to compute

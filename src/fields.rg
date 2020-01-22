@@ -83,6 +83,7 @@ local KFockDensityCache = {}
 function getKFockDensity(L2, L4)
   local index = LToStr[L2]..LToStr[L4]
   if KFockDensityCache[index] == nil then
+    -- TODO: Put in helper.rg
     local N2 = (L2 + 1) * (L2 + 2) / 2
     local N4 = (L4 + 1) * (L4 + 2) / 2
     local fspace KFockDensity {
@@ -95,13 +96,13 @@ function getKFockDensity(L2, L4)
 end
 
 local KFockOutputCache = {}
-function getKFockOutput()
-    -- TODO
-  local index = 1
+function getKFockOutput(L1, L3)
+  local index = LToStr[L1]..LToStr[L3]
   if KFockOutputCache[index] == nil then
-    local N = 1
+    local N1 = (L1 + 1) * (L1 + 2) / 2
+    local N3 = (L3 + 1) * (L3 + 2) / 2
     local fspace KFockOutput {
-      values : double[N]
+      values : double[N1][N3]
     }
     KFockOutputCache[index] = KFockOutput
   end

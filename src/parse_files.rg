@@ -187,34 +187,41 @@ function writeKFockToRegions(filename, region_vars,
 end
 
 -- Writes data found in `filename` to an array of regions given by `region_vars`
-function writeKFockDensityToRegions(filename, region_vars)
+function writeKFockDensityToRegions(filename, region_vars, r_output_list)
   local filep = regentlib.newsymbol()
   local statements = terralib.newlist({rquote
     var [filep] = c.fopen(filename, "r")
     checkFile(filep)
   end})
-  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
-    for L2 = L1, getCompiledMaxMomentum() do -- inclusive
-      local field_space = getKFockDensity(L1, L2)
-      local r_density = region_vars[L1][L2]
+  for L2 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L4 = L2, getCompiledMaxMomentum() do -- inclusive
+      local field_space = getKFockDensity(L2, L4)
+      local r_density = region_vars[L2][L4]
       statements:insert(rquote
         var int_data : int[4]
-        var double_data : double[6]
-        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N1=%d,N2=%d\n",
+        var double_data : double[1]
+        var num_values = c.fscanf(filep, "L2=%d,L4=%d,N1=%d,N2=%d\n",
                                   int_data, int_data+1, int_data+2, int_data+3)
         assert(num_values == 4, "Did not read all values in density header!")
-        var N1, N2 = int_data[2], int_data[3]
-        assert(L1 == int_data[0] and L2 == int_data[1],
+        var N2, N4 = int_data[2], int_data[3]
+        assert(L2 == int_data[0] and L4 == int_data[1],
                "Unexpected angular momentum!")
-        var [r_density] = region(ispace(int2d, {N1, N2}), field_space)
-        for i = 0, N1 do -- exclusive
-          for j = 0, N2 do -- exclusive
-            num_values = c.fscanf(filep, "i=%d,j=%d,value=%lf\n",
-                                  int_data+0, int_data+1, double_data+0)
-            assert(num_values == 3, "Did not read all values in line!");
-            -- TODO
-            -- r_density[i, j] = {
-            -- }
+        var [r_density] = region(ispace(int2d, {N2, N4}), field_space)
+        for ishell = 0, N2 do -- exclusive
+          for jshell = 0, N4 do -- exclusive
+            num_values = c.fscanf(filep, "values=")
+            assert(num_values == 0, "Did not read values!")
+            -- TODO: Put this computation in `helper.rg`.
+            for k = 0, (L2+1) * (L2+2) / 2 do -- exclusive
+              for m = 0, (L4+1) * (L4+2) / 2 do -- exclusive
+                num_values = c.fscanf(filep, "%lf,", double_data)
+                assert(num_values == 1, "Did not read value!")
+                r_density[{ishell, jshell}].values[k][m] = double_data[0]
+              end
+            end
+            num_values = c.fscanf(filep, "bound=%lf\n", double_data)
+            assert(num_values == 1, "Did not read bound!")
+            r_density[{ishell, jshell}].bound = double_data[0]
           end
         end
       end)
@@ -223,6 +230,21 @@ function writeKFockDensityToRegions(filename, region_vars)
   statements:insert(rquote
     c.fclose(filep)
   end)
+  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L2 = 0, getCompiledMaxMomentum() do -- inclusive
+      for L3 = 0, getCompiledMaxMomentum() do -- inclusive
+        for L4 = 0, getCompiledMaxMomentum() do -- inclusive
+          if L1 < L3 or (L1 == L3 and L2 <= L4) then
+            local r_output = r_output_list[L1][L2][L3][L4]
+            local r_density = region_vars[L1][L3]
+            statements:insert(rquote
+              var [r_output] = region(r_density.ispace, getKFockOutput(L1, L3))
+            end)
+          end
+        end
+      end
+    end
+  end
   return statements
 end
 
@@ -319,48 +341,73 @@ end
 -- Verify the output is correct
 -- `delta` is the maximum allowed absolute error
 -- `epsilon` is the maximum allowed relative error
-task verifyKFockOutput(r_output : region(ispace(int2d), double),
-                       delta : double, epsilon : double,
-                       filename : int8[512])
-where
-  reads(r_output)
-do
-  var filep = c.fopen(filename, "r")
-  checkFile(filep)
-  var max_absolute_error = -1
-  var max_relative_error = -1
-  var int_data : int[3]
-  var double_data : double[1]
-  var num_values = c.fscanf(filep, "N=%d\n", int_data + 0)
-  assert(num_values == 1, "Did not read N!")
-  var N = int_data[0]
-  assert(N * N == r_output.volume, "Output does not have correct size!")
-  for i = 0, N do -- exclusive
-    for j = 0, N do -- exclusive
-      num_values = c.fscanf(filep, "i=%d,j=%d,value=%lf\n",
-                            int_data + 0, int_data + 1, double_data + 0)
-      assert(num_values == 3, "Did not read all values!")
-      assert(int_data[0] == i and int_data[1] == j, "Index is not correct!")
-      var expected = double_data[0]
-      var result = r_output[{i, j}]
-      var absolute_error = fabs(result - expected)
-      var relative_error = fabs(absolute_error / expected)
-      if absolute_error > max_absolute_error then
-        max_absolute_error = absolute_error
-      end
-      if relative_error > max_relative_error then
-        max_relative_error = relative_error
-      end
-      if [bool](c.isnan(result)) or [bool](c.isinf(result))
-          or (absolute_error > delta and relative_error > epsilon) then
-        c.printf("Value differs at output[%d, %d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
-                 i, j, result, expected, absolute_error, relative_error)
-        assert(false, "Wrong output!")
+function verifyKFockOutput(region_vars, delta, epsilon, filename)
+  local filep = regentlib.newsymbol()
+  local max_absolute_error = regentlib.newsymbol(double)
+  local max_relative_error = regentlib.newsymbol(double)
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
+    var [max_absolute_error] = -1
+    var [max_relative_error] = -1
+  end})
+  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L2 = 0, getCompiledMaxMomentum() do -- inclusive
+      for L3 = 0, getCompiledMaxMomentum() do -- inclusive
+        for L4 = 0, getCompiledMaxMomentum() do -- inclusive
+          if L1 < L3 or (L1 == L3 and L2 <= L4) then
+            local field_space = getKFockOutput(L1, L3)
+            local r_output = region_vars[L1][L2][L3][L4]
+            statements:insert(rquote
+              var int_data : int[6]
+              var double_data : double[1]
+              var num_values = c.fscanf(filep, "L1=%d,L2=%d,L3=%d,L4=%d,N1=%d,N3=%d\n",
+                                        int_data + 0, int_data + 1, int_data + 2,
+                                        int_data + 3, int_data + 4, int_data + 5)
+              assert(num_values == 6, "Could not read output header!")
+              var N1, N3 = int_data[4], int_data[5]
+              assert(L1 == int_data[0] and L2 == int_data[1]
+                     and L3 == int_data[2] and L4 == int_data[3],
+                     "Unexpected angular momentum!")
+              for ishell = 0, N1 do -- exclusive
+                for jshell = 0, N3 do -- exclusive
+                  for i = 0, (L1 + 1) * (L1 + 2) / 2 do -- exclusive
+                    for j = 0, (L3 + 1) * (L3 + 2) / 2 do -- exclusive
+                      num_values = c.fscanf(filep, "%lf,", double_data)
+                      assert(num_values == 1, "Did not read value!")
+                      var expected = double_data[0]
+                      var result = r_output[{ishell, jshell}].values[i][j]
+                      var absolute_error = fabs(result - expected)
+                      var relative_error = fabs(absolute_error / expected)
+                      if absolute_error > max_absolute_error then
+                        max_absolute_error = absolute_error
+                      end
+                      if relative_error > max_relative_error then
+                        max_relative_error = relative_error
+                      end
+                      if [bool](c.isnan(result)) or [bool](c.isinf(result))
+                          or (absolute_error > delta and relative_error > epsilon) then
+                        c.printf(
+"Value differs at L1234 = %d %d %d %d, output[%d, %d].values[%d, %d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
+                                 L1, L2, L3, L4, ishell, jshell, i, j,
+                                 result, expected, absolute_error, relative_error)
+                        -- assert(false, "Wrong output!")
+                      end
+                    end
+                  end
+                  assert(c.fscanf(filep, "\n") == 0, "Did not read newline")
+                end
+              end
+            end)
+          end
+        end
       end
     end
   end
-  c.fclose(filep)
-  c.printf("Values are correct!\n")
-  c.printf("Values are correct! max_absolute_error = %.12g, max_relative_error = %.12g\n",
-           max_absolute_error, max_relative_error)
+  statements:insert(rquote
+    c.fclose(filep)
+    c.printf("Values are correct! max_absolue_error = %.12g, max_relative_error = %.12g\n",
+             max_absolute_error, max_relative_error)
+  end)
+  return statements
 end
