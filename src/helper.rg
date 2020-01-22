@@ -26,10 +26,12 @@ LPairToStr = {
   [6] = "FF", [7] = "FG", [8] = "GG"
 }
 
--- Return the number of atomic orbital functions in shells of momentum 0 to L
--- TODO: Find a better name
-function computeH(L12)
-  return (L12 + 1) * (L12 + 2) * (L12 + 3) / 6
+function tetrahedral_number(n)
+  return n * (n + 1) * (n + 2) / 6
+end
+
+function triangle_number(n)
+  return n * (n + 1) / 2
 end
 
 -- Returns a list of lists where `pattern[i] = {N, L, M}`.

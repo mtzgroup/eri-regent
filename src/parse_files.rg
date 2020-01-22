@@ -30,9 +30,8 @@ function writeJBrasToRegions(filename, region_vars)
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
-      local L12 = L1 + L2
-      local H = computeH(L12)
-      local field_space = getJBra(L12)
+      local H = tetrahedral_number(L1 + L2 + 1)
+      local field_space = getJBra(L1 + L2)
       local r_jbras = region_vars[L1][L2]
       statements:insert(rquote
         var int_data : int[3]
@@ -80,7 +79,7 @@ function writeJKetsToRegions(filename, region_vars)
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
-      local H = computeH(L1 + L2)
+      local H = tetrahedral_number(L1 + L2 + 1)
       local field_space = getJKet(L1 + L2)
       local r_jkets = region_vars[L1][L2]
       statements:insert(rquote
@@ -212,8 +211,8 @@ function writeKFockDensityToRegions(filename, region_vars, r_output_list)
             num_values = c.fscanf(filep, "values=")
             assert(num_values == 0, "Did not read values!")
             -- TODO: Put this computation in `helper.rg`.
-            for k = 0, (L2+1) * (L2+2) / 2 do -- exclusive
-              for m = 0, (L4+1) * (L4+2) / 2 do -- exclusive
+            for k = 0, [triangle_number(L2 + 1)] do -- exclusive
+              for m = 0, [triangle_number(L4 + 1)] do -- exclusive
                 num_values = c.fscanf(filep, "%lf,", double_data)
                 assert(num_values == 1, "Did not read value!")
                 r_density[{ishell, jshell}].values[k][m] = double_data[0]
@@ -257,8 +256,7 @@ function writeOutput(r_jbras_list, filename)
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
-      local L12 = L1 + L2
-      local H = computeH(L12)
+      local H = tetrahedral_number(L1 + L2 + 1)
       statements:insert(rquote
         c.fprintf(filep, "L1=%d,L2=%d,N=%d\n",
                   L1, L2, [r_jbras_list[L1][L2]].volume)
@@ -292,8 +290,7 @@ function verifyOutput(r_jbras_list, delta, epsilon, filename)
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = L1, getCompiledMaxMomentum() do -- inclusive
-      local L12 = L1 + L2
-      local H = computeH(L12)
+      local H = tetrahedral_number(L1 + L2 + 1)
       local r_jbras = r_jbras_list[L1][L2]
       statements:insert(rquote
         var int_data : int[3]
@@ -371,8 +368,8 @@ function verifyKFockOutput(region_vars, delta, epsilon, filename)
                      "Unexpected angular momentum!")
               for ishell = 0, N1 do -- exclusive
                 for jshell = 0, N3 do -- exclusive
-                  for i = 0, (L1 + 1) * (L1 + 2) / 2 do -- exclusive
-                    for j = 0, (L3 + 1) * (L3 + 2) / 2 do -- exclusive
+                  for i = 0, [triangle_number(L1 + 1)] do -- exclusive
+                    for j = 0, [triangle_number(L3 + 1)] do -- exclusive
                       num_values = c.fscanf(filep, "%lf,", double_data)
                       assert(num_values == 1, "Did not read value!")
                       var expected = double_data[0]

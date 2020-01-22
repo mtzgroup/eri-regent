@@ -4,7 +4,7 @@ require "helper"
 
 -- Returns a list of regent statements that implements the McMurchie algorithm
 function generateJFockKernelStatements(R, L12, L34, density, accumulator)
-  local H12, H34 = computeH(L12), computeH(L34)
+  local H12, H34 = tetrahedral_number(L12 + 1), tetrahedral_number(L34 + 1)
   local statements = terralib.newlist()
   local results = {}
   for i = 0, H12-1 do -- inclusive

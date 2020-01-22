@@ -19,7 +19,7 @@ struct Point {
 local JBraCache = {}
 function getJBra(L12)
   if JBraCache[L12] == nil then
-    local H = computeH(L12)
+    local H = tetrahedral_number(L12 + 1)
     local fspace JBra {
       location : Point;     -- Location of gaussian
       eta      : double;    -- Exponent of gaussian
@@ -35,7 +35,7 @@ end
 local JKetCache = {}
 function getJKet(L34)
   if JKetCache[L34] == nil then
-    local H = computeH(L34)
+    local H = tetrahedral_number(L34 + 1)
     local fspace JKet {
       location : Point;     -- Location of gaussian
       eta      : double;    -- Exponent of gaussian
@@ -83,11 +83,9 @@ local KFockDensityCache = {}
 function getKFockDensity(L2, L4)
   local index = LToStr[L2]..LToStr[L4]
   if KFockDensityCache[index] == nil then
-    -- TODO: Put in helper.rg
-    local N2 = (L2 + 1) * (L2 + 2) / 2
-    local N4 = (L4 + 1) * (L4 + 2) / 2
+    local H2, H4 = triangle_number(L2 + 1), triangle_number(L4 + 1)
     local fspace KFockDensity {
-      values : double[N2][N4];
+      values : double[H2][H4];
       bound  : float;
     }
     KFockDensityCache[index] = KFockDensity
@@ -99,10 +97,9 @@ local KFockOutputCache = {}
 function getKFockOutput(L1, L3)
   local index = LToStr[L1]..LToStr[L3]
   if KFockOutputCache[index] == nil then
-    local N1 = (L1 + 1) * (L1 + 2) / 2
-    local N3 = (L3 + 1) * (L3 + 2) / 2
+    local H1, H3 = triangle_number(L1 + 1), triangle_number(L3 + 1)
     local fspace KFockOutput {
-      values : double[N1][N3]
+      values : double[H1][H3]
     }
     KFockOutputCache[index] = KFockOutput
   end

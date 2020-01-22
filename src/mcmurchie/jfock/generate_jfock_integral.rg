@@ -12,7 +12,7 @@ local rsqrt = regentlib.rsqrt(double)
 -- using the McMurchie algorithm.
 local _jfock_integral_cache = {}
 function generateTaskMcMurchieJFockIntegral(L12, L34)
-  local H12, H34 = computeH(L12), computeH(L34)
+  local H12, H34 = tetrahedral_number(L12 + 1), tetrahedral_number(L34 + 1)
   local L_string = LPairToStr[L12]..LPairToStr[L34]
   if _jfock_integral_cache[L_string] ~= nil then
     return _jfock_integral_cache[L_string]
