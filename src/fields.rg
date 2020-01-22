@@ -59,7 +59,7 @@ function getKFockPair(L1, L2)
       bound           : float;
       ishell_location : Point;
       jshell_location : Point;
-      ishell_index    : int1d;  -- Unused?
+      ishell_index    : int1d;  -- Index for K output.
       jshell_index    : int1d;  -- Index for density.
     }
     KFockPairCache[index] = KFockPair
