@@ -1,20 +1,14 @@
-ifndef LG_RT_DIR
-$(error Please set LG_RT_DIR to `/path/to/legion/runtime`)
-endif
-
 PREFIX := $(PWD)/../../../build
 TARGET := $(PREFIX)/jfock_test
 ERI_REGENT_LIB := $(PREFIX)/lib
 ERI_REGENT_HEADERS := $(PREFIX)/include/eri_regent_tasks.h
 ERI_REGENT_SRC := $(PWD)/../..
 
-RG_RT_DIR := $(LG_RT_DIR)/../bindings/regent
-
 CPP := c++
 CPPFLAGS := -O2 -Wall -Werror -std=c++11
-CPPFLAGS += -I$(LG_RT_DIR) -I$(RG_RT_DIR) -I$(PREFIX)/include -I$(ERI_REGENT_SRC)/cpp
-LDFLAGS := -L$(RG_RT_DIR) -lregent -L$(ERI_REGENT_LIB) -lERIRegent
-LDFLAGS += -Wl,-rpath,$(RG_RT_DIR),-rpath,$(ERI_REGENT_LIB)
+CPPFLAGS += -I$(PREFIX)/include -I$(ERI_REGENT_SRC)/cpp
+LDFLAGS := -lregent -llegion -lrealm -L$(ERI_REGENT_LIB) -lERIRegent
+LDFLAGS += -Wl,-rpath,$(ERI_REGENT_LIB)
 
 SRCS := main.cpp $(ERI_REGENT_SRC)/cpp/eri_regent.cpp
 HEADERS := $(ERI_REGENT_SRC)/cpp/eri_regent.h $(ERI_REGENT_SRC)/cpp/helper.h
