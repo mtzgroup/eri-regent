@@ -13,10 +13,9 @@ regent top.rg -L P -i data/h2o -v data/h2o/output.dat
 # Use option `-fflow 0` to compile eri-regent faster
 ```
 
-Use the Makefile to compile and run inside C++. This will generate a header file and a library for the eri tasks so they can be called within C++. The Makefile assumes the `$LG_RT_DIR` and `$RG_MAX_MOMENTUM` environment variables have been set. If you want to compile for a new `$RG_MAX_MOMENTUM` then you need to run `make rg.clean` before the environment variable affects the build.
+Use the Makefile to compile and run inside C++. This will generate a header file and a library for the eri tasks so they can be called within C++. The Makefile assumes the `$RG_MAX_MOMENTUM` environment variable has been set. If you want to compile for a new `$RG_MAX_MOMENTUM` then you need to run `make rg.clean` before the environment variable affects the build.
 
 ```bash
-export LG_RT_DIR="/path/to/legion/runtime"
 export RG_MAX_MOMENTUM=P
 make
 ```

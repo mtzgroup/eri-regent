@@ -30,4 +30,4 @@ install:
 
 script:
   - python3 scripts/test_boys.py
-  - python3 scripts/test.py
+  - LD_LIBRARY_PATH=/usr/local/lib python3 scripts/test.py
