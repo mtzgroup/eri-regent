@@ -1,9 +1,9 @@
-ifndef LEGION_HOME
-LEGION_HOME := /usr/local
+ifndef LEGIONHOME
+LEGIONHOME := /usr/local
 endif
 
-ifndef LEGION_LIB
-LEGION_LIB := $(LEGION_HOME)/lib
+ifndef LEGIONLIB
+LEGIONLIB := $(LEGIONHOME)/lib
 endif
 
 PREFIX := $(PWD)/../../../build
@@ -14,9 +14,9 @@ ERI_REGENT_SRC := $(PWD)/../..
 
 CPP := c++
 CPPFLAGS := -O2 -Wall -Werror -std=c++11
-CPPFLAGS += -I$(LEGION_HOME)/include -I$(PREFIX)/include -I$(ERI_REGENT_SRC)/cpp
-LDFLAGS := -L$(LEGION_LIB) -lrealm -llegion -lregent -L$(ERI_REGENT_LIB) -lERIRegent
-LDFLAGS += -Wl,-rpath,$(LEGION_LIB),-rpath,$(ERI_REGENT_LIB)
+CPPFLAGS += -I$(LEGIONHOME)/include -I$(PREFIX)/include -I$(ERI_REGENT_SRC)/cpp
+LDFLAGS := -L$(LEGIONLIB) -lrealm -llegion -lregent -L$(ERI_REGENT_LIB) -lERIRegent
+LDFLAGS += -Wl,-rpath,$(LEGIONLIB),-rpath,$(ERI_REGENT_LIB)
 
 SRCS := main.cpp $(ERI_REGENT_SRC)/cpp/eri_regent.cpp
 HEADERS := $(ERI_REGENT_SRC)/cpp/eri_regent.h $(ERI_REGENT_SRC)/cpp/helper.h
