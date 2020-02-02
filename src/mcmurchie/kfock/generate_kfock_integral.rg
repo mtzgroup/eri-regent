@@ -57,9 +57,7 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
 
         -- TODO: Figure out which threshold to use
         -- TODO: There is another bound to compute
-        if bra.bound * ket.bound <= threshold then break end
-
-        var density = r_density[{bra.jshell_index, ket.jshell_index}]
+        -- if bra.bound * ket.bound <= threshold then break end
 
         var a = bra.location.x - ket.location.x
         var b = bra.location.y - ket.location.y
@@ -70,8 +68,11 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
         var t = alpha * (a*a + b*b + c*c)
         ;[generateStatementsComputeRTable(R, L1+L2+L3+L4+1, t, alpha, lambda,
                                           a, b, c, r_gamma_table)]
-        ;[generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
-                                        bra_prevals, ket_prevals, density)]
+        ;[generateKFockKernelStatements(
+          R, L1, L2, L3, L4, bra, ket, bra_prevals, ket_prevals,
+          rexpr r_density[{bra.jshell_index, ket.jshell_index}].values end,
+          rexpr r_output[{bra.ishell_index, ket.ishell_index}].values end
+        )]
       end
     end
   end

@@ -199,28 +199,32 @@ function writeKFockDensityToRegions(filename, region_vars, r_output_list)
       statements:insert(rquote
         var int_data : int[4]
         var double_data : double[1]
-        var num_values = c.fscanf(filep, "L2=%d,L4=%d,N1=%d,N2=%d\n",
+        var num_values = c.fscanf(filep, "L2=%d,L4=%d,N2=%d,N4=%d\n",
                                   int_data, int_data+1, int_data+2, int_data+3)
         assert(num_values == 4, "Did not read all values in density header!")
         var N2, N4 = int_data[2], int_data[3]
         assert(L2 == int_data[0] and L4 == int_data[1],
                "Unexpected angular momentum!")
         var [r_density] = region(ispace(int2d, {N2, N4}), field_space)
-        for ishell = 0, N2 do -- exclusive
-          for jshell = 0, N4 do -- exclusive
-            num_values = c.fscanf(filep, "values=")
-            assert(num_values == 0, "Did not read values!")
-            -- TODO: Put this computation in `helper.rg`.
+        for bra_jshell = 0, N2 do -- exclusive
+          for ket_jshell = 0, N4 do -- exclusive
+            num_values = c.fscanf(
+                  filep,
+                  "bra_jshell_idx=%d,ket_jshell_idx=%d,values=",
+                  int_data + 0, int_data + 1)
+            assert(num_values == 2, "Did not read values!")
+            assert(int_data[0] == bra_jshell and int_data[1] == ket_jshell,
+                   "Wrong indices!")
             for k = 0, [triangle_number(L2 + 1)] do -- exclusive
               for m = 0, [triangle_number(L4 + 1)] do -- exclusive
                 num_values = c.fscanf(filep, "%lf,", double_data)
-                assert(num_values == 1, "Did not read value!")
-                r_density[{ishell, jshell}].values[k][m] = double_data[0]
+                assert(num_values == 1, "Did not read kfock density value!")
+                r_density[{bra_jshell, ket_jshell}].values[k][m] = double_data[0]
               end
             end
             num_values = c.fscanf(filep, "bound=%lf\n", double_data)
             assert(num_values == 1, "Did not read bound!")
-            r_density[{ishell, jshell}].bound = double_data[0]
+            r_density[{bra_jshell, ket_jshell}].bound = double_data[0]
           end
         end
       end)
@@ -366,14 +370,20 @@ function verifyKFockOutput(region_vars, delta, epsilon, filename)
               assert(L1 == int_data[0] and L2 == int_data[1]
                      and L3 == int_data[2] and L4 == int_data[3],
                      "Unexpected angular momentum!")
-              for ishell = 0, N1 do -- exclusive
-                for jshell = 0, N3 do -- exclusive
+              for bra_ishell = 0, N1 do -- exclusive
+                for ket_ishell = 0, N3 do -- exclusive
+                  num_values = c.fscanf(filep,
+                      "bra_ishell_idx=%d,ket_ishell_idx=%d,values=",
+                      int_data + 0, int_data + 1)
+                  assert(num_values == 2, "Could not read line!")
+                  assert(int_data[0] == bra_ishell and int_data[1] == ket_ishell,
+                         "Index is not correct!")
                   for i = 0, [triangle_number(L1 + 1)] do -- exclusive
                     for j = 0, [triangle_number(L3 + 1)] do -- exclusive
                       num_values = c.fscanf(filep, "%lf,", double_data)
-                      assert(num_values == 1, "Did not read value!")
+                      assert(num_values == 1, "Did not read kfock value!")
                       var expected = double_data[0]
-                      var result = r_output[{ishell, jshell}].values[i][j]
+                      var result = r_output[{bra_ishell, ket_ishell}].values[i][j]
                       var absolute_error = fabs(result - expected)
                       var relative_error = fabs(absolute_error / expected)
                       if absolute_error > max_absolute_error then
@@ -386,9 +396,9 @@ function verifyKFockOutput(region_vars, delta, epsilon, filename)
                           or (absolute_error > delta and relative_error > epsilon) then
                         c.printf(
 "Value differs at L1234 = %d %d %d %d, output[%d, %d].values[%d, %d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
-                                 L1, L2, L3, L4, ishell, jshell, i, j,
+                                 L1, L2, L3, L4, bra_ishell, ket_ishell, i, j,
                                  result, expected, absolute_error, relative_error)
-                        -- assert(false, "Wrong output!")
+                        assert(false, "Wrong output!")
                       end
                     end
                   end

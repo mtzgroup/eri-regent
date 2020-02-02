@@ -30,6 +30,7 @@ for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     end
   end
   for L2 = L1, getCompiledMaxMomentum() do -- inclusive
+    -- FIXME: Density actually has the same indices as r_kfock_pairs.
     r_density_list[L1][L2] = regentlib.newsymbol("r_kfock_density"..L1..L2)
   end
 end
