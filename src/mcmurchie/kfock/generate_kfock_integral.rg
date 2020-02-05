@@ -69,7 +69,7 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
         ;[generateStatementsComputeRTable(R, L1+L2+L3+L4+1, t, alpha, lambda,
                                           a, b, c, r_gamma_table)]
         ;[generateKFockKernelStatements(
-          R, L1, L2, L3, L4, bra, ket, bra_prevals, ket_prevals,
+          R, L1, L2, L3, L4, bra, ket,
           rexpr r_density[{bra.jshell_index, ket.jshell_index}].values end,
           rexpr r_output[{bra.ishell_index, ket.ishell_index}].values end
         )]

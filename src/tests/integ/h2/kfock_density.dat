@@ -35,11 +35,3 @@ bra_jshell_idx=5,ket_jshell_idx=2,values=0X1.11AA5E0FA73FCP-3,bound=0X1.11AA5E0F
 bra_jshell_idx=5,ket_jshell_idx=3,values=0X1.218825E6AE1F3P-4,bound=0X1.218825E6AE1F3P-4
 bra_jshell_idx=5,ket_jshell_idx=4,values=0X1.2832AE6984722P-3,bound=0X1.2832AE6984722P-3
 bra_jshell_idx=5,ket_jshell_idx=5,values=0X1.11AA5E0FA73E3P-3,bound=0X1.11AA5E0FA73E3P-3
-L2=0,L4=1,N2=6,N4=0
-L2=0,L4=2,N2=6,N4=0
-L2=1,L4=0,N2=0,N4=6
-L2=1,L4=1,N2=0,N4=0
-L2=1,L4=2,N2=0,N4=0
-L2=2,L4=0,N2=0,N4=6
-L2=2,L4=1,N2=0,N4=0
-L2=2,L4=2,N2=0,N4=0

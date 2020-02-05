@@ -129,7 +129,7 @@ function writeKFockToRegions(filename, region_vars,
     checkFile(filep)
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
-    for L2 = L1, getCompiledMaxMomentum() do -- inclusive
+    for L2 = 0, getCompiledMaxMomentum() do -- inclusive
       local field_space = getKFockPair(L1, L2)
       local r_kpairs = region_vars[L1][L2]
       local r_bra_prevals = r_bra_prevals_list[L1][L2]
@@ -143,7 +143,7 @@ function writeKFockToRegions(filename, region_vars,
         assert(num_values == 3, "Did not read all values in input header!")
         var N = int_data[2]
         assert(L1 == int_data[0] and L2 == int_data[1],
-               "Unexpected angular momentum!")
+               "Unexpected angular momentum in kfock pairs!")
         var [r_kpairs] = region(ispace(int1d, N), field_space)
         var [r_bra_prevals] = region(ispace(int1d, N), double[BraN])
         var [r_ket_prevals] = region(ispace(int1d, N), double[KetN])
@@ -193,7 +193,7 @@ function writeKFockDensityToRegions(filename, region_vars, r_output_list)
     checkFile(filep)
   end})
   for L2 = 0, getCompiledMaxMomentum() do -- inclusive
-    for L4 = L2, getCompiledMaxMomentum() do -- inclusive
+    for L4 = 0, getCompiledMaxMomentum() do -- inclusive
       local field_space = getKFockDensity(L2, L4)
       local r_density = region_vars[L2][L4]
       statements:insert(rquote
@@ -204,7 +204,7 @@ function writeKFockDensityToRegions(filename, region_vars, r_output_list)
         assert(num_values == 4, "Did not read all values in density header!")
         var N2, N4 = int_data[2], int_data[3]
         assert(L2 == int_data[0] and L4 == int_data[1],
-               "Unexpected angular momentum!")
+               "Unexpected angular momentum in kfock density!")
         var [r_density] = region(ispace(int2d, {N2, N4}), field_space)
         for bra_jshell = 0, N2 do -- exclusive
           for ket_jshell = 0, N4 do -- exclusive
@@ -369,7 +369,7 @@ function verifyKFockOutput(region_vars, delta, epsilon, filename)
               var N1, N3 = int_data[4], int_data[5]
               assert(L1 == int_data[0] and L2 == int_data[1]
                      and L3 == int_data[2] and L4 == int_data[3],
-                     "Unexpected angular momentum!")
+                     "Unexpected angular momentum in kfock output!")
               for bra_ishell = 0, N1 do -- exclusive
                 for ket_ishell = 0, N3 do -- exclusive
                   num_values = c.fscanf(filep,
