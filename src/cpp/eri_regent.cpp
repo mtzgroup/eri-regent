@@ -324,7 +324,7 @@ void EriRegent::initialize_kfock_field_spaces() {
     FieldAllocator falloc =
         runtime->create_field_allocator(ctx, koutput_fspaces[0]);
     falloc.allocate_field(H1 * H3 * sizeof(double),
-                          KOUTPUT_FIELD_ID(0, 0, 0, 0, VALUES));
+                          KOUTPUT_FIELD_ID(0, 0, VALUES));
   }
 }
 

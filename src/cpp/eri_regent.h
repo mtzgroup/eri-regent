@@ -193,8 +193,7 @@ private:
 #define JKET_FIELD_ID(L1, L2, F_NAME) JKET##L1##L2##_FIELD_##F_NAME##_ID
 #define KPAIR_FIELD_ID(L1, L2, F_NAME) KPAIR##L1##L2##_FIELD##F_NAME##_ID
 #define KDENSITY_FIELD_ID(L2, L4, F_NAME) KDENSITY##L2##L4##_FIELD##F_NAME##_ID
-#define KOUTPUT_FIELD_ID(L1, L2, L3, L4, F_NAME)                               \
-  KOUTPUT##L1##L2##L3##L4##_FIELD##F_NAME##_ID
+#define KOUTPUT_FIELD_ID(L1, L3, F_NAME) KOUTPUT##L1##L3##_FIELD##F_NAME##_ID
 
 /**
  * Generate a list of all fields for a given fspace.
@@ -230,8 +229,7 @@ private:
 #define KDENSITY_FIELD_IDS(L2, L4)                                             \
   KDENSITY_FIELD_ID(L2, L4, VALUES), KDENSITY_FIELD_ID(L2, L4, BOUND)
 
-#define KOUTPUT_FIELD_IDS(L1, L2, L3, L4)                                      \
-  KOUTPUT_FIELD_ID(L1, L2, L3, L4, VALUES)
+#define KOUTPUT_FIELD_IDS(L1, L3) KOUTPUT_FIELD_ID(L1, L3, VALUES)
 
   /**
    * An enum containing all the tasks and fields so that we can uniquely
@@ -241,52 +239,90 @@ private:
     ERI_REGENT_TASK_ID,
     GAMMA_TABLE_FIELD_ID,
     JBRA_FIELD_IDS(0, 0),
-    JKET_FIELD_IDS(0, 0),
     JBRA_FIELD_IDS(0, 1),
-    JKET_FIELD_IDS(0, 1),
     JBRA_FIELD_IDS(1, 1),
-    JKET_FIELD_IDS(1, 1),
     JBRA_FIELD_IDS(0, 2),
-    JKET_FIELD_IDS(0, 2),
     JBRA_FIELD_IDS(1, 2),
-    JKET_FIELD_IDS(1, 2),
     JBRA_FIELD_IDS(2, 2),
-    JKET_FIELD_IDS(2, 2),
     JBRA_FIELD_IDS(0, 3),
-    JKET_FIELD_IDS(0, 3),
     JBRA_FIELD_IDS(1, 3),
-    JKET_FIELD_IDS(1, 3),
     JBRA_FIELD_IDS(2, 3),
-    JKET_FIELD_IDS(2, 3),
     JBRA_FIELD_IDS(3, 3),
-    JKET_FIELD_IDS(3, 3),
     JBRA_FIELD_IDS(0, 4),
-    JKET_FIELD_IDS(0, 4),
     JBRA_FIELD_IDS(1, 4),
-    JKET_FIELD_IDS(1, 4),
     JBRA_FIELD_IDS(2, 4),
-    JKET_FIELD_IDS(2, 4),
     JBRA_FIELD_IDS(3, 4),
-    JKET_FIELD_IDS(3, 4),
     JBRA_FIELD_IDS(4, 4),
+    JKET_FIELD_IDS(0, 0),
+    JKET_FIELD_IDS(0, 1),
+    JKET_FIELD_IDS(1, 1),
+    JKET_FIELD_IDS(0, 2),
+    JKET_FIELD_IDS(1, 2),
+    JKET_FIELD_IDS(2, 2),
+    JKET_FIELD_IDS(0, 3),
+    JKET_FIELD_IDS(1, 3),
+    JKET_FIELD_IDS(2, 3),
+    JKET_FIELD_IDS(3, 3),
+    JKET_FIELD_IDS(0, 4),
+    JKET_FIELD_IDS(1, 4),
+    JKET_FIELD_IDS(2, 4),
+    JKET_FIELD_IDS(3, 4),
     JKET_FIELD_IDS(4, 4),
     KPAIR_FIELD_IDS(0, 0),
-    // KPAIR_FIELD_IDS(0, 1),
-    // KPAIR_FIELD_IDS(1, 0),
-    // KPAIR_FIELD_IDS(1, 1),
+    KPAIR_FIELD_IDS(0, 1),
+    KPAIR_FIELD_IDS(0, 2),
+    KPAIR_FIELD_IDS(0, 3),
+    KPAIR_FIELD_IDS(0, 4),
+    KPAIR_FIELD_IDS(1, 0),
+    KPAIR_FIELD_IDS(1, 1),
+    KPAIR_FIELD_IDS(1, 2),
+    KPAIR_FIELD_IDS(1, 3),
+    KPAIR_FIELD_IDS(1, 4),
+    KPAIR_FIELD_IDS(2, 0),
+    KPAIR_FIELD_IDS(2, 1),
+    KPAIR_FIELD_IDS(2, 2),
+    KPAIR_FIELD_IDS(2, 3),
+    KPAIR_FIELD_IDS(2, 4),
+    KPAIR_FIELD_IDS(3, 0),
+    KPAIR_FIELD_IDS(3, 1),
+    KPAIR_FIELD_IDS(3, 2),
+    KPAIR_FIELD_IDS(3, 3),
+    KPAIR_FIELD_IDS(3, 4),
+    KPAIR_FIELD_IDS(4, 0),
+    KPAIR_FIELD_IDS(4, 1),
+    KPAIR_FIELD_IDS(4, 2),
+    KPAIR_FIELD_IDS(4, 3),
+    KPAIR_FIELD_IDS(4, 4),
     KDENSITY_FIELD_IDS(0, 0),
-    // KDENSITY_FIELD_IDS(0, 1),
-    // KDENSITY_FIELD_IDS(1, 1),
-    KOUTPUT_FIELD_IDS(0, 0, 0, 0),
-    // KOUTPUT_FIELD_IDS(0, 0, 0, 1),
-    // KOUTPUT_FIELD_IDS(0, 0, 1, 0),
-    // KOUTPUT_FIELD_IDS(0, 0, 1, 1),
-    // KOUTPUT_FIELD_IDS(0, 1, 0, 1),
-    // KOUTPUT_FIELD_IDS(0, 1, 1, 0),
-    // KOUTPUT_FIELD_IDS(0, 1, 1, 1),
-    // KOUTPUT_FIELD_IDS(1, 0, 1, 0),
-    // KOUTPUT_FIELD_IDS(1, 0, 1, 1),
-    // KOUTPUT_FIELD_IDS(1, 1, 1, 1),
+    KDENSITY_FIELD_IDS(0, 1),
+    KDENSITY_FIELD_IDS(1, 1),
+    KDENSITY_FIELD_IDS(0, 2),
+    KDENSITY_FIELD_IDS(1, 2),
+    KDENSITY_FIELD_IDS(2, 2),
+    KDENSITY_FIELD_IDS(0, 3),
+    KDENSITY_FIELD_IDS(1, 3),
+    KDENSITY_FIELD_IDS(2, 3),
+    KDENSITY_FIELD_IDS(3, 3),
+    KDENSITY_FIELD_IDS(0, 4),
+    KDENSITY_FIELD_IDS(1, 4),
+    KDENSITY_FIELD_IDS(2, 4),
+    KDENSITY_FIELD_IDS(3, 4),
+    KDENSITY_FIELD_IDS(4, 4),
+    KOUTPUT_FIELD_IDS(0, 0),
+    KOUTPUT_FIELD_IDS(0, 1),
+    KOUTPUT_FIELD_IDS(1, 1),
+    KOUTPUT_FIELD_IDS(0, 2),
+    KOUTPUT_FIELD_IDS(1, 2),
+    KOUTPUT_FIELD_IDS(2, 2),
+    KOUTPUT_FIELD_IDS(0, 3),
+    KOUTPUT_FIELD_IDS(1, 3),
+    KOUTPUT_FIELD_IDS(2, 3),
+    KOUTPUT_FIELD_IDS(3, 3),
+    KOUTPUT_FIELD_IDS(0, 4),
+    KOUTPUT_FIELD_IDS(1, 4),
+    KOUTPUT_FIELD_IDS(2, 4),
+    KOUTPUT_FIELD_IDS(3, 4),
+    KOUTPUT_FIELD_IDS(4, 4),
   };
 
   /**
@@ -310,14 +346,40 @@ private:
       {JKET_FIELD_IDS(2, 2)}, {JKET_FIELD_IDS(2, 3)}, {JKET_FIELD_IDS(2, 4)},
       {JKET_FIELD_IDS(3, 3)}, {JKET_FIELD_IDS(3, 4)}, {JKET_FIELD_IDS(4, 4)},
   };
-  const Legion::FieldID kpair_fields_list[1][NUM_KPAIR_FIELDS] = {
-      {KPAIR_FIELD_IDS(0, 0)},
+  const Legion::FieldID kpair_fields_list[(MAX_MOMENTUM + 1) *
+                                          (MAX_MOMENTUM +
+                                           1)][NUM_KPAIR_FIELDS] = {
+      {KPAIR_FIELD_IDS(0, 0)}, {KPAIR_FIELD_IDS(0, 1)}, {KPAIR_FIELD_IDS(0, 2)},
+      {KPAIR_FIELD_IDS(0, 3)}, {KPAIR_FIELD_IDS(0, 4)}, {KPAIR_FIELD_IDS(1, 0)},
+      {KPAIR_FIELD_IDS(1, 1)}, {KPAIR_FIELD_IDS(1, 2)}, {KPAIR_FIELD_IDS(1, 3)},
+      {KPAIR_FIELD_IDS(1, 4)}, {KPAIR_FIELD_IDS(2, 0)}, {KPAIR_FIELD_IDS(2, 1)},
+      {KPAIR_FIELD_IDS(2, 2)}, {KPAIR_FIELD_IDS(2, 3)}, {KPAIR_FIELD_IDS(2, 4)},
+      {KPAIR_FIELD_IDS(3, 0)}, {KPAIR_FIELD_IDS(3, 1)}, {KPAIR_FIELD_IDS(3, 2)},
+      {KPAIR_FIELD_IDS(3, 3)}, {KPAIR_FIELD_IDS(3, 4)}, {KPAIR_FIELD_IDS(4, 0)},
+      {KPAIR_FIELD_IDS(4, 1)}, {KPAIR_FIELD_IDS(4, 2)}, {KPAIR_FIELD_IDS(4, 3)},
+      {KPAIR_FIELD_IDS(4, 4)},
   };
-  const Legion::FieldID kdensity_fields_list[1][NUM_KPAIR_FIELDS] = {
-      {KDENSITY_FIELD_IDS(0, 0)},
+  const Legion::FieldID kdensity_fields_list[TRIANGLE_NUMBER(
+      MAX_MOMENTUM + 1)][NUM_KPAIR_FIELDS] = {
+      {KDENSITY_FIELD_IDS(0, 0)}, {KDENSITY_FIELD_IDS(0, 1)},
+      {KDENSITY_FIELD_IDS(0, 2)}, {KDENSITY_FIELD_IDS(0, 3)},
+      {KDENSITY_FIELD_IDS(0, 4)}, {KDENSITY_FIELD_IDS(1, 1)},
+      {KDENSITY_FIELD_IDS(1, 2)}, {KDENSITY_FIELD_IDS(1, 3)},
+      {KDENSITY_FIELD_IDS(1, 4)}, {KDENSITY_FIELD_IDS(2, 2)},
+      {KDENSITY_FIELD_IDS(2, 3)}, {KDENSITY_FIELD_IDS(2, 4)},
+      {KDENSITY_FIELD_IDS(3, 3)}, {KDENSITY_FIELD_IDS(3, 4)},
+      {KDENSITY_FIELD_IDS(4, 4)},
   };
-  const Legion::FieldID koutput_fields_list[1][NUM_KPAIR_FIELDS] = {
-      {KOUTPUT_FIELD_IDS(0, 0, 0, 0)},
+  const Legion::FieldID koutput_fields_list[TRIANGLE_NUMBER(
+      MAX_MOMENTUM + 1)][NUM_KPAIR_FIELDS] = {
+      {KOUTPUT_FIELD_IDS(0, 0)}, {KOUTPUT_FIELD_IDS(0, 1)},
+      {KOUTPUT_FIELD_IDS(0, 2)}, {KOUTPUT_FIELD_IDS(0, 3)},
+      {KOUTPUT_FIELD_IDS(0, 4)}, {KOUTPUT_FIELD_IDS(1, 1)},
+      {KOUTPUT_FIELD_IDS(1, 2)}, {KOUTPUT_FIELD_IDS(1, 3)},
+      {KOUTPUT_FIELD_IDS(1, 4)}, {KOUTPUT_FIELD_IDS(2, 2)},
+      {KOUTPUT_FIELD_IDS(2, 3)}, {KOUTPUT_FIELD_IDS(2, 4)},
+      {KOUTPUT_FIELD_IDS(3, 3)}, {KOUTPUT_FIELD_IDS(3, 4)},
+      {KOUTPUT_FIELD_IDS(4, 4)},
   };
 
 #undef JBRA_FIELD_IDS
