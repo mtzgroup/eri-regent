@@ -50,6 +50,12 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
       for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi + 1 do -- exclusive
         var bra = r_bras[bra_idx]
         var ket = r_kets[ket_idx]
+        var density : getKFockDensity(L2, L4)
+        if L2 <= L4 then
+          density = r_density[{bra.jshell_index, ket.jshell_index}]
+        else
+          density = r_density[{ket.jshell_index, bra.jshell_index}]
+        end
 
         -- TODO: Figure out which threshold to use
         -- TODO: There is another bound to compute
@@ -66,7 +72,7 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
                                           a, b, c, r_gamma_table)]
         ;[generateKFockKernelStatements(
           R, L1, L2, L3, L4, bra, ket,
-          rexpr r_density[{bra.jshell_index, ket.jshell_index}].values end,
+          rexpr density.values end,
           rexpr r_output[{N24, bra.ishell_index, ket.ishell_index}].values end
         )]
       end

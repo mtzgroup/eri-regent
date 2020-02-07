@@ -48,6 +48,10 @@ function getJKet(L34)
   return JKetCache[L34]
 end
 
+-- TODO: Create different fspaces for SS, SP, and PP.
+--       SS should have not Pi or Pj,
+--       SP should only have Pj, and
+--       PP should have both Pi and Pj.
 local KFockPairCache = {}
 function getKFockPair(L1, L2)
   local index = LToStr[L1]..LToStr[L2]
@@ -67,6 +71,7 @@ function getKFockPair(L1, L2)
   return KFockPairCache[index]
 end
 
+-- TODO: Remove all prevals.
 KFockNumBraPrevals = {
   [0] = {[0] = 0, [1] = 4, [2] = 16},
   [1] = {[0] = 4, [1] = 25, [2] = 91},
