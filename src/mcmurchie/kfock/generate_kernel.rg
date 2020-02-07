@@ -2,8 +2,8 @@ import "regent"
 
 function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
                                        density, output)
-  local H1, H2 = triangle_number(L1 + 1), triangle_number(L2 + 2)
-  local H3, H4 = triangle_number(L3 + 1), triangle_number(L4 + 2)
+  local H1, H2 = triangle_number(L1 + 1), triangle_number(L2 + 1)
+  local H3, H4 = triangle_number(L3 + 1), triangle_number(L4 + 1)
   local statements = terralib.newlist()
   local results = {}
   for i = 0, H1-1 do -- inclusive
@@ -15,12 +15,12 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
   end
 
   if L1 == 0 and L2 == 0 and L3 == 0 and L4 == 0 then
-    -- SSSS 1 1 1 1
+    -- SSSS
     statements:insert(rquote
       [results[0][0]] = [R[0][0][0][0]] * [density][0][0]
     end)
   elseif L1 == 0 and L2 == 0 and L3 == 0 and L4 == 1 then
-    -- SSSP 1 1 1 3
+    -- SSSP
     statements:insert(rquote
       var ket_denom : double = 1.0 / (ket.eta + ket.eta)
       var ket_Pj = ket.jshell_location
@@ -31,7 +31,7 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       )
     end)
   elseif L1 == 0 and L2 == 1 and L3 == 0 and L4 == 1 then
-    -- SPSP 1 3 1 3
+    -- SPSP
     statements:insert(rquote
       var bra_denom : double = 1.0 / (bra.eta + bra.eta)
       var ket_denom : double = 1.0 / (ket.eta + ket.eta)
@@ -79,7 +79,7 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       )
     end)
   elseif L1 == 0 and L2 == 0 and L3 == 1 and L4 == 0 then
-    -- SSPS 1 1 3 1
+    -- SSPS
     statements:insert(rquote
       var ket_denom = 1.0 / (ket.eta + ket.eta)
       var ket_Pi = ket.ishell_location
@@ -96,8 +96,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       ) * [density][0][0]
     end)
   elseif L1 == 0 and L2 == 1 and L3 == 1 and L4 == 0 then
-    -- SPPS 1 3 3 1
-    -- TODO
+    -- SPPS
+    -- FIXME: This kernel should work, but it doesn't.
     statements:insert(rquote
       var bra_denom = 0.5 / bra.eta
       var ket_denom = 0.5 / ket.eta
@@ -203,7 +203,7 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       )
     end)
   elseif L1 == 0 and L2 == 0 and L3 == 1 and L4 == 1 then
-    -- SSPP 1 1 3 3
+    -- SSPP
     statements:insert(rquote
       var ket_denom = 0.5 / ket.eta
       var ket_Pi = ket.ishell_location

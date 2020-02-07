@@ -3,9 +3,8 @@ import "regent"
 require "helper"
 require "mcmurchie.kfock.generate_kfock_integral"
 
-function kfock(r_pairs_list, r_bra_prevals_list, r_ket_prevals_list,
-               r_density_list, r_output_list, r_gamma_table,
-               threshold, parallelism)
+function kfock(r_pairs_list, r_density_list, r_output_list,
+               r_gamma_table, threshold, parallelism)
   local statements = terralib.newlist()
   -- TODO: Partition output.
   -- TODO: Reverse the launch order so that large kernels launch first
@@ -15,15 +14,12 @@ function kfock(r_pairs_list, r_bra_prevals_list, r_ket_prevals_list,
         for L4 = 0, getCompiledMaxMomentum() do -- inclusive
           if L1 < L3 or (L1 == L3 and L2 <= L4) then
             local r_bras, r_kets = r_pairs_list[L1][L2], r_pairs_list[L3][L4]
-            local r_bra_prevals = r_bra_prevals_list[L1][L2]
-            local r_ket_prevals = r_ket_prevals_list[L3][L4]
             local r_density
             if L2 <= L4 then
               r_density = r_density_list[L2][L4]
             else
               r_density = r_density_list[L4][L2]
             end
-            -- TODO: Fill output with zeros
             local r_output = r_output_list[L1][L3]
             local kfock_integral = generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
             if r_bras ~= nil and r_kets ~= nil then
@@ -34,9 +30,7 @@ function kfock(r_pairs_list, r_bra_prevals_list, r_ket_prevals_list,
                 -- TODO: Partition other regions, too
                 -- __demand(__index_launch)
                 for bra_color in bra_coloring do
-                  -- TODO
                   kfock_integral(p_bras[bra_color], r_kets,
-                                 r_bra_prevals, r_ket_prevals,
                                  r_density, r_output,
                                  r_gamma_table, threshold, 1, 1)
                 end

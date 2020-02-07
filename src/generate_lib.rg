@@ -3,7 +3,7 @@ import "regent"
 require "fields"
 require "helper"
 require "jfock"
-
+require "kfock"
 
 --------------------------------------------------------------------------------
 -- Launch jfock tasks
@@ -11,7 +11,7 @@ require "jfock"
 -- r_jbras[L1][L2] - Regions of JBras with angular momentum pair L1, L2
 -- r_jkets[L1][L2] - Regions of JKets with angular momentum pair L1, L2
 -- r_gamma_table   - A region holding a lookup table needed by the kernels
--- threshold       - A threshold to determine if a BraKet need to contribute
+-- threshold       - A threshold to determine if a BraKet needs to contribute
 --                   to output
 -- parallelism     - How many ways should divide the work of each kernel
 -- max_momentum    - A sanity check to make sure eri-regent was compiled with a
@@ -104,6 +104,63 @@ do
       [2]={[2]=r_jkets22, [3]=r_jkets23, [4]=r_jkets24},
       [3]={[3]=r_jkets33, [4]=r_jkets34},
       [4]={[4]=r_jkets44},
+    },
+    r_gamma_table, threshold, parallelism)]
+end
+
+--------------------------------------------------------------------------------
+-- Launch kfock tasks
+--------------------------------------------------------------------------------
+-- r_pairs[L1][L2]   - Regions of KFock pairs with angular momentum pair L1, L2
+-- r_density[L2][L4] - Regions of density values with angular momentum pair L24
+-- r_output[L1][L3]  - Regions of output values with angular momentum pair L13
+-- r_gamma_table     - A region holding a lookup table needed by the kernels
+-- threshold         - A threshold to determine if a KFock pair needs to
+--                     contribute to output
+-- parallelism       - How many ways should divide the work of each kernel
+-- max_momentum      - A sanity check to make sure eri-regent was compiled with
+--                     a large enough momentum
+--------------------------------------------------------------------------------
+task kfock_task(r_pairs00     : region(ispace(int1d), getKFockPair(0, 0)),
+                -- r_pairs01     : region(ispace(int1d), getKFockPair(1, 0)),
+                -- r_pairs10     : region(ispace(int1d), getKFockPair(0, 1)),
+                -- r_pairs11     : region(ispace(int1d), getKFockPair(1, 1)),
+                r_density00   : region(ispace(int2d), getKFockDensity(0, 0)),
+                -- r_density01   : region(ispace(int2d), getKFockDensity(0, 1)),
+                -- r_density11   : region(ispace(int2d), getKFockDensity(1, 1)),
+                r_output00    : region(ispace(int3d), getKFockOutput(0, 0)),
+                -- r_output01    : region(ispace(int2d), getKFockOutput(0, 1)),
+                -- r_output11    : region(ispace(int2d), getKFockOutput(1, 1)),
+                r_gamma_table : region(ispace(int2d, {18, 700}), double[5]),
+                threshold : float, parallelism : int, largest_momentum : int)
+where
+  reads (
+    r_pairs00,
+    -- r_pairs01,
+    -- r_pairs10,
+    -- r_pairs11,
+    r_density00,
+    -- r_density01,
+    -- r_density11,
+    r_gamma_table
+  ),
+  reads writes(
+    r_output00
+    -- r_output01,
+    -- r_output11
+  )
+do
+  regentlib.assert(largest_momentum <= [getCompiledMaxMomentum()],
+                   "Please recompile eri-regent with a larger max momentum!");
+  [kfock(
+    {
+      [0]={[0]=r_pairs00}
+    },
+    {
+      [0]={[0]=r_density00}
+    },
+    {
+      [0]={[0]=r_output00}
     },
     r_gamma_table, threshold, parallelism)]
 end

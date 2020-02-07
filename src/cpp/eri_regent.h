@@ -5,6 +5,12 @@
 
 class EriRegent {
 public:
+  // TODO: What is the type of int1d?
+  /**
+   *
+   */
+  typedef uint64_t int1d_t;
+
   /**
    * `gamma_table` must have size 18 x 700 x 5
    */
@@ -18,6 +24,7 @@ public:
    */
   static void register_tasks();
 
+  // TODO: Remove this struct.
   struct TeraChemJData {
     double x;
     double y;
@@ -27,6 +34,7 @@ public:
     float bound;
   };
 
+  // TODO: Make new file terachem_jdata_list.cpp
   /**
    * A list of JBra and JKet data to be passed to `launch_jfock_task`.
    */
@@ -41,12 +49,15 @@ public:
       }
     }
 
+    // TODO: Disallow copies.
+
     /**
      * Allocate `n` jbras/jkets for a given angular momentum pair.
      */
     void allocate_jbras(int L1, int L2, int n);
     void allocate_jkets(int L1, int L2, int n);
 
+    // TODO: Move to destructor
     /**
      * Free the allocated memory for all jbras and jkets.
      */
@@ -98,10 +109,52 @@ public:
     int get_largest_momentum();
 
     int num_jbras[MAX_MOMENTUM_INDEX + 1];
+    // TODO: Use SOA format.
     void *jbras[MAX_MOMENTUM_INDEX + 1];
 
     int num_jkets[MAX_MOMENTUM_INDEX + 1];
     void *jkets[MAX_MOMENTUM_INDEX + 1];
+  };
+
+  /**
+   * A list of KFock data to be passed to `launch_kfock_task`.
+   */
+  class TeraChemKDataList {
+    friend class EriRegent;
+
+  public:
+    TeraChemKDataList();
+    ~TeraChemKDataList();
+
+    int get_num_kpairs(int L1, int L2);
+    int get_num_kdensity(int L2, int L4);
+
+    void allocate_kpairs(int L1, int L2, int n);
+    void allocate_kdensity(int L2, int L4, int n);
+    // void set_num_shells(int[MAX_MOMENTUM+1] shell_counts);
+
+    void set_kpair(int L1, int L2, int i, double x, double y, double z,
+                   double eta, double C, float bound, double ishell_x,
+                   double ishell_y, double ishell_z, double jshell_x,
+                   double jshell_y, double jshell_z, int1d_t ishell_index,
+                   int1d_t jshell_index);
+    void set_kdensity(int L2, int L4, int i, const double *values, float bound);
+
+    const double *get_koutput(int L1, int L2, int L3, int L4, int i);
+
+  private:
+    int get_largest_momentum();
+    void *get_kpair_data(int L1, int L2);
+
+    int num_kpairs[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+    void *kpairs[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+
+    int num_shells[MAX_MOMENTUM + 1];
+    int num_kdensity[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+    void *kdensity[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+
+    int num_koutput[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+    void *koutput[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   };
 
   /**
@@ -110,28 +163,47 @@ public:
   void launch_jfock_task(TeraChemJDataList &jdata_list, float threshold,
                          int parallelism);
 
+  /**
+   * Launch the kfock regent tasks and wait for them to finish.
+   */
+  void launch_kfock_task(TeraChemKDataList &kdata_list, float threshold,
+                         int parallelism);
+
 private:
   Legion::Context ctx;
   Legion::Runtime *runtime;
   Legion::Memory memory;
+  Legion::FieldSpace gamma_table_fspace;
+  Legion::IndexSpace gamma_table_ispace;
   Legion::LogicalRegion gamma_table_lr;
   Legion::PhysicalRegion gamma_table_pr;
   Legion::FieldSpace jbra_fspaces[MAX_MOMENTUM_INDEX + 1];
   Legion::FieldSpace jket_fspaces[MAX_MOMENTUM_INDEX + 1];
+  Legion::FieldSpace kpair_fspaces[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  Legion::FieldSpace kdensity_fspaces[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+  Legion::FieldSpace koutput_fspaces[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
 
-  void initialize_field_spaces();
+  void initialize_jfock_field_spaces();
+  void initialize_kfock_field_spaces();
 
 /**
  * Generate a name for a given field.
  */
 #define JBRA_FIELD_ID(L1, L2, F_NAME) JBRA##L1##L2##_FIELD_##F_NAME##_ID
 #define JKET_FIELD_ID(L1, L2, F_NAME) JKET##L1##L2##_FIELD_##F_NAME##_ID
+#define KPAIR_FIELD_ID(L1, L2, F_NAME) KPAIR##L1##L2##_FIELD##F_NAME##_ID
+#define KDENSITY_FIELD_ID(L2, L4, F_NAME) KDENSITY##L2##L4##_FIELD##F_NAME##_ID
+#define KOUTPUT_FIELD_ID(L1, L2, L3, L4, F_NAME)                               \
+  KOUTPUT##L1##L2##L3##L4##_FIELD##F_NAME##_ID
 
 /**
  * Generate a list of all fields for a given fspace.
  */
 #define NUM_JBRA_FIELDS (7)
 #define NUM_JKET_FIELDS (7)
+#define NUM_KPAIR_FIELDS (14)
+#define NUM_KDENSITY_FIELDS (2)
+#define NUM_KOUTPUT_FIELDS (1)
 
 #define JBRA_FIELD_IDS(L1, L2)                                                 \
   JBRA_FIELD_ID(L1, L2, X), JBRA_FIELD_ID(L1, L2, Y),                          \
@@ -144,6 +216,22 @@ private:
       JKET_FIELD_ID(L1, L2, Z), JKET_FIELD_ID(L1, L2, ETA),                    \
       JKET_FIELD_ID(L1, L2, C), JKET_FIELD_ID(L1, L2, BOUND),                  \
       JKET_FIELD_ID(L1, L2, DENSITY)
+
+#define KPAIR_FIELD_IDS(L1, L2)                                                \
+  KPAIR_FIELD_ID(L1, L2, X), KPAIR_FIELD_ID(L1, L2, Y),                        \
+      KPAIR_FIELD_ID(L1, L2, Z), KPAIR_FIELD_ID(L1, L2, ETA),                  \
+      KPAIR_FIELD_ID(L1, L2, C), KPAIR_FIELD_ID(L1, L2, BOUND),                \
+      KPAIR_FIELD_ID(L1, L2, ISHELL_X), KPAIR_FIELD_ID(L1, L2, ISHELL_Y),      \
+      KPAIR_FIELD_ID(L1, L2, ISHELL_Z), KPAIR_FIELD_ID(L1, L2, JSHELL_X),      \
+      KPAIR_FIELD_ID(L1, L2, JSHELL_Y), KPAIR_FIELD_ID(L1, L2, JSHELL_Z),      \
+      KPAIR_FIELD_ID(L1, L2, ISHELL_INDEX),                                    \
+      KPAIR_FIELD_ID(L1, L2, JSHELL_INDEX)
+
+#define KDENSITY_FIELD_IDS(L2, L4)                                             \
+  KDENSITY_FIELD_ID(L2, L4, VALUES), KDENSITY_FIELD_ID(L2, L4, BOUND)
+
+#define KOUTPUT_FIELD_IDS(L1, L2, L3, L4)                                      \
+  KOUTPUT_FIELD_ID(L1, L2, L3, L4, VALUES)
 
   /**
    * An enum containing all the tasks and fields so that we can uniquely
@@ -182,6 +270,23 @@ private:
     JKET_FIELD_IDS(3, 4),
     JBRA_FIELD_IDS(4, 4),
     JKET_FIELD_IDS(4, 4),
+    KPAIR_FIELD_IDS(0, 0),
+    // KPAIR_FIELD_IDS(0, 1),
+    // KPAIR_FIELD_IDS(1, 0),
+    // KPAIR_FIELD_IDS(1, 1),
+    KDENSITY_FIELD_IDS(0, 0),
+    // KDENSITY_FIELD_IDS(0, 1),
+    // KDENSITY_FIELD_IDS(1, 1),
+    KOUTPUT_FIELD_IDS(0, 0, 0, 0),
+    // KOUTPUT_FIELD_IDS(0, 0, 0, 1),
+    // KOUTPUT_FIELD_IDS(0, 0, 1, 0),
+    // KOUTPUT_FIELD_IDS(0, 0, 1, 1),
+    // KOUTPUT_FIELD_IDS(0, 1, 0, 1),
+    // KOUTPUT_FIELD_IDS(0, 1, 1, 0),
+    // KOUTPUT_FIELD_IDS(0, 1, 1, 1),
+    // KOUTPUT_FIELD_IDS(1, 0, 1, 0),
+    // KOUTPUT_FIELD_IDS(1, 0, 1, 1),
+    // KOUTPUT_FIELD_IDS(1, 1, 1, 1),
   };
 
   /**
@@ -205,7 +310,19 @@ private:
       {JKET_FIELD_IDS(2, 2)}, {JKET_FIELD_IDS(2, 3)}, {JKET_FIELD_IDS(2, 4)},
       {JKET_FIELD_IDS(3, 3)}, {JKET_FIELD_IDS(3, 4)}, {JKET_FIELD_IDS(4, 4)},
   };
+  const Legion::FieldID kpair_fields_list[1][NUM_KPAIR_FIELDS] = {
+      {KPAIR_FIELD_IDS(0, 0)},
+  };
+  const Legion::FieldID kdensity_fields_list[1][NUM_KPAIR_FIELDS] = {
+      {KDENSITY_FIELD_IDS(0, 0)},
+  };
+  const Legion::FieldID koutput_fields_list[1][NUM_KPAIR_FIELDS] = {
+      {KOUTPUT_FIELD_IDS(0, 0, 0, 0)},
+  };
 
 #undef JBRA_FIELD_IDS
 #undef JKET_FIELD_IDS
+#undef KPAIR_FIELD_IDS
+#undef KDENSITY_FIELD_IDS
+#undef KOUTPUT_FIELD_IDS
 };

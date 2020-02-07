@@ -18,7 +18,9 @@ CPPFLAGS += -I$(LEGIONHOME)/include -I$(PREFIX)/include -I$(ERI_REGENT_SRC)/cpp
 LDFLAGS := -L$(LEGIONLIB) -lrealm -llegion -lregent -L$(ERI_REGENT_LIB) -lERIRegent
 LDFLAGS += -Wl,-rpath,$(LEGIONLIB),-rpath,$(ERI_REGENT_LIB)
 
-SRCS := main.cpp $(ERI_REGENT_SRC)/cpp/eri_regent.cpp
+SRCS := main.cpp
+SRCS += $(ERI_REGENT_SRC)/cpp/eri_regent.cpp
+SRCS += $(ERI_REGENT_SRC)/cpp/terachem_kdata.cpp
 HEADERS := $(ERI_REGENT_SRC)/cpp/eri_regent.h $(ERI_REGENT_SRC)/cpp/helper.h
 
 .PHONY: clean
