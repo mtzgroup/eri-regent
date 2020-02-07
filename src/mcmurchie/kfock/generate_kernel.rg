@@ -1078,7 +1078,7 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
           [R[0][0][0][0]] * PP3)
     end)
   else
-    assert(false, "Unimplemented KFock kernel!")
+    -- assert(false, "Unimplemented KFock kernel!")
   end
 
   for i = 0, H1-1 do -- inclusive
