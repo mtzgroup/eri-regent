@@ -81,6 +81,9 @@ KFockNumKetPrevals = {
 
 local KFockDensityCache = {}
 function getKFockDensity(L2, L4)
+  if L2 > L4 then
+    L2, L4 = L4, L2
+  end
   local index = LToStr[L2]..LToStr[L4]
   if KFockDensityCache[index] == nil then
     local H2, H4 = triangle_number(L2 + 1), triangle_number(L4 + 1)

@@ -9,26 +9,24 @@ require "kfock"
 local assert = regentlib.assert
 local c = regentlib.c
 
+-- Iterate over the full square
 local r_pairs_list, r_bra_prevals_list, r_ket_prevals_list = {}, {}, {}
-local r_density_list, r_output_list = {}, {}
 for L1 = 0, getCompiledMaxMomentum() do -- inclusive
   r_pairs_list[L1], r_bra_prevals_list[L1], r_ket_prevals_list[L1] = {}, {}, {}
-  r_density_list[L1], r_output_list[L1] = {}, {}
   for L2 = 0, getCompiledMaxMomentum() do -- inclusive
     r_pairs_list[L1][L2] = regentlib.newsymbol("r_kfock_pairs"..L1..L2)
-    r_density_list[L1][L2] = regentlib.newsymbol("r_kfock_density"..L1..L2)
     r_bra_prevals_list[L1][L2] = regentlib.newsymbol("r_bra_prevals"..L1..L2)
     r_ket_prevals_list[L1][L2] = regentlib.newsymbol("r_ket_prevals"..L1..L2)
+  end
+end
 
-    r_output_list[L1][L2] = {}
-    for L3 = 0, getCompiledMaxMomentum() do -- inclusive
-      r_output_list[L1][L2][L3] = {}
-      for L4 = 0, getCompiledMaxMomentum() do -- inclusive
-        if L1 < L3 or (L1 == L3 and L2 <= L4) then
-          r_output_list[L1][L2][L3][L4] = regentlib.newsymbol("r_output"..L1..L2..L3..L4)
-        end
-      end
-    end
+-- Iterate over the upper triangle.
+local r_density_list, r_output_list = {}, {}
+for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+  r_density_list[L1], r_output_list[L1] = {}, {}
+  for L2 = L1, getCompiledMaxMomentum() do -- inclusive
+    r_density_list[L1][L2] = regentlib.newsymbol("r_density"..L1..L2)
+    r_output_list[L1][L2] = regentlib.newsymbol("r_output"..L1..L2)
   end
 end
 

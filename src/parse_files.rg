@@ -193,7 +193,7 @@ function writeKFockDensityToRegions(filename, region_vars, r_output_list)
     checkFile(filep)
   end})
   for L2 = 0, getCompiledMaxMomentum() do -- inclusive
-    for L4 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L4 = L2, getCompiledMaxMomentum() do -- inclusive
       local field_space = getKFockDensity(L2, L4)
       local r_density = region_vars[L2][L4]
       statements:insert(rquote
@@ -234,18 +234,15 @@ function writeKFockDensityToRegions(filename, region_vars, r_output_list)
     c.fclose(filep)
   end)
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
-    for L2 = 0, getCompiledMaxMomentum() do -- inclusive
-      for L3 = 0, getCompiledMaxMomentum() do -- inclusive
-        for L4 = 0, getCompiledMaxMomentum() do -- inclusive
-          if L1 < L3 or (L1 == L3 and L2 <= L4) then
-            local r_output = r_output_list[L1][L2][L3][L4]
-            local r_density = region_vars[L1][L3]
-            statements:insert(rquote
-              var [r_output] = region(r_density.ispace, getKFockOutput(L1, L3))
-            end)
-          end
-        end
-      end
+    for L3 = L1, getCompiledMaxMomentum() do -- inclusive
+      local r_density = region_vars[L1][L3]
+      local r_output = r_output_list[L1][L3]
+      local N = (getCompiledMaxMomentum() + 1) * (getCompiledMaxMomentum() + 1) + 1
+      local N1 = rexpr r_density.bounds.hi.x + 1 end
+      local N3 = rexpr r_density.bounds.hi.y + 1 end
+      statements:insert(rquote
+        var [r_output] = region(ispace(int3d, {N, N1, N3}), getKFockOutput(L1, L3))
+      end)
     end
   end
   return statements
@@ -357,8 +354,9 @@ function verifyKFockOutput(region_vars, delta, epsilon, filename)
       for L3 = 0, getCompiledMaxMomentum() do -- inclusive
         for L4 = 0, getCompiledMaxMomentum() do -- inclusive
           if L1 < L3 or (L1 == L3 and L2 <= L4) then
+            local N24 = L2 + L4 * (getCompiledMaxMomentum() + 1)
             local field_space = getKFockOutput(L1, L3)
-            local r_output = region_vars[L1][L2][L3][L4]
+            local r_output = region_vars[L1][L3]
             statements:insert(rquote
               var int_data : int[6]
               var double_data : double[1]
@@ -383,7 +381,7 @@ function verifyKFockOutput(region_vars, delta, epsilon, filename)
                       num_values = c.fscanf(filep, "%lf,", double_data)
                       assert(num_values == 1, "Did not read kfock value!")
                       var expected = double_data[0]
-                      var result = r_output[{bra_ishell, ket_ishell}].values[i][j]
+                      var result = r_output[{N24, bra_ishell, ket_ishell}].values[i][j]
                       var absolute_error = fabs(result - expected)
                       var relative_error = fabs(absolute_error / expected)
                       if absolute_error > max_absolute_error then

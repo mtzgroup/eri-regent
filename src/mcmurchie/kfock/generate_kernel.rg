@@ -109,11 +109,11 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
           bra_Pj.x * (ket_Pi.x * [R[0][0][0][0]] - ket_denom * [R[1][0][0][0]])
           + bra_denom * (ket_Pi.x * [R[1][0][0][0]] - ket_denom * [R[2][0][0][0]])
         )
-        + [density][1][0] * (
+        + [density][0][1] * (
           bra_Pj.y * (ket_Pi.x * [R[0][0][0][0]] - ket_denom * [R[1][0][0][0]])
           + bra_denom * (ket_Pi.x * [R[0][1][0][0]] - ket_denom * [R[1][1][0][0]])
         )
-        + [density][2][0] * (
+        + [density][0][2] * (
           bra_Pj.z * (ket_Pi.x * [R[0][0][0][0]] - ket_denom * [R[1][0][0][0]])
           + bra_denom * (ket_Pi.x * [R[0][0][1][0]] - ket_denom * [R[1][0][1][0]])
         )
@@ -124,11 +124,11 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
           bra_Pj.x * (ket_Pi.y * [R[0][0][0][0]] - ket_denom * [R[0][1][0][0]])
           + bra_denom * (ket_Pi.y * [R[1][0][0][0]] - ket_denom * [R[1][1][0][0]])
         )
-        + [density][1][0] * (
+        + [density][0][1] * (
           bra_Pj.y * (ket_Pi.y * [R[0][0][0][0]] - ket_denom * [R[0][1][0][0]])
           + bra_denom * (ket_Pi.y * [R[0][1][0][0]] - ket_denom * [R[0][2][0][0]])
         )
-        + [density][2][0] * (
+        + [density][0][2] * (
           bra_Pj.z * (ket_Pi.y * [R[0][0][0][0]] - ket_denom * [R[0][1][0][0]])
           + bra_denom * (ket_Pi.y * [R[0][0][1][0]] - ket_denom * [R[0][1][1][0]])
         )
@@ -139,11 +139,11 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
           bra_Pj.x * (ket_Pi.z * [R[0][0][0][0]] - ket_denom * [R[0][0][1][0]])
           + bra_denom * (ket_Pi.z * [R[1][0][0][0]] - ket_denom * [R[1][0][1][0]])
         )
-        + [density][1][0] * (
+        + [density][0][1] * (
           bra_Pj.y * (ket_Pi.z * [R[0][0][0][0]] - ket_denom * [R[0][0][1][0]])
           + bra_denom * (ket_Pi.z * [R[0][1][0][0]] - ket_denom * [R[0][1][1][0]])
         )
-        + [density][2][0] * (
+        + [density][0][2] * (
           bra_Pj.z * (ket_Pi.z * [R[0][0][0][0]] - ket_denom * [R[0][0][1][0]])
           + bra_denom * (ket_Pi.z * [R[0][0][1][0]] - ket_denom * [R[0][0][2][0]])
         )

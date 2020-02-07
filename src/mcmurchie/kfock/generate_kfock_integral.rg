@@ -31,6 +31,7 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
   end
 
   local NPre12, NPre34 = KFockNumBraPrevals[L1][L2], KFockNumKetPrevals[L3][L4]
+  local N24 = L2 + L4 * (getCompiledMaxMomentum() + 1)
   local
   __demand(__leaf)
   __demand(__cuda)
@@ -39,7 +40,7 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
                       r_bra_prevals : region(ispace(int1d), double[NPre12]),
                       r_ket_prevals : region(ispace(int1d), double[NPre34]),
                       r_density     : region(ispace(int2d), getKFockDensity(L2, L4)),
-                      r_output      : region(ispace(int2d), getKFockOutput(L1, L3)),
+                      r_output      : region(ispace(int3d), getKFockOutput(L1, L3)),
                       r_gamma_table : region(ispace(int2d), double[5]),
                       threshold : float, threshold2 : float, kguard : float)
   where
@@ -71,7 +72,7 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
         ;[generateKFockKernelStatements(
           R, L1, L2, L3, L4, bra, ket,
           rexpr r_density[{bra.jshell_index, ket.jshell_index}].values end,
-          rexpr r_output[{bra.ishell_index, ket.ishell_index}].values end
+          rexpr r_output[{N24, bra.ishell_index, ket.ishell_index}].values end
         )]
       end
     end
