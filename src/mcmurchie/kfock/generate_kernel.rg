@@ -97,7 +97,6 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
     end)
   elseif L1 == 0 and L2 == 1 and L3 == 1 and L4 == 0 then
     -- SPPS
-    -- FIXME: This kernel should work, but it doesn't.
     statements:insert(rquote
       var bra_denom = 0.5 / bra.eta
       var ket_denom = 0.5 / ket.eta
@@ -210,14 +209,14 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       var ket_Pj = ket.jshell_location
       ;[results[0][0]] = (
         [R[0][0][0][0]] * ket_denom * [density][0][0]
-        + ket_Pj.x * (
-          [R[0][0][0][0]] * (ket_Pi.x * [density][0][0] + ket_Pi.y * [density][0][1] + ket_Pi.z * [density][0][2])
+        + ket_Pi.x * (
+          [R[0][0][0][0]] * (ket_Pj.x * [density][0][0] + ket_Pj.y * [density][0][1] + ket_Pj.z * [density][0][2])
           - [R[1][0][0][0]] * ket_denom * [density][0][0]
           - [R[0][1][0][0]] * ket_denom * [density][0][1]
           - [R[0][0][1][0]] * ket_denom * [density][0][2]
         )
         - ket_denom * (
-          [R[1][0][0][0]] * (ket_Pi.x * [density][0][0] + ket_Pi.y * [density][0][1] + ket_Pi.z * [density][0][2])
+          [R[1][0][0][0]] * (ket_Pj.x * [density][0][0] + ket_Pj.y * [density][0][1] + ket_Pj.z * [density][0][2])
           - [R[2][0][0][0]] * ket_denom * [density][0][0]
           - [R[1][1][0][0]] * ket_denom * [density][0][1]
           - [R[1][0][1][0]] * ket_denom * [density][0][2]
@@ -226,14 +225,14 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
 
       ;[results[0][1]] = (
         [R[0][0][0][0]] * ket_denom * [density][0][1]
-        + ket_Pj.y * (
-          [R[0][0][0][0]] * (ket_Pi.x * [density][0][0] + ket_Pi.y * [density][0][1] + ket_Pi.z * [density][0][2])
+        + ket_Pi.y * (
+          [R[0][0][0][0]] * (ket_Pj.x * [density][0][0] + ket_Pj.y * [density][0][1] + ket_Pj.z * [density][0][2])
           - [R[1][0][0][0]] * ket_denom * [density][0][0]
           - [R[0][1][0][0]] * ket_denom * [density][0][1]
           - [R[0][0][1][0]] * ket_denom * [density][0][2]
         )
         - ket_denom * (
-          [R[0][1][0][0]] * (ket_Pi.x * [density][0][0] + ket_Pi.y * [density][0][1] + ket_Pi.z * [density][0][2])
+          [R[0][1][0][0]] * (ket_Pj.x * [density][0][0] + ket_Pj.y * [density][0][1] + ket_Pj.z * [density][0][2])
           - [R[1][1][0][0]] * ket_denom * [density][0][0]
           - [R[0][2][0][0]] * ket_denom * [density][0][1]
           - [R[0][1][1][0]] * ket_denom * [density][0][2]
@@ -242,14 +241,14 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
 
       ;[results[0][2]] = (
         [R[0][0][0][0]] * ket_denom * [density][0][2]
-        + ket_Pj.z * (
-          [R[0][0][0][0]] * (ket_Pi.x * [density][0][0] + ket_Pi.y * [density][0][1] + ket_Pi.z * [density][0][2])
+        + ket_Pi.z * (
+          [R[0][0][0][0]] * (ket_Pj.x * [density][0][0] + ket_Pj.y * [density][0][1] + ket_Pj.z * [density][0][2])
           - [R[1][0][0][0]] * ket_denom * [density][0][0]
           - [R[0][1][0][0]] * ket_denom * [density][0][1]
           - [R[0][0][1][0]] * ket_denom * [density][0][2]
         )
         - ket_denom * (
-          [R[0][0][1][0]] * (ket_Pi.x * [density][0][0] + ket_Pi.y * [density][0][1] + ket_Pi.z * [density][0][2])
+          [R[0][0][1][0]] * (ket_Pj.x * [density][0][0] + ket_Pj.y * [density][0][1] + ket_Pj.z * [density][0][2])
           - [R[1][0][1][0]] * ket_denom * [density][0][0]
           - [R[0][1][1][0]] * ket_denom * [density][0][1]
           - [R[0][0][2][0]] * ket_denom * [density][0][2]
@@ -265,7 +264,7 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       var ket_Pi = ket.ishell_location
       var ket_Pj = ket.jshell_location
 
-      var PP0 = [density][0][0] * ket_Pi.x + [density][0][1] * ket_Pi.y + [density][0][2] * ket_Pi.z
+      var PP0 = [density][0][0] * ket_Pj.x + [density][0][1] * ket_Pj.y + [density][0][2] * ket_Pj.z
       var PP1 = [density][0][0] * ket_denom
       var PP2 = [density][0][1] * ket_denom
       var PP3 = [density][0][2] * ket_denom
@@ -306,7 +305,7 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
         )
       )
 
-      PP0 = [density][1][0] * ket_Pi.x + [density][1][1] * ket_Pi.y + [density][1][2] * ket_Pi.z
+      PP0 = [density][1][0] * ket_Pj.x + [density][1][1] * ket_Pj.y + [density][1][2] * ket_Pj.z
       PP1 = [density][1][0] * ket_denom
       PP2 = [density][1][1] * ket_denom
       PP3 = [density][1][2] * ket_denom
@@ -347,7 +346,7 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
         )
       )
 
-      PP0 = [density][2][0] * ket_Pi.x + [density][2][1] * ket_Pi.y + [density][2][2] * ket_Pi.z
+      PP0 = [density][2][0] * ket_Pj.x + [density][2][1] * ket_Pj.y + [density][2][2] * ket_Pj.z
       PP1 = [density][2][0] * ket_denom
       PP2 = [density][2][1] * ket_denom
       PP3 = [density][2][2] * ket_denom
@@ -370,7 +369,7 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
           + [R[0][0][0][0]] * PP2
         )
         + bra_denom * (
-          ket_Pi.y * ([R[0][0][1][0]] * PP0 - [R[1][0][1][0]] * PP1 - [R[0][1][1][0]] * PP2 - [R[0][2][0][0]] * PP3)
+          ket_Pi.y * ([R[0][0][1][0]] * PP0 - [R[1][0][1][0]] * PP1 - [R[0][1][1][0]] * PP2 - [R[0][0][2][0]] * PP3)
           - ket_denom * ([R[0][1][1][0]] * PP0 - [R[1][1][1][0]] * PP1 - [R[0][2][1][0]] * PP2 - [R[0][1][2][0]] * PP3)
           + [R[0][0][1][0]] * PP2
         )
@@ -382,7 +381,7 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
           + [R[0][0][0][0]] * PP3
         )
         + bra_denom * (
-          ket_Pi.z * ([R[0][0][1][0]] * PP0 - [R[1][0][1][0]] * PP1 - [R[1][1][0][0]] * PP2 - [R[0][0][2][0]] * PP3)
+          ket_Pi.z * ([R[0][0][1][0]] * PP0 - [R[1][0][1][0]] * PP1 - [R[0][1][1][0]] * PP2 - [R[0][0][2][0]] * PP3)
           - ket_denom * ([R[0][0][2][0]] * PP0 - [R[1][0][2][0]] * PP1 - [R[0][1][2][0]] * PP2 - [R[0][0][3][0]] * PP3)
           + [R[0][0][1][0]] * PP3
         )
@@ -1088,6 +1087,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
         if i < k then -- Upper triangular element.
           factor = 1
         elseif i == k then -- Diagonal element.
+          -- NOTE: Diagonal elements of diagonal kernels scale the output
+          --       by a factor of 1/2.
           factor = 0.5
         else -- Lower triangular element.
           factor = 0
@@ -1097,8 +1098,6 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
           if bra.ishell_index < ket.ishell_index then -- Upper triangular element.
             [output][i][k] += [results[i][k]]
           elseif bra.ishell_index == ket.ishell_index then -- Diagonal element
-            -- NOTE: Diagonal elements of diagonal kernels scale the output
-            --       by a factor of 1/2.
             [output][i][k] += factor * [results[i][k]]
           else -- Lower triangular element.
             -- NOTE: Diagonal kernels skip the lower triangular elements.

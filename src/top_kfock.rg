@@ -10,9 +10,9 @@ local assert = regentlib.assert
 local c = regentlib.c
 
 -- Iterate over the full square
-local r_pairs_list, r_bra_prevals_list, r_ket_prevals_list = {}, {}, {}
+local r_pairs_list = {}
 for L1 = 0, getCompiledMaxMomentum() do -- inclusive
-  r_pairs_list[L1], r_bra_prevals_list[L1], r_ket_prevals_list[L1] = {}, {}, {}
+  r_pairs_list[L1] = {}
   for L2 = 0, getCompiledMaxMomentum() do -- inclusive
     r_pairs_list[L1][L2] = regentlib.newsymbol("r_kfock_pairs"..L1..L2)
   end

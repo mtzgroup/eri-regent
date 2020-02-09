@@ -31,3 +31,9 @@ install:
 script:
   - python3 scripts/test_boys.py
   - LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib" python3 scripts/test.py
+  - # TODO: Move these tests to the test script.
+  - # Test kfock.
+  - cd src
+  - regent top_kfock.rg -L S -i tests/integ/h2 -v tests/integ/h2/kfock_output.dat
+  - regent top_kfock.rg -L P -i tests/integ/h2o -v tests/integ/h2o/kfock_output.dat 
+  - regent top_kfock.rg -L P -i tests/integ/co2 -v tests/integ/co2/kfock_output.dat

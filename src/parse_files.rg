@@ -131,7 +131,6 @@ function writeKFockToRegions(filename, region_vars)
     for L2 = 0, getCompiledMaxMomentum() do -- inclusive
       local field_space = getKFockPair(L1, L2)
       local r_kpairs = region_vars[L1][L2]
-      local BraN, KetN = KFockNumBraPrevals[L1][L2], KFockNumKetPrevals[L1][L2]
       statements:insert(rquote
         var int_data : int[3]
         var double_data : double[12]
@@ -142,11 +141,9 @@ function writeKFockToRegions(filename, region_vars)
         assert(L1 == int_data[0] and L2 == int_data[1],
                "Unexpected angular momentum in kfock pairs!")
         var [r_kpairs] = region(ispace(int1d, N), field_space)
-        -- var [r_bra_prevals] = region(ispace(int1d, N), double[BraN])
-        -- var [r_ket_prevals] = region(ispace(int1d, N), double[KetN])
         for i = 0, N do -- exclusive
           num_values = c.fscanf(filep,
-            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,i_shell_idx=%d,j_shell_idx=%d,PIx=%lf,PIy=%lf,PIz=%lf,PJx=%lf,PJy=%lf,PJz=%lf,",
+            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,i_shell_idx=%d,j_shell_idx=%d,PIx=%lf,PIy=%lf,PIz=%lf,PJx=%lf,PJy=%lf,PJz=%lf\n",
             double_data+0, double_data+1, double_data+2,
             double_data+3, double_data+4, double_data+5,
             int_data+0, int_data+1,
@@ -161,17 +158,6 @@ function writeKFockToRegions(filename, region_vars)
             ishell_location={x=double_data[6], y=double_data[7], z=double_data[8]},
             jshell_location={x=double_data[9], y=double_data[10], z=double_data[11]},
           }
-          assert(c.fscanf(filep, "bra_prevals=") == 0, "Did not read bra prevals!")
-          for k = 0, BraN do -- exclusive
-            num_values = c.fscanf(filep, "%lf,", double_data + 0)
-            -- r_bra_prevals[i][k] = double_data[0]
-          end
-          assert(c.fscanf(filep, "ket_prevals=") == 0, "Did not read ket prevals!")
-          for k = 0, KetN do -- exclusive
-            num_values = c.fscanf(filep, "%lf,", double_data + 0)
-            -- r_ket_prevals[i][k] = double_data[0]
-          end
-          assert(c.fscanf(filep, "\n") == 0, "Did not read newline!")
         end
       end)
     end
