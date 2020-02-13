@@ -52,12 +52,13 @@ void read_jdata_files(string bra_filename, string ket_filename,
   while (fscanf(bra_filep, "L1=%d,L2=%d,N=%d\n", &L1, &L2, &n) == 3) {
     data_list->allocate_jbras(L1, L2, n);
     for (int i = 0; i < n; i++) {
-      EriRegent::TeraChemJData jbra;
+      double x, y, z, eta, C;
+      float bound;
       int num_values =
-          fscanf(bra_filep, "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%f\n",
-                 &jbra.x, &jbra.y, &jbra.z, &jbra.eta, &jbra.C, &jbra.bound);
+          fscanf(bra_filep, "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%f\n", &x,
+                 &y, &z, &eta, &C, &bound);
       assert(num_values == 6 && "Did not read all values in line!");
-      data_list->set_jbra(L1, L2, i, jbra);
+      data_list->set_jbra(L1, L2, i, x, y, z, eta, C, bound);
     }
   }
 
@@ -65,13 +66,13 @@ void read_jdata_files(string bra_filename, string ket_filename,
     data_list->allocate_jkets(L1, L2, n);
     const int H = TETRAHEDRAL_NUMBER(L1 + L2 + 1);
     for (int i = 0; i < n; i++) {
-      EriRegent::TeraChemJData jket;
-      int num_values =
-          fscanf(ket_filep,
-                 "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%f,density=", &jket.x,
-                 &jket.y, &jket.z, &jket.eta, &jket.C, &jket.bound);
+      double x, y, z, eta, C;
+      float bound;
+      int num_values = fscanf(
+          ket_filep, "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%f,density=", &x,
+          &y, &z, &eta, &C, &bound);
       assert(num_values == 6 && "Did not read all values in line!");
-      data_list->set_jket(L1, L2, i, jket);
+      data_list->set_jket(L1, L2, i, x, y, z, eta, C, bound);
       double density[TETRAHEDRAL_NUMBER(L1 + L2 + 1)];
       for (int j = 0; j < H; j++) {
         num_values = fscanf(ket_filep, "%lf;", &density[j]);
@@ -278,9 +279,6 @@ void run_jfock_tasks(EriRegent *eri_regent, const string &input_directory,
     eri_regent->launch_jfock_task(jdata_list, threshold, parallelism);
     verify_jfock_output(output_filename, jdata_list, 1e-11, 1e-12);
   }
-
-  // Free the data.
-  jdata_list.free_data();
 }
 
 void run_kfock_tasks(EriRegent *eri_regent, const string &input_directory,

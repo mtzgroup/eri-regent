@@ -24,16 +24,6 @@ public:
    */
   static void register_tasks();
 
-  // TODO: Remove this struct.
-  struct TeraChemJData {
-    double x;
-    double y;
-    double z;
-    double eta;
-    double C;
-    float bound;
-  };
-
   /**
    * A list of JBra and JKet data to be passed to `launch_jfock_task`.
    */
@@ -42,6 +32,7 @@ public:
 
   public:
     TeraChemJDataList();
+    ~TeraChemJDataList();
 
     /**
      * Disable copying.
@@ -55,12 +46,6 @@ public:
     void allocate_jbras(int L1, int L2, int n);
     void allocate_jkets(int L1, int L2, int n);
 
-    // TODO: Move to destructor
-    /**
-     * Free the allocated memory for all jbras and jkets.
-     */
-    void free_data();
-
     /**
      * The number of jbras/jkets for a give angular momentum pair.
      */
@@ -71,8 +56,10 @@ public:
      * Copy the data from `src` to jbra/jket `i` for a given angular momentum
      * pair.
      */
-    void set_jbra(int L1, int L2, int i, const TeraChemJData &src);
-    void set_jket(int L1, int L2, int i, const TeraChemJData &src);
+    void set_jbra(int L1, int L2, int i, double x, double y, double z,
+                  double eta, double C, float bound);
+    void set_jket(int L1, int L2, int i, double x, double y, double z,
+                  double eta, double C, float bound);
 
     /**
      * Copy the data from `src` to the density values of jket `i` for a given
@@ -88,19 +75,6 @@ public:
     const double *get_output(int L1, int L2, int i);
 
   private:
-    /**
-     * The size of TeraChemJData. Do not use `sizeof(TeraChemJData)` because
-     * that includes padding.
-     */
-    size_t sizeof_jdata();
-    /**
-     * The size of the data array for a given angular momentum pair.
-     */
-    size_t sizeof_jdata_array(int L1, int L2);
-    /**
-     * The stride of a data entry for a given angular momentum pair.
-     */
-    size_t stride(int L1, int L2);
     /**
      * The largest angular momentum that has data.
      */
