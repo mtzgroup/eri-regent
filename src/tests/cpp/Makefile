@@ -7,7 +7,7 @@ LEGIONLIB := $(LEGIONHOME)/lib
 endif
 
 PREFIX := $(PWD)/../../../build
-TARGET := $(PREFIX)/jfock_test
+TARGET := $(PREFIX)/eri_regent_test
 ERI_REGENT_LIB := $(PREFIX)/lib
 ERI_REGENT_HEADERS := $(PREFIX)/include/eri_regent_tasks.h
 ERI_REGENT_SRC := $(PWD)/../..

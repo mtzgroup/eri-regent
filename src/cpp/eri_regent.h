@@ -117,7 +117,7 @@ public:
   };
 
   /**
-   * A list of KFock data to be passed to `launch_kfock_task`.
+   * A list of KFock data to be filled and passed to `launch_kfock_task`.
    */
   class TeraChemKDataList {
     friend class EriRegent;
@@ -126,34 +126,61 @@ public:
     TeraChemKDataList();
     ~TeraChemKDataList();
 
-    int get_num_kpairs(int L1, int L2);
-    int get_num_kdensity(int L2, int L4);
+    /**
+     * Disable copying.
+     */
+    TeraChemKDataList(TeraChemKDataList const &) = delete;
+    TeraChemKDataList &operator=(TeraChemKDataList const &) = delete;
 
+    /**
+     */
     void allocate_kpairs(int L1, int L2, int n);
-    void allocate_kdensity(int L2, int L4, int n);
-    // void set_num_shells(int[MAX_MOMENTUM+1] shell_counts);
 
+    /**
+     * `n2` is the number of shells for `L2` and `n4` is the number of shells
+     * for `L4`
+     */
+    void allocate_kdensity(int L2, int L4, int n2, int n4);
+
+    /**
+     */
     void set_kpair(int L1, int L2, int i, double x, double y, double z,
-                   double eta, double C, float bound, double ishell_x,
-                   double ishell_y, double ishell_z, double jshell_x,
-                   double jshell_y, double jshell_z, int1d_t ishell_index,
-                   int1d_t jshell_index);
-    void set_kdensity(int L2, int L4, int i, const double *values, float bound);
+                   double eta, double C, float bound, double PIx, double PIy,
+                   double PIz, double PJx, double PJy, double PJz,
+                   int1d_t ishell_index, int1d_t jshell_index);
 
-    const double *get_koutput(int L1, int L2, int L3, int L4, int i);
+    /**
+     * The density values must be given in row-major order.
+     */
+    void set_kdensity(int L2, int L4, int bra_jshell_index,
+                      int ket_jshell_index, const double *values, float bound);
+
+    /**
+     * Returns the output values in row-major order.
+     */
+    const double *get_koutput(int L1, int L2, int L3, int L4,
+                              int bra_ishell_index, int ket_ishell_index);
 
   private:
-    int get_largest_momentum();
+    /**
+     * Only call this method once all kdensities have been allocated.
+     */
+    void allocate_all_koutput();
+
+    int get_num_kpairs(int L1, int L2);
+    int get_num_shells(int L);
     void *get_kpair_data(int L1, int L2);
+    void *get_kdensity_data(int L2, int L4);
+    void *get_koutput_data(int L1, int L3);
+    int get_largest_momentum();
 
     int num_kpairs[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
     void *kpairs[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
 
     int num_shells[MAX_MOMENTUM + 1];
-    int num_kdensity[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
     void *kdensity[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
 
-    int num_koutput[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+    // TODO: Do not allocate space for lower triangular output entries.
     void *koutput[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   };
 

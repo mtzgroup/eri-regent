@@ -121,49 +121,52 @@ end
 -- max_momentum      - A sanity check to make sure eri-regent was compiled with
 --                     a large enough momentum
 --------------------------------------------------------------------------------
--- task kfock_task(r_pairs00     : region(ispace(int1d), getKFockPair(0, 0)),
---                 -- r_pairs01     : region(ispace(int1d), getKFockPair(1, 0)),
---                 -- r_pairs10     : region(ispace(int1d), getKFockPair(0, 1)),
---                 -- r_pairs11     : region(ispace(int1d), getKFockPair(1, 1)),
---                 r_density00   : region(ispace(int2d), getKFockDensity(0, 0)),
---                 -- r_density01   : region(ispace(int2d), getKFockDensity(0, 1)),
---                 -- r_density11   : region(ispace(int2d), getKFockDensity(1, 1)),
---                 r_output00    : region(ispace(int3d), getKFockOutput(0, 0)),
---                 -- r_output01    : region(ispace(int2d), getKFockOutput(0, 1)),
---                 -- r_output11    : region(ispace(int2d), getKFockOutput(1, 1)),
---                 r_gamma_table : region(ispace(int2d, {18, 700}), double[5]),
---                 threshold : float, parallelism : int, largest_momentum : int)
--- where
---   reads (
---     r_pairs00,
---     -- r_pairs01,
---     -- r_pairs10,
---     -- r_pairs11,
---     r_density00,
---     -- r_density01,
---     -- r_density11,
---     r_gamma_table
---   ),
---   reads writes(
---     r_output00
---     -- r_output01,
---     -- r_output11
---   )
--- do
---   regentlib.assert(largest_momentum <= [getCompiledMaxMomentum()],
---                    "Please recompile eri-regent with a larger max momentum!");
---   [kfock(
---     {
---       [0]={[0]=r_pairs00}
---     },
---     {
---       [0]={[0]=r_density00}
---     },
---     {
---       [0]={[0]=r_output00}
---     },
---     r_gamma_table, threshold, parallelism)]
--- end
+task kfock_task(r_pairs00     : region(ispace(int1d), getKFockPair(0, 0)),
+                r_pairs01     : region(ispace(int1d), getKFockPair(0, 1)),
+                r_pairs10     : region(ispace(int1d), getKFockPair(1, 0)),
+                r_pairs11     : region(ispace(int1d), getKFockPair(1, 1)),
+                r_density00   : region(ispace(int2d), getKFockDensity(0, 0)),
+                r_density01   : region(ispace(int2d), getKFockDensity(0, 1)),
+                r_density11   : region(ispace(int2d), getKFockDensity(1, 1)),
+                r_output00    : region(ispace(int3d), getKFockOutput(0, 0)),
+                r_output01    : region(ispace(int3d), getKFockOutput(0, 1)),
+                r_output11    : region(ispace(int3d), getKFockOutput(1, 1)),
+                r_gamma_table : region(ispace(int2d, {18, 700}), double[5]),
+                threshold : float, parallelism : int, largest_momentum : int)
+where
+  reads (
+    r_pairs00,
+    r_pairs01,
+    r_pairs10,
+    r_pairs11,
+    r_density00,
+    r_density01,
+    r_density11,
+    r_gamma_table
+  ),
+  reads writes(
+    r_output00,
+    r_output01,
+    r_output11
+  )
+do
+  regentlib.assert(largest_momentum <= [getCompiledMaxMomentum()],
+                   "Please recompile eri-regent with a larger max momentum!");
+  [kfock(
+    {
+      [0]={[0]=r_pairs00, [1]=r_pairs01},
+      [1]={[0]=r_pairs10, [1]=r_pairs11}
+    },
+    {
+      [0]={[0]=r_density00, [1]=r_density01},
+      [1]={[1]=r_density11}
+    },
+    {
+      [0]={[0]=r_output00, [1]=r_output01},
+      [1]={[1]=r_output11}
+    },
+    r_gamma_table, threshold, parallelism)]
+end
 
 local header, lib = nil, nil
 for i, arg_value in ipairs(arg) do

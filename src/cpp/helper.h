@@ -18,17 +18,16 @@
  */
 #define MAX_MOMENTUM_INDEX L_PAIR_TO_INDEX(MAX_MOMENTUM, MAX_MOMENTUM)
 
-#define TETRAHEDRAL_NUMBER(n) (((n) * ((n) + 1) * ((n) + 2)) / 6)
-#define TRIANGLE_NUMBER(n) (((n) * ((n) + 1)) / 2)
+#define TETRAHEDRAL_NUMBER(N) (((N) * ((N) + 1) * ((N) + 2)) / 6)
+#define TRIANGLE_NUMBER(N) (((N) * ((N) + 1)) / 2)
 
 /**
  * Gives the index into the elements of a square.
  */
-#define INDEX_SQUARE(L1, L2) ((L2) + (L1) * ((MAX_MOMENTUM) + 1))
+#define INDEX_SQUARE(Y, X) ((Y) * (MAX_MOMENTUM + 1) + (X))
 
 /**
  * Gives the index into the upper triangular elements of a square.
- * Assumes L1 <= L2.
+ * Assumes y <= x.
  */
-#define INDEX_UPPER_TRIANGLE(L1, L2)                                           \
-  (INDEX_SQUARE(L1, L2) - TRIANGLE_NUMBER(L1))
+#define INDEX_UPPER_TRIANGLE(Y, X) (INDEX_SQUARE(Y, X) - TRIANGLE_NUMBER(Y))

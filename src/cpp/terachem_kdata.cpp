@@ -6,11 +6,17 @@ size_t sizeof_kpairs() {
 }
 
 size_t sizeof_kdensity(int L2, int L4) {
-  // TODO
   assert(0 <= L2 && L2 <= L4 && L4 <= MAX_MOMENTUM);
   const int H2 = TRIANGLE_NUMBER(L2 + 1);
   const int H4 = TRIANGLE_NUMBER(L4 + 1);
   return H2 * H4 * sizeof(double) + sizeof(float);
+}
+
+size_t sizeof_koutput(int L1, int L3) {
+  assert(0 <= L1 && L1 <= L3 && L3 <= MAX_MOMENTUM);
+  const int H1 = TRIANGLE_NUMBER(L1 + 1);
+  const int H3 = TRIANGLE_NUMBER(L3 + 1);
+  return H1 * H3 * sizeof(double);
 }
 
 EriRegent::TeraChemKDataList::TeraChemKDataList() {
@@ -51,9 +57,9 @@ int EriRegent::TeraChemKDataList::get_num_kpairs(int L1, int L2) {
   return num_kpairs[index];
 }
 
-int EriRegent::TeraChemKDataList::get_num_kdensity(int L2, int L4) {
-  //
-  return 1;
+int EriRegent::TeraChemKDataList::get_num_shells(int L) {
+  assert(0 <= L && L <= MAX_MOMENTUM);
+  return num_shells[L];
 }
 
 void EriRegent::TeraChemKDataList::allocate_kpairs(int L1, int L2, int n) {
@@ -68,35 +74,43 @@ void EriRegent::TeraChemKDataList::allocate_kpairs(int L1, int L2, int n) {
   }
 }
 
-void EriRegent::TeraChemKDataList::allocate_kdensity(int L2, int L4, int n) {
+void EriRegent::TeraChemKDataList::allocate_kdensity(int L2, int L4, int n2,
+                                                     int n4) {
   assert(0 <= L2 && L2 <= L4 && L4 <= MAX_MOMENTUM);
-  const int index = INDEX_UPPER_TRIANGLE(L2, L4);
-  assert(num_kdensity[index] == 0);
-  if (n > 0) {
-    num_kdensity[index] = n;
-    kdensity[index] = calloc(n, sizeof_kdensity(L2, L4));
+  if (n2 > 0) {
+    assert(num_shells[L2] == 0 || num_shells[L2] == n2);
+    num_shells[L2] = n2;
+  }
+  if (n4 > 0) {
+    assert(num_shells[L4] == 0 || num_shells[L4] == n4);
+    num_shells[L4] = n4;
+  }
+  if (n2 > 0 && n4 > 0) {
+    const int index = INDEX_UPPER_TRIANGLE(L2, L4);
+    kdensity[index] = calloc(n2 * n4, sizeof_kdensity(L2, L4));
     assert(kdensity[index]);
   }
 }
 
-// void EriRegent::TeraChemKDataList::set_num_shells(int[MAX_MOMENTUM + 1]
-// shell_counts) {
-//   // TODO
-//   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
-//     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
-//       if (num_shells[L1] > 0 && num_shells[L2] > 0) {
-//         const int index = INDEX_UPPER_TRIANGLE(L2, L4);
-//         kdensity[index] = calloc(n, sizeof_kdensity(L2, L4))
-//       }
-//     }
-//   }
-// }
+void EriRegent::TeraChemKDataList::allocate_all_koutput() {
+  for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (int L3 = L1; L3 <= MAX_MOMENTUM; L3++) {
+      const int n1 = num_shells[L1];
+      const int n3 = num_shells[L3];
+      const int n = (MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1);
+      if (n1 > 0 && n3 > 0) {
+        const int index = INDEX_UPPER_TRIANGLE(L1, L3);
+        koutput[index] = calloc(n * n1 * n3, sizeof_koutput(L1, L3));
+        assert(koutput[index]);
+      }
+    }
+  }
+}
 
 void EriRegent::TeraChemKDataList::set_kpair(
     int L1, int L2, int i, double x, double y, double z, double eta, double C,
-    float bound, double ishell_x, double ishell_y, double ishell_z,
-    double jshell_x, double jshell_y, double jshell_z,
-    EriRegent::int1d_t ishell_index, EriRegent::int1d_t jshell_index) {
+    float bound, double PIx, double PIy, double PIz, double PJx, double PJy,
+    double PJz, int1d_t ishell_index, int1d_t jshell_index) {
   assert(0 <= i && i < get_num_kpairs(L1, L2));
   char *dest = (char *)kpairs[INDEX_SQUARE(L1, L2)] + i * sizeof_kpairs();
   {
@@ -113,27 +127,31 @@ void EriRegent::TeraChemKDataList::set_kpair(
   }
   {
     double *ptr = (double *)(dest + 5 * sizeof(double) + sizeof(float));
-    ptr[0] = ishell_x;
-    ptr[1] = ishell_y;
-    ptr[2] = ishell_z;
-    ptr[3] = jshell_x;
-    ptr[4] = jshell_y;
-    ptr[5] = jshell_z;
+    ptr[0] = PIx;
+    ptr[1] = PIy;
+    ptr[2] = PIz;
+    ptr[3] = PJx;
+    ptr[4] = PJy;
+    ptr[5] = PJz;
   }
   {
-    EriRegent::int1d_t *ptr =
-        (EriRegent::int1d_t *)(dest + 11 * sizeof(double) + sizeof(float));
+    int1d_t *ptr = (int1d_t *)(dest + 11 * sizeof(double) + sizeof(float));
     ptr[0] = ishell_index;
     ptr[1] = jshell_index;
   }
 }
 
-void EriRegent::TeraChemKDataList::set_kdensity(int L2, int L4, int i,
+void EriRegent::TeraChemKDataList::set_kdensity(int L2, int L4,
+                                                int bra_jshell_index,
+                                                int ket_jshell_index,
                                                 const double *values,
                                                 float bound) {
-  assert(0 <= i && i <= get_num_kdensity(L2, L4));
+  assert(L2 <= L4);
+  assert(0 <= bra_jshell_index && bra_jshell_index <= get_num_shells(L2));
+  assert(0 <= ket_jshell_index && ket_jshell_index <= get_num_shells(L4));
   char *dest = (char *)kdensity[INDEX_UPPER_TRIANGLE(L2, L4)] +
-               i * sizeof_kdensity(L2, L4);
+               (bra_jshell_index * get_num_shells(L4) + ket_jshell_index) *
+                   sizeof_kdensity(L2, L4);
   const int H2 = TRIANGLE_NUMBER(L2 + 1);
   const int H4 = TRIANGLE_NUMBER(L4 + 1);
   memcpy((void *)dest, (const void *)values, H2 * H4 * sizeof(double));
@@ -142,10 +160,38 @@ void EriRegent::TeraChemKDataList::set_kdensity(int L2, int L4, int i,
 }
 
 const double *EriRegent::TeraChemKDataList::get_koutput(int L1, int L2, int L3,
-                                                        int L4, int i) {
-  // TODO
-  // assert(0 <= i && i <= )
-  return NULL;
+                                                        int L4,
+                                                        int bra_ishell_index,
+                                                        int ket_ishell_index) {
+  assert(L1 < L3 || (L1 == L3 && L2 <= L4));
+  const int n1 = get_num_shells(L1);
+  const int n3 = get_num_shells(L3);
+  assert(0 <= bra_ishell_index && bra_ishell_index <= n1);
+  assert(0 <= ket_ishell_index && ket_ishell_index <= n3);
+  const char *koutput1234 =
+      (char *)koutput[INDEX_UPPER_TRIANGLE(L1, L3)] +
+      // FIXME
+      // (L2 + L4 * (MAX_MOMENTUM + 1)) * sizeof_koutput(L1, L3) * n1 * n3;
+      (L2 + L4 * (1 + 1)) * sizeof_koutput(L1, L3) * n1 * n3;
+  const char *src = koutput1234 + (bra_ishell_index * n3 + ket_ishell_index) *
+                                      sizeof_koutput(L1, L3);
+  return (const double *)src;
+}
+
+void *EriRegent::TeraChemKDataList::get_kpair_data(int L1, int L2) {
+  assert(0 <= L1 && L1 <= MAX_MOMENTUM);
+  assert(0 <= L2 && L2 <= MAX_MOMENTUM);
+  return kpairs[INDEX_SQUARE(L1, L2)];
+}
+
+void *EriRegent::TeraChemKDataList::get_kdensity_data(int L2, int L4) {
+  assert(0 <= L2 && L2 <= L4 && L4 <= MAX_MOMENTUM);
+  return kdensity[INDEX_UPPER_TRIANGLE(L2, L4)];
+}
+
+void *EriRegent::TeraChemKDataList::get_koutput_data(int L1, int L3) {
+  assert(0 <= L1 && L1 <= L3 && L3 <= MAX_MOMENTUM);
+  return koutput[INDEX_UPPER_TRIANGLE(L1, L3)];
 }
 
 int EriRegent::TeraChemKDataList::get_largest_momentum() {
