@@ -44,7 +44,7 @@ EriRegent::~EriRegent() {
   runtime->destroy_index_space(ctx, gamma_table_ispace);
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
-      const int index = L_PAIR_TO_INDEX(L1, L2);
+      const int index = INDEX_UPPER_TRIANGLE(L1, L2);
       runtime->destroy_field_space(ctx, jbra_fspaces[index]);
       runtime->destroy_field_space(ctx, jket_fspaces[index]);
     }
@@ -76,15 +76,16 @@ void EriRegent::register_tasks() { eri_regent_tasks_h_register(); }
 void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
                                   float threshold, int parallelism) {
   // Create jbra regions
-  LogicalRegion jbras_lr_list[MAX_MOMENTUM_INDEX + 1];
-  PhysicalRegion jbras_pr_list[MAX_MOMENTUM_INDEX + 1];
+  LogicalRegion jbras_lr_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+  PhysicalRegion jbras_pr_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+  IndexSpace jbras_ispace_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
-      const int index = L_PAIR_TO_INDEX(L1, L2);
+      const int index = INDEX_UPPER_TRIANGLE(L1, L2);
       const Rect<1> rect(0, jdata_list.get_num_jbras(L1, L2) - 1);
-      const IndexSpace ispace = runtime->create_index_space(ctx, rect);
-      jbras_lr_list[index] =
-          runtime->create_logical_region(ctx, ispace, jbra_fspaces[index]);
+      jbras_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      jbras_lr_list[index] = runtime->create_logical_region(
+          ctx, jbras_ispace_list[index], jbra_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, jbras_lr_list[index],
                               jbras_lr_list[index]);
       const vector<FieldID> field_list(
@@ -97,15 +98,16 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
   }
 
   // Create jket regions
-  LogicalRegion jkets_lr_list[MAX_MOMENTUM_INDEX + 1];
-  PhysicalRegion jkets_pr_list[MAX_MOMENTUM_INDEX + 1];
+  LogicalRegion jkets_lr_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+  PhysicalRegion jkets_pr_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+  IndexSpace jkets_ispace_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
-      const int index = L_PAIR_TO_INDEX(L1, L2);
+      const int index = INDEX_UPPER_TRIANGLE(L1, L2);
       const Rect<1> rect(0, jdata_list.get_num_jkets(L1, L2) - 1);
-      const IndexSpace ispace = runtime->create_index_space(ctx, rect);
-      jkets_lr_list[index] =
-          runtime->create_logical_region(ctx, ispace, jket_fspaces[index]);
+      jkets_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      jkets_lr_list[index] = runtime->create_logical_region(
+          ctx, jkets_ispace_list[index], jket_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, jkets_lr_list[index],
                               jkets_lr_list[index]);
       const vector<FieldID> field_list(
@@ -121,11 +123,11 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
 #define ADD_ARGUMENT_R_JBRAS(L1, L2)                                           \
   {                                                                            \
     const vector<FieldID> field_list(                                          \
-        jbra_fields_list[L_PAIR_TO_INDEX(L1, L2)],                             \
-        jbra_fields_list[L_PAIR_TO_INDEX(L1, L2)] + NUM_JBRA_FIELDS);          \
+        jbra_fields_list[INDEX_UPPER_TRIANGLE(L1, L2)],                        \
+        jbra_fields_list[INDEX_UPPER_TRIANGLE(L1, L2)] + NUM_JBRA_FIELDS);     \
     launcher.add_argument_r_jbras##L1##L2(                                     \
-        jbras_lr_list[L_PAIR_TO_INDEX(L1, L2)],                                \
-        jbras_lr_list[L_PAIR_TO_INDEX(L1, L2)], field_list);                   \
+        jbras_lr_list[INDEX_UPPER_TRIANGLE(L1, L2)],                           \
+        jbras_lr_list[INDEX_UPPER_TRIANGLE(L1, L2)], field_list);              \
   }
 
   ADD_ARGUMENT_R_JBRAS(0, 0);
@@ -149,11 +151,11 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
 #define ADD_ARGUMENT_R_JKETS(L1, L2)                                           \
   {                                                                            \
     const vector<FieldID> field_list(                                          \
-        jket_fields_list[L_PAIR_TO_INDEX(L1, L2)],                             \
-        jket_fields_list[L_PAIR_TO_INDEX(L1, L2)] + NUM_JKET_FIELDS);          \
+        jket_fields_list[INDEX_UPPER_TRIANGLE(L1, L2)],                        \
+        jket_fields_list[INDEX_UPPER_TRIANGLE(L1, L2)] + NUM_JKET_FIELDS);     \
     launcher.add_argument_r_jkets##L1##L2(                                     \
-        jkets_lr_list[L_PAIR_TO_INDEX(L1, L2)],                                \
-        jkets_lr_list[L_PAIR_TO_INDEX(L1, L2)], field_list);                   \
+        jkets_lr_list[INDEX_UPPER_TRIANGLE(L1, L2)],                           \
+        jkets_lr_list[INDEX_UPPER_TRIANGLE(L1, L2)], field_list);              \
   }
 
   ADD_ARGUMENT_R_JKETS(0, 0);
@@ -184,12 +186,13 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
 
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
-      const int index = L_PAIR_TO_INDEX(L1, L2);
-      // TODO: Destroy ispaces.
+      const int index = INDEX_UPPER_TRIANGLE(L1, L2);
       runtime->detach_external_resource(ctx, jbras_pr_list[index]);
       runtime->destroy_logical_region(ctx, jbras_lr_list[index]);
+      runtime->destroy_index_space(ctx, jbras_ispace_list[index]);
       runtime->detach_external_resource(ctx, jkets_pr_list[index]);
       runtime->destroy_logical_region(ctx, jkets_lr_list[index]);
+      runtime->destroy_index_space(ctx, jkets_ispace_list[index]);
     }
   }
 }
@@ -409,11 +412,13 @@ void EriRegent::initialize_jfock_field_spaces() {
 #define INIT_FSPACES(L1, L2)                                                   \
   {                                                                            \
     const int H = TETRAHEDRAL_NUMBER((L1) + (L2) + 1);                         \
-    jbra_fspaces[L_PAIR_TO_INDEX(L1, L2)] = runtime->create_field_space(ctx);  \
-    jket_fspaces[L_PAIR_TO_INDEX(L1, L2)] = runtime->create_field_space(ctx);  \
+    jbra_fspaces[INDEX_UPPER_TRIANGLE(L1, L2)] =                               \
+        runtime->create_field_space(ctx);                                      \
+    jket_fspaces[INDEX_UPPER_TRIANGLE(L1, L2)] =                               \
+        runtime->create_field_space(ctx);                                      \
     {                                                                          \
       FieldAllocator falloc = runtime->create_field_allocator(                 \
-          ctx, jbra_fspaces[L_PAIR_TO_INDEX(L1, L2)]);                         \
+          ctx, jbra_fspaces[INDEX_UPPER_TRIANGLE(L1, L2)]);                    \
       falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, X));         \
       falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, Y));         \
       falloc.allocate_field(sizeof(double), JBRA_FIELD_ID(L1, L2, Z));         \
@@ -425,7 +430,7 @@ void EriRegent::initialize_jfock_field_spaces() {
     }                                                                          \
     {                                                                          \
       FieldAllocator falloc = runtime->create_field_allocator(                 \
-          ctx, jket_fspaces[L_PAIR_TO_INDEX(L1, L2)]);                         \
+          ctx, jket_fspaces[INDEX_UPPER_TRIANGLE(L1, L2)]);                    \
       falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, X));         \
       falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, Y));         \
       falloc.allocate_field(sizeof(double), JKET_FIELD_ID(L1, L2, Z));         \

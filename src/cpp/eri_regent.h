@@ -53,12 +53,6 @@ public:
     void allocate_jkets(int L1, int L2, int n);
 
     /**
-     * The number of jbras/jkets for a give angular momentum pair.
-     */
-    int get_num_jbras(int L1, int L2);
-    int get_num_jkets(int L1, int L2);
-
-    /**
      * Copy the data from `src` to jbra/jket `i` for a given angular momentum
      * pair.
      */
@@ -87,11 +81,17 @@ public:
      */
     int get_largest_momentum();
 
-    int num_jbras[MAX_MOMENTUM_INDEX + 1];
-    void *jbras[MAX_MOMENTUM_INDEX + 1];
+    /**
+     * The number of jbras/jkets for a give angular momentum pair.
+     */
+    int get_num_jbras(int L1, int L2);
+    int get_num_jkets(int L1, int L2);
 
-    int num_jkets[MAX_MOMENTUM_INDEX + 1];
-    void *jkets[MAX_MOMENTUM_INDEX + 1];
+    int num_jbras[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+    void *jbras[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+
+    int num_jkets[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+    void *jkets[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   };
 
   /**
@@ -152,15 +152,16 @@ public:
      */
     void allocate_all_koutput();
 
+    /**
+     * The largest angular momentum that has data.
+     */
+    int get_largest_momentum();
+
     int get_num_kpairs(int L1, int L2);
     int get_num_shells(int L);
     void *get_kpair_data(int L1, int L2);
     void *get_kdensity_data(int L2, int L4);
     void *get_koutput_data(int L1, int L3);
-    /**
-     * The largest angular momentum that has data.
-     */
-    int get_largest_momentum();
 
     int num_kpairs[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
     void *kpairs[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
@@ -192,8 +193,8 @@ private:
   Legion::IndexSpace gamma_table_ispace;
   Legion::LogicalRegion gamma_table_lr;
   Legion::PhysicalRegion gamma_table_pr;
-  Legion::FieldSpace jbra_fspaces[MAX_MOMENTUM_INDEX + 1];
-  Legion::FieldSpace jket_fspaces[MAX_MOMENTUM_INDEX + 1];
+  Legion::FieldSpace jbra_fspaces[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+  Legion::FieldSpace jket_fspaces[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   Legion::FieldSpace kpair_fspaces[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   Legion::FieldSpace kdensity_fspaces[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   Legion::FieldSpace koutput_fspaces[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
@@ -342,19 +343,19 @@ private:
 
   /**
    * A vector of field IDs. The order needs to be such that
-   * `jbra_fields_list[L_PAIR_TO_INDEX(L1, L2)] = JBRA_FIELD_IDS(L1, L2)`. This
-   * is useful because we need to index them at runtime.
+   * `jbra_fields_list[INDEX_UPPER_TRIANGLE(L1, L2)] = JBRA_FIELD_IDS(L1, L2)`.
+   * This is useful because we need to index them at runtime.
    */
-  const Legion::FieldID jbra_fields_list[MAX_MOMENTUM_INDEX +
-                                         1][NUM_JBRA_FIELDS]{
+  const Legion::FieldID jbra_fields_list[TRIANGLE_NUMBER(MAX_MOMENTUM +
+                                                         1)][NUM_JBRA_FIELDS]{
       {JBRA_FIELD_IDS(0, 0)}, {JBRA_FIELD_IDS(0, 1)}, {JBRA_FIELD_IDS(0, 2)},
       {JBRA_FIELD_IDS(0, 3)}, {JBRA_FIELD_IDS(0, 4)}, {JBRA_FIELD_IDS(1, 1)},
       {JBRA_FIELD_IDS(1, 2)}, {JBRA_FIELD_IDS(1, 3)}, {JBRA_FIELD_IDS(1, 4)},
       {JBRA_FIELD_IDS(2, 2)}, {JBRA_FIELD_IDS(2, 3)}, {JBRA_FIELD_IDS(2, 4)},
       {JBRA_FIELD_IDS(3, 3)}, {JBRA_FIELD_IDS(3, 4)}, {JBRA_FIELD_IDS(4, 4)},
   };
-  const Legion::FieldID jket_fields_list[MAX_MOMENTUM_INDEX +
-                                         1][NUM_JKET_FIELDS] = {
+  const Legion::FieldID jket_fields_list[TRIANGLE_NUMBER(
+      MAX_MOMENTUM + 1)][NUM_JKET_FIELDS] = {
       {JKET_FIELD_IDS(0, 0)}, {JKET_FIELD_IDS(0, 1)}, {JKET_FIELD_IDS(0, 2)},
       {JKET_FIELD_IDS(0, 3)}, {JKET_FIELD_IDS(0, 4)}, {JKET_FIELD_IDS(1, 1)},
       {JKET_FIELD_IDS(1, 2)}, {JKET_FIELD_IDS(1, 3)}, {JKET_FIELD_IDS(1, 4)},
