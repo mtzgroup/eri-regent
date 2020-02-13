@@ -147,7 +147,7 @@ void EriRegent::TeraChemKDataList::set_kpair(
 void EriRegent::TeraChemKDataList::set_kdensity(int L2, int L4,
                                                 int bra_jshell_index,
                                                 int ket_jshell_index,
-                                                const double *values,
+                                                const double *src,
                                                 float bound) {
   assert(L2 <= L4);
   assert(0 <= bra_jshell_index && bra_jshell_index <= get_num_shells(L2));
@@ -157,7 +157,7 @@ void EriRegent::TeraChemKDataList::set_kdensity(int L2, int L4,
                    sizeof_kdensity(L2, L4);
   const int H2 = TRIANGLE_NUMBER(L2 + 1);
   const int H4 = TRIANGLE_NUMBER(L4 + 1);
-  memcpy((void *)dest, (const void *)values, H2 * H4 * sizeof(double));
+  memcpy((void *)dest, (const void *)src, H2 * H4 * sizeof(double));
   float *bound_ptr = (float *)(dest + H2 * H4 * sizeof(double));
   bound_ptr[0] = bound;
 }

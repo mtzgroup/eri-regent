@@ -78,7 +78,7 @@ void read_jdata_files(string bra_filename, string ket_filename,
         num_values = fscanf(ket_filep, "%lf;", &density[j]);
         assert(num_values == 1 && "Did not read all density values!");
       }
-      data_list->set_density(L1, L2, i, density);
+      data_list->set_jdensity(L1, L2, i, density);
       num_values = fscanf(ket_filep, "\n");
       assert(num_values == 0 && "Did not read newline!");
     }
@@ -105,7 +105,7 @@ void verify_jfock_output(string filename,
       for (int j = 0; j < H; j++) {
         int num_values = fscanf(filep, "%lf\t", &expected);
         assert(num_values == 1 && "Output value not read!");
-        double result = jdata_list.get_output(L1, L2, i)[j];
+        double result = jdata_list.get_joutput(L1, L2, i)[j];
         double absolute_error = fabs(expected - result);
         double relative_error = fabs(absolute_error / expected);
         max_absolue_error = fmax(absolute_error, max_absolue_error);

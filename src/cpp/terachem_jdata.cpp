@@ -104,13 +104,13 @@ void EriRegent::TeraChemJDataList::set_jket(int L1, int L2, int i, double x,
   }
 }
 
-const double *EriRegent::TeraChemJDataList::get_output(int L1, int L2, int i) {
+const double *EriRegent::TeraChemJDataList::get_joutput(int L1, int L2, int i) {
   assert(0 <= i && i < get_num_jbras(L1, L2));
   return (double *)((char *)jbras[L_PAIR_TO_INDEX(L1, L2)] +
                     i * stride(L1, L2) + sizeof_jdata());
 }
 
-void EriRegent::TeraChemJDataList::set_density(int L1, int L2, int i,
+void EriRegent::TeraChemJDataList::set_jdensity(int L1, int L2, int i,
                                                const double *src) {
   assert(0 <= i && i < get_num_jkets(L1, L2));
   void *dest = (char *)jkets[L_PAIR_TO_INDEX(L1, L2)] + i * stride(L1, L2) +

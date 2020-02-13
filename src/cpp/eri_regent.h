@@ -5,9 +5,9 @@
 
 class EriRegent {
 public:
-  // TODO: What is the type of int1d?
+  // TODO: Confirm that the type of int1d is uint64_t
   /**
-   *
+   * `int1d` is atype in Regent that we want to use in C++.
    */
   typedef uint64_t int1d_t;
 
@@ -16,6 +16,12 @@ public:
    */
   EriRegent(const double *gamma_table);
   ~EriRegent();
+
+  /**
+   * Disable copying.
+   */
+  EriRegent(EriRegent const &) = delete;
+  EriRegent &operator=(EriRegent const &) = delete;
 
   /**
    * Register Regent tasks defined in eri-regent. Must be called before starting
@@ -63,16 +69,17 @@ public:
 
     /**
      * Copy the data from `src` to the density values of jket `i` for a given
-     * angular momentum pair. `src` should have length `COMPUTE_H(L1 + L2)`.
+     * angular momentum pair. `src` should have length
+     * `TETRAHEDRAL_NUMBER(L1 + L2 + 1)`.
      */
-    void set_density(int L1, int L2, int i, const double *src);
+    void set_jdensity(int L1, int L2, int i, const double *src);
 
     /**
      * Get a pointer to the output data of jbra `i` for a given angular
-     * momentum. The resulting array has length `COMPUTE_H(L1 + L2)`. Should NOT
-     * be free'd.
+     * momentum. The resulting array has length
+     * `TETRAHEDRAL_NUMBER(L1 + L2 + 1)`. Should NOT be free'd.
      */
-    const double *get_output(int L1, int L2, int i);
+    const double *get_joutput(int L1, int L2, int i);
 
   private:
     /**
@@ -81,7 +88,6 @@ public:
     int get_largest_momentum();
 
     int num_jbras[MAX_MOMENTUM_INDEX + 1];
-    // TODO: Use SOA format.
     void *jbras[MAX_MOMENTUM_INDEX + 1];
 
     int num_jkets[MAX_MOMENTUM_INDEX + 1];
@@ -105,16 +111,18 @@ public:
     TeraChemKDataList &operator=(TeraChemKDataList const &) = delete;
 
     /**
+     * Allocate `n` kpairs for a given angular momentum pair.
      */
     void allocate_kpairs(int L1, int L2, int n);
 
     /**
-     * `n2` is the number of shells for `L2` and `n4` is the number of shells
-     * for `L4`
+     * Allocate a density matrix for a given angular momentum pair where `n2` is
+     * the number of shells for `L2` and `n4` is the number of shells for `L4`
      */
     void allocate_kdensity(int L2, int L4, int n2, int n4);
 
     /**
+     * Copy the data to kpair `i` for a given angular momentum pair.
      */
     void set_kpair(int L1, int L2, int i, double x, double y, double z,
                    double eta, double C, float bound, double PIx, double PIy,
@@ -122,13 +130,18 @@ public:
                    int1d_t ishell_index, int1d_t jshell_index);
 
     /**
-     * The density values must be given in row-major order.
+     * Copy the data from `src` to the density values for a given
+     * shell pair. `src` should have length
+     * `TRIANGLE_NUMBER(L2 + 1) * TRIANGLE_NUMBER(L4 + 1)` and should be indexed
+     * using `i * TRIANGLE_NUMBER(L4 + 1) + j`.
      */
     void set_kdensity(int L2, int L4, int bra_jshell_index,
-                      int ket_jshell_index, const double *values, float bound);
+                      int ket_jshell_index, const double *src, float bound);
 
     /**
-     * Returns the output values in row-major order.
+     * Returns the output values for a given shell pair. The array has length
+     * `TRIANGLE_NUMBER(L1 + 2) * TRIANGLE_NUMBER(L3 + 1)` and should be indexed
+     * using `i * TRIANGLE_NUMBER(L3 + 1) + j`. Should NOT be free'd.
      */
     const double *get_koutput(int L1, int L2, int L3, int L4,
                               int bra_ishell_index, int ket_ishell_index);
@@ -144,6 +157,9 @@ public:
     void *get_kpair_data(int L1, int L2);
     void *get_kdensity_data(int L2, int L4);
     void *get_koutput_data(int L1, int L3);
+    /**
+     * The largest angular momentum that has data.
+     */
     int get_largest_momentum();
 
     int num_kpairs[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
