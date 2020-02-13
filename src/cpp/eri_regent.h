@@ -34,7 +34,6 @@ public:
     float bound;
   };
 
-  // TODO: Make new file terachem_jdata_list.cpp
   /**
    * A list of JBra and JKet data to be passed to `launch_jfock_task`.
    */
@@ -42,14 +41,13 @@ public:
     friend class EriRegent;
 
   public:
-    TeraChemJDataList() {
-      for (int i = 0; i < MAX_MOMENTUM_INDEX + 1; i++) {
-        num_jbras[i] = 0;
-        num_jkets[i] = 0;
-      }
-    }
+    TeraChemJDataList();
 
-    // TODO: Disallow copies.
+    /**
+     * Disable copying.
+     */
+    TeraChemJDataList(TeraChemJDataList const &) = delete;
+    TeraChemJDataList &operator=(TeraChemJDataList const &) = delete;
 
     /**
      * Allocate `n` jbras/jkets for a given angular momentum pair.

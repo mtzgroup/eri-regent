@@ -20,6 +20,7 @@ LDFLAGS += -Wl,-rpath,$(LEGIONLIB),-rpath,$(ERI_REGENT_LIB)
 
 SRCS := main.cpp
 SRCS += $(ERI_REGENT_SRC)/cpp/eri_regent.cpp
+SRCS += $(ERI_REGENT_SRC)/cpp/terachem_jdata.cpp
 SRCS += $(ERI_REGENT_SRC)/cpp/terachem_kdata.cpp
 HEADERS := $(ERI_REGENT_SRC)/cpp/eri_regent.h $(ERI_REGENT_SRC)/cpp/helper.h
 
