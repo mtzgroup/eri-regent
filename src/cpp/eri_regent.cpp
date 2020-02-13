@@ -255,14 +255,13 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   IndexSpace koutput_ispace_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L3 = L1; L3 <= MAX_MOMENTUM; L3++) {
-      // FIXME: Need to know the regent compiled momentum at runtime.
-      int regent_compiled_max_momentum = 2;
       const int index = INDEX_UPPER_TRIANGLE(L1, L3);
-      const Rect<3> rect({0, 0, 0}, {(regent_compiled_max_momentum +
-                                      1) * (regent_compiled_max_momentum + 1) -
-                                         1,
-                                     kdata_list.get_num_shells(L1) - 1,
-                                     kdata_list.get_num_shells(L3) - 1});
+      const Rect<3> rect({0, 0, 0},
+                         {(kdata_list.get_largest_momentum() + 1) *
+                                  (kdata_list.get_largest_momentum() + 1) -
+                              1,
+                          kdata_list.get_num_shells(L1) - 1,
+                          kdata_list.get_num_shells(L3) - 1});
       koutput_ispace_list[index] = runtime->create_index_space(ctx, rect);
       koutput_lr_list[index] = runtime->create_logical_region(
           ctx, koutput_ispace_list[index], koutput_fspaces[index]);

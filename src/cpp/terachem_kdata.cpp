@@ -97,10 +97,7 @@ void EriRegent::TeraChemKDataList::allocate_all_koutput() {
     for (int L3 = L1; L3 <= MAX_MOMENTUM; L3++) {
       const int n1 = num_shells[L1];
       const int n3 = num_shells[L3];
-      // FIXME
-      int regent_compiled_max_momentum = 2;
-      const int n = (regent_compiled_max_momentum + 1) *
-                    (regent_compiled_max_momentum + 1);
+      const int n = (get_largest_momentum() + 1) * (get_largest_momentum() + 1);
       if (n1 > 0 && n3 > 0) {
         const int index = INDEX_UPPER_TRIANGLE(L1, L3);
         koutput[index] = calloc(n * n1 * n3, sizeof_koutput(L1, L3));
@@ -171,10 +168,8 @@ const double *EriRegent::TeraChemKDataList::get_koutput(int L1, int L2, int L3,
   const int n3 = get_num_shells(L3);
   assert(0 <= bra_ishell_index && bra_ishell_index <= n1);
   assert(0 <= ket_ishell_index && ket_ishell_index <= n3);
-  // FIXME:
-  int regent_compiled_max_momentum = 2;
   const char *koutput1234 = (char *)koutput[INDEX_UPPER_TRIANGLE(L1, L3)] +
-                            (L2 + L4 * (regent_compiled_max_momentum + 1)) *
+                            (L2 + L4 * (get_largest_momentum() + 1)) *
                                 sizeof_koutput(L1, L3) * n1 * n3;
   const char *src = koutput1234 + (bra_ishell_index * n3 + ket_ishell_index) *
                                       sizeof_koutput(L1, L3);

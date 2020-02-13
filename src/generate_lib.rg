@@ -202,7 +202,7 @@ do
       [3]={[3]=r_output33, [4]=r_output34},
       [4]={[4]=r_output44}
     },
-    r_gamma_table, threshold, parallelism)]
+    r_gamma_table, threshold, parallelism, largest_momentum)]
 end
 
 local header, lib = nil, nil

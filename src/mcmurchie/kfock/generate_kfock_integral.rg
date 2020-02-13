@@ -30,7 +30,6 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
     end
   end
 
-  local N24 = L2 + L4 * (getCompiledMaxMomentum() + 1)
   local
   __demand(__leaf)
   __demand(__cuda)
@@ -39,11 +38,12 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
                       r_density     : region(ispace(int2d), getKFockDensity(L2, L4)),
                       r_output      : region(ispace(int3d), getKFockOutput(L1, L3)),
                       r_gamma_table : region(ispace(int2d), double[5]),
-                      threshold : float, threshold2 : float, kguard : float)
+                      threshold : float, threshold2 : float, kguard : float, largest_momentum : int)
   where
     reads(r_bras, r_kets, r_density, r_gamma_table),
     reads writes(r_output)
   do
+    var N24 = L2 + L4 * (largest_momentum + 1)
     var ket_idx_bounds_lo : int = r_kets.ispace.bounds.lo
     var ket_idx_bounds_hi : int = r_kets.ispace.bounds.hi
     for bra_idx in r_bras.ispace do

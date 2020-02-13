@@ -4,7 +4,7 @@ require "helper"
 require "mcmurchie.kfock.generate_kfock_integral"
 
 function kfock(r_pairs_list, r_density_list, r_output_list,
-               r_gamma_table, threshold, parallelism)
+               r_gamma_table, threshold, parallelism, largest_momentum)
   local statements = terralib.newlist()
   -- TODO: Partition output.
   -- TODO: Reverse the launch order so that large kernels launch first
@@ -32,7 +32,7 @@ function kfock(r_pairs_list, r_density_list, r_output_list,
                 for bra_color in bra_coloring do
                   kfock_integral(p_bras[bra_color], r_kets,
                                  r_density, r_output,
-                                 r_gamma_table, threshold, 1, 1)
+                                 r_gamma_table, threshold, 1, 1, largest_momentum)
                 end
               end)
             end

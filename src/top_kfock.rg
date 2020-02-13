@@ -75,8 +75,9 @@ task toplevel()
   ---------------------
   var threshold = parameters.thredp
   var parallelism = config.parallelism;
-  [kfock(r_pairs_list, r_density_list, r_output_list,
-         r_gamma_table, threshold, parallelism)]
+  var largest_momentum = [getCompiledMaxMomentum()]
+  ;[kfock(r_pairs_list, r_density_list, r_output_list,
+          r_gamma_table, threshold, parallelism, largest_momentum)]
   ---------------------
 
   __fence(__execution, __block) -- Make sure we only time the computation
