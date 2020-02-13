@@ -49,22 +49,21 @@ EriRegent::~EriRegent() {
       runtime->destroy_field_space(ctx, jket_fspaces[index]);
     }
   }
-  // TODO
-  for (int L1 = 0; L1 <= 1; L1++) {
-    for (int L2 = 0; L2 <= 1; L2++) {
+  for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_SQUARE(L1, L2);
       runtime->destroy_field_space(ctx, kpair_fspaces[index]);
     }
   }
 
-  for (int L2 = 0; L2 <= 1; L2++) {
-    for (int L4 = L2; L4 <= 1; L4++) {
+  for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
+    for (int L4 = L2; L4 <= MAX_MOMENTUM; L4++) {
       const int index = INDEX_UPPER_TRIANGLE(L2, L4);
       runtime->destroy_field_space(ctx, kdensity_fspaces[index]);
     }
   }
-  for (int L1 = 0; L1 <= 1; L1++) {
-    for (int L3 = L1; L3 <= 1; L3++) {
+  for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (int L3 = L1; L3 <= MAX_MOMENTUM; L3++) {
       const int index = INDEX_UPPER_TRIANGLE(L1, L3);
       runtime->destroy_field_space(ctx, koutput_fspaces[index]);
     }
@@ -131,17 +130,17 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
 
   ADD_ARGUMENT_R_JBRAS(0, 0);
   ADD_ARGUMENT_R_JBRAS(0, 1);
-  ADD_ARGUMENT_R_JBRAS(1, 1);
   ADD_ARGUMENT_R_JBRAS(0, 2);
-  ADD_ARGUMENT_R_JBRAS(1, 2);
-  ADD_ARGUMENT_R_JBRAS(2, 2);
   ADD_ARGUMENT_R_JBRAS(0, 3);
-  ADD_ARGUMENT_R_JBRAS(1, 3);
-  ADD_ARGUMENT_R_JBRAS(2, 3);
-  ADD_ARGUMENT_R_JBRAS(3, 3);
   ADD_ARGUMENT_R_JBRAS(0, 4);
+  ADD_ARGUMENT_R_JBRAS(1, 1);
+  ADD_ARGUMENT_R_JBRAS(1, 2);
+  ADD_ARGUMENT_R_JBRAS(1, 3);
   ADD_ARGUMENT_R_JBRAS(1, 4);
+  ADD_ARGUMENT_R_JBRAS(2, 2);
+  ADD_ARGUMENT_R_JBRAS(2, 3);
   ADD_ARGUMENT_R_JBRAS(2, 4);
+  ADD_ARGUMENT_R_JBRAS(3, 3);
   ADD_ARGUMENT_R_JBRAS(3, 4);
   ADD_ARGUMENT_R_JBRAS(4, 4);
 
@@ -159,17 +158,17 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
 
   ADD_ARGUMENT_R_JKETS(0, 0);
   ADD_ARGUMENT_R_JKETS(0, 1);
-  ADD_ARGUMENT_R_JKETS(1, 1);
   ADD_ARGUMENT_R_JKETS(0, 2);
-  ADD_ARGUMENT_R_JKETS(1, 2);
-  ADD_ARGUMENT_R_JKETS(2, 2);
   ADD_ARGUMENT_R_JKETS(0, 3);
-  ADD_ARGUMENT_R_JKETS(1, 3);
-  ADD_ARGUMENT_R_JKETS(2, 3);
-  ADD_ARGUMENT_R_JKETS(3, 3);
   ADD_ARGUMENT_R_JKETS(0, 4);
+  ADD_ARGUMENT_R_JKETS(1, 1);
+  ADD_ARGUMENT_R_JKETS(1, 2);
+  ADD_ARGUMENT_R_JKETS(1, 3);
   ADD_ARGUMENT_R_JKETS(1, 4);
+  ADD_ARGUMENT_R_JKETS(2, 2);
+  ADD_ARGUMENT_R_JKETS(2, 3);
   ADD_ARGUMENT_R_JKETS(2, 4);
+  ADD_ARGUMENT_R_JKETS(3, 3);
   ADD_ARGUMENT_R_JKETS(3, 4);
   ADD_ARGUMENT_R_JKETS(4, 4);
 
@@ -202,8 +201,8 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   LogicalRegion kpair_lr_list[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   PhysicalRegion kpair_pr_list[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   IndexSpace kpair_ispace_list[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
-  for (int L1 = 0; L1 <= 1; L1++) { // TODO
-    for (int L2 = 0; L2 <= 1; L2++) {
+  for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_SQUARE(L1, L2);
       const Rect<1> rect(0, kdata_list.get_num_kpairs(L1, L2) - 1);
       kpair_ispace_list[index] = runtime->create_index_space(ctx, rect);
@@ -225,8 +224,8 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   LogicalRegion kdensity_lr_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   PhysicalRegion kdensity_pr_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   IndexSpace kdensity_ispace_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
-  for (int L2 = 0; L2 <= 1; L2++) { // TODO
-    for (int L4 = L2; L4 <= 1; L4++) {
+  for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
+    for (int L4 = L2; L4 <= MAX_MOMENTUM; L4++) {
       const int index = INDEX_UPPER_TRIANGLE(L2, L4);
       const Rect<2> rect({0, 0}, {kdata_list.get_num_shells(L2) - 1,
                                   kdata_list.get_num_shells(L4) - 1});
@@ -251,15 +250,16 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   LogicalRegion koutput_lr_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   PhysicalRegion koutput_pr_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   IndexSpace koutput_ispace_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
-  for (int L1 = 0; L1 <= 1; L1++) { // TODO
-    for (int L3 = L1; L3 <= 1; L3++) {
+  for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (int L3 = L1; L3 <= MAX_MOMENTUM; L3++) {
+      // FIXME: Need to know the regent compiled momentum at runtime.
+      int regent_compiled_max_momentum = 2;
       const int index = INDEX_UPPER_TRIANGLE(L1, L3);
-      const Rect<3> rect({0, 0, 0},
-                         // TODO
-                         // {(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1) - 1,
-                         {(1 + 1) * (1 + 1) - 1,
-                          kdata_list.get_num_shells(L1) - 1,
-                          kdata_list.get_num_shells(L3) - 1});
+      const Rect<3> rect({0, 0, 0}, {(regent_compiled_max_momentum +
+                                      1) * (regent_compiled_max_momentum + 1) -
+                                         1,
+                                     kdata_list.get_num_shells(L1) - 1,
+                                     kdata_list.get_num_shells(L3) - 1});
       koutput_ispace_list[index] = runtime->create_index_space(ctx, rect);
       koutput_lr_list[index] = runtime->create_logical_region(
           ctx, koutput_ispace_list[index], koutput_fspaces[index]);
@@ -287,11 +287,31 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
                                           kpair_lr_list[index], field_list);   \
   }
 
-  // TODO
   ADD_ARGUMENT_R_KPAIRS(0, 0);
   ADD_ARGUMENT_R_KPAIRS(0, 1);
+  ADD_ARGUMENT_R_KPAIRS(0, 2);
+  ADD_ARGUMENT_R_KPAIRS(0, 3);
+  ADD_ARGUMENT_R_KPAIRS(0, 4);
   ADD_ARGUMENT_R_KPAIRS(1, 0);
   ADD_ARGUMENT_R_KPAIRS(1, 1);
+  ADD_ARGUMENT_R_KPAIRS(1, 2);
+  ADD_ARGUMENT_R_KPAIRS(1, 3);
+  ADD_ARGUMENT_R_KPAIRS(1, 4);
+  ADD_ARGUMENT_R_KPAIRS(2, 0);
+  ADD_ARGUMENT_R_KPAIRS(2, 1);
+  ADD_ARGUMENT_R_KPAIRS(2, 2);
+  ADD_ARGUMENT_R_KPAIRS(2, 3);
+  ADD_ARGUMENT_R_KPAIRS(2, 4);
+  ADD_ARGUMENT_R_KPAIRS(3, 0);
+  ADD_ARGUMENT_R_KPAIRS(3, 1);
+  ADD_ARGUMENT_R_KPAIRS(3, 2);
+  ADD_ARGUMENT_R_KPAIRS(3, 3);
+  ADD_ARGUMENT_R_KPAIRS(3, 4);
+  ADD_ARGUMENT_R_KPAIRS(4, 0);
+  ADD_ARGUMENT_R_KPAIRS(4, 1);
+  ADD_ARGUMENT_R_KPAIRS(4, 2);
+  ADD_ARGUMENT_R_KPAIRS(4, 3);
+  ADD_ARGUMENT_R_KPAIRS(4, 4);
 
 #undef ADD_ARGUMENT_R_KPAIRS
 
@@ -305,10 +325,21 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
         kdensity_lr_list[index], kdensity_lr_list[index], field_list);         \
   }
 
-  // TODO
   ADD_ARGUMENT_R_KDENSITY(0, 0);
   ADD_ARGUMENT_R_KDENSITY(0, 1);
+  ADD_ARGUMENT_R_KDENSITY(0, 2);
+  ADD_ARGUMENT_R_KDENSITY(0, 3);
+  ADD_ARGUMENT_R_KDENSITY(0, 4);
   ADD_ARGUMENT_R_KDENSITY(1, 1);
+  ADD_ARGUMENT_R_KDENSITY(1, 2);
+  ADD_ARGUMENT_R_KDENSITY(1, 3);
+  ADD_ARGUMENT_R_KDENSITY(1, 4);
+  ADD_ARGUMENT_R_KDENSITY(2, 2);
+  ADD_ARGUMENT_R_KDENSITY(2, 3);
+  ADD_ARGUMENT_R_KDENSITY(2, 4);
+  ADD_ARGUMENT_R_KDENSITY(3, 3);
+  ADD_ARGUMENT_R_KDENSITY(3, 4);
+  ADD_ARGUMENT_R_KDENSITY(4, 4);
 
 #undef ADD_ARGUMENT_R_KDENSITY
 
@@ -322,10 +353,21 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
         koutput_lr_list[index], koutput_lr_list[index], field_list);           \
   }
 
-  // TODO
   ADD_ARGUMENT_R_KOUTPUT(0, 0);
   ADD_ARGUMENT_R_KOUTPUT(0, 1);
+  ADD_ARGUMENT_R_KOUTPUT(0, 2);
+  ADD_ARGUMENT_R_KOUTPUT(0, 3);
+  ADD_ARGUMENT_R_KOUTPUT(0, 4);
   ADD_ARGUMENT_R_KOUTPUT(1, 1);
+  ADD_ARGUMENT_R_KOUTPUT(1, 2);
+  ADD_ARGUMENT_R_KOUTPUT(1, 3);
+  ADD_ARGUMENT_R_KOUTPUT(1, 4);
+  ADD_ARGUMENT_R_KOUTPUT(2, 2);
+  ADD_ARGUMENT_R_KOUTPUT(2, 3);
+  ADD_ARGUMENT_R_KOUTPUT(2, 4);
+  ADD_ARGUMENT_R_KOUTPUT(3, 3);
+  ADD_ARGUMENT_R_KOUTPUT(3, 4);
+  ADD_ARGUMENT_R_KOUTPUT(4, 4);
 
 #undef ADD_ARGUMENT_R_KOUTPUT
 
@@ -337,24 +379,24 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   Future future = launcher.execute(runtime, ctx);
   future.wait();
 
-  for (int L1 = 0; L1 <= 1; L1++) { // TODO
-    for (int L2 = 0; L2 <= 1; L2++) {
+  for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_SQUARE(L1, L2);
       runtime->detach_external_resource(ctx, kpair_pr_list[index]);
       runtime->destroy_logical_region(ctx, kpair_lr_list[index]);
       runtime->destroy_index_space(ctx, kpair_ispace_list[index]);
     }
   }
-  for (int L2 = 0; L2 <= 1; L2++) {
-    for (int L4 = L2; L4 <= 1; L4++) {
+  for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
+    for (int L4 = L2; L4 <= MAX_MOMENTUM; L4++) {
       const int index = INDEX_UPPER_TRIANGLE(L2, L4);
       runtime->detach_external_resource(ctx, kdensity_pr_list[index]);
       runtime->destroy_logical_region(ctx, kdensity_lr_list[index]);
       runtime->destroy_index_space(ctx, kdensity_ispace_list[index]);
     }
   }
-  for (int L1 = 0; L1 <= 1; L1++) {
-    for (int L3 = L1; L3 <= 1; L3++) {
+  for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
+    for (int L3 = L1; L3 <= MAX_MOMENTUM; L3++) {
       const int index = INDEX_UPPER_TRIANGLE(L1, L3);
       runtime->detach_external_resource(ctx, koutput_pr_list[index]);
       runtime->destroy_logical_region(ctx, koutput_lr_list[index]);
@@ -397,17 +439,17 @@ void EriRegent::initialize_jfock_field_spaces() {
 
   INIT_FSPACES(0, 0)
   INIT_FSPACES(0, 1)
-  INIT_FSPACES(1, 1)
   INIT_FSPACES(0, 2)
-  INIT_FSPACES(1, 2)
-  INIT_FSPACES(2, 2)
   INIT_FSPACES(0, 3)
-  INIT_FSPACES(1, 3)
-  INIT_FSPACES(2, 3)
-  INIT_FSPACES(3, 3)
   INIT_FSPACES(0, 4)
+  INIT_FSPACES(1, 1)
+  INIT_FSPACES(1, 2)
+  INIT_FSPACES(1, 3)
   INIT_FSPACES(1, 4)
+  INIT_FSPACES(2, 2)
+  INIT_FSPACES(2, 3)
   INIT_FSPACES(2, 4)
+  INIT_FSPACES(3, 3)
   INIT_FSPACES(3, 4)
   INIT_FSPACES(4, 4)
 
@@ -439,11 +481,31 @@ void EriRegent::initialize_kfock_field_spaces() {
                           KPAIR_FIELD_ID(L1, L2, JSHELL_INDEX));               \
   }
 
-  // TODO
   INIT_KPAIR_FSPACES(0, 0);
   INIT_KPAIR_FSPACES(0, 1);
+  INIT_KPAIR_FSPACES(0, 2);
+  INIT_KPAIR_FSPACES(0, 3);
+  INIT_KPAIR_FSPACES(0, 4);
   INIT_KPAIR_FSPACES(1, 0);
   INIT_KPAIR_FSPACES(1, 1);
+  INIT_KPAIR_FSPACES(1, 2);
+  INIT_KPAIR_FSPACES(1, 3);
+  INIT_KPAIR_FSPACES(1, 4);
+  INIT_KPAIR_FSPACES(2, 0);
+  INIT_KPAIR_FSPACES(2, 1);
+  INIT_KPAIR_FSPACES(2, 2);
+  INIT_KPAIR_FSPACES(2, 3);
+  INIT_KPAIR_FSPACES(2, 4);
+  INIT_KPAIR_FSPACES(3, 0);
+  INIT_KPAIR_FSPACES(3, 1);
+  INIT_KPAIR_FSPACES(3, 2);
+  INIT_KPAIR_FSPACES(3, 3);
+  INIT_KPAIR_FSPACES(3, 4);
+  INIT_KPAIR_FSPACES(4, 0);
+  INIT_KPAIR_FSPACES(4, 1);
+  INIT_KPAIR_FSPACES(4, 2);
+  INIT_KPAIR_FSPACES(4, 3);
+  INIT_KPAIR_FSPACES(4, 4);
 
 #undef INIT_KPAIR_FSPACES
 
@@ -460,10 +522,21 @@ void EriRegent::initialize_kfock_field_spaces() {
     falloc.allocate_field(sizeof(float), KDENSITY_FIELD_ID(L2, L4, BOUND));    \
   }
 
-  // TODO
   INIT_KDENSITY_FSPACES(0, 0);
   INIT_KDENSITY_FSPACES(0, 1);
+  INIT_KDENSITY_FSPACES(0, 2);
+  INIT_KDENSITY_FSPACES(0, 3);
+  INIT_KDENSITY_FSPACES(0, 4);
   INIT_KDENSITY_FSPACES(1, 1);
+  INIT_KDENSITY_FSPACES(1, 2);
+  INIT_KDENSITY_FSPACES(1, 3);
+  INIT_KDENSITY_FSPACES(1, 4);
+  INIT_KDENSITY_FSPACES(2, 2);
+  INIT_KDENSITY_FSPACES(2, 3);
+  INIT_KDENSITY_FSPACES(2, 4);
+  INIT_KDENSITY_FSPACES(3, 3);
+  INIT_KDENSITY_FSPACES(3, 4);
+  INIT_KDENSITY_FSPACES(4, 4);
 
 #undef INIT_KDENSITY_FSPACES
 
@@ -479,10 +552,21 @@ void EriRegent::initialize_kfock_field_spaces() {
                           KOUTPUT_FIELD_ID(L1, L3, VALUES));                   \
   }
 
-  // TODO
   INIT_KOUTPUT_FSPACES(0, 0);
   INIT_KOUTPUT_FSPACES(0, 1);
+  INIT_KOUTPUT_FSPACES(0, 2);
+  INIT_KOUTPUT_FSPACES(0, 3);
+  INIT_KOUTPUT_FSPACES(0, 4);
   INIT_KOUTPUT_FSPACES(1, 1);
+  INIT_KOUTPUT_FSPACES(1, 2);
+  INIT_KOUTPUT_FSPACES(1, 3);
+  INIT_KOUTPUT_FSPACES(1, 4);
+  INIT_KOUTPUT_FSPACES(2, 2);
+  INIT_KOUTPUT_FSPACES(2, 3);
+  INIT_KOUTPUT_FSPACES(2, 4);
+  INIT_KOUTPUT_FSPACES(3, 3);
+  INIT_KOUTPUT_FSPACES(3, 4);
+  INIT_KOUTPUT_FSPACES(4, 4);
 
 #undef INIT_KOUTPUT_FSPACES
 }

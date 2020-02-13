@@ -22,8 +22,7 @@ before_install:
 
 install:
   - # Compile libERIRegent.so
-  - # TODO: RG_MAX_MOMENTUM=D make
-  - RG_MAX_MOMENTUM=P make
+  - RG_MAX_MOMENTUM=D make
   - pushd .
   - # Compile test binary
   - cd src/tests/cpp; make

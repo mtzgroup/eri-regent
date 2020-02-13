@@ -3,11 +3,10 @@ test_directories = [
     "src/tests/unit/s",
     "src/tests/unit/p",
     "src/tests/unit/sp",
-    # FIXME: These tests are temporarily disabled to work with kfock
-    # "src/tests/unit/d",
-    # "src/tests/unit/sd",
-    # "src/tests/unit/pd",
-    # "src/tests/unit/spd",
+    "src/tests/unit/d",
+    "src/tests/unit/sd",
+    "src/tests/unit/pd",
+    "src/tests/unit/spd",
 ]
 
 binary = "build/eri_regent_test"
@@ -21,10 +20,8 @@ if __name__ == "__main__":
 
     for directory in test_directories:
         for test_case in os.listdir(directory):
-            if test_case in ["fe"]:
-                # FIXME:
-                continue
             try:
+                print("Testing JFock {}/{}".format(directory, test_case))
                 subprocess.check_call(
                     [binary, "-i", "{}/{}".format(directory, test_case)]
                 )
@@ -41,6 +38,7 @@ if __name__ == "__main__":
                 # FIXME
                 continue
             try:
+                print("Testing KFock {}/{}".format(directory, test_case))
                 subprocess.check_call(
                     [binary, "-i", "{}/{}".format(directory, test_case), "-a", "kfock"]
                 )
