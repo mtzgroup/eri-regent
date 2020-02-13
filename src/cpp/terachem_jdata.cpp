@@ -119,12 +119,16 @@ void EriRegent::TeraChemJDataList::set_jdensity(int L1, int L2, int i,
 }
 
 int EriRegent::TeraChemJDataList::get_largest_momentum() {
-  auto max = [](int a, int b) { return (a > b) ? a : b; };
   int largest_momentum = -1;
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
       if (get_num_jbras(L1, L2) > 0 || get_num_jkets(L1, L2) > 0) {
-        largest_momentum = max(largest_momentum, max(L1, L2));
+        if (largest_momentum < L1) {
+          largest_momentum = L1;
+        }
+        if (largest_momentum < L2) {
+          largest_momentum = L2;
+        }
       }
     }
   }
