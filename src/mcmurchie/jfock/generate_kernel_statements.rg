@@ -12,8 +12,8 @@ function generateJFockKernelStatements(R, L12, L34, density, accumulator)
     statements:insert(rquote var [results[i]] = 0.0 end)
   end
 
-  local pattern12 = generateSpinPattern(L12)
-  local pattern34 = generateSpinPattern(L34)
+  local pattern12 = generateJFockSpinPattern(L12)
+  local pattern34 = generateJFockSpinPattern(L34)
   for u = 0, H34-1 do -- inclusive
     for t = 0, H12-1 do -- inclusive
       local Nt, Lt, Mt = unpack(pattern12[t+1])
