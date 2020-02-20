@@ -224,240 +224,161 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
 
   elseif L1 == 0 and L2 == 1 and L3 == 1 and L4 == 1 then
     -------------------------------- SPPP --------------------------------
+    local bra_Pj = rexpr bra.jshell_location end
+    local ket_Pi = rexpr ket.ishell_location end
+    local ket_Pj = rexpr ket.jshell_location end
+    local P0 = rexpr
+      ket_Pj.x * [density][0][0]
+      + ket_Pj.y * [density][0][1]
+      + ket_Pj.z * [density][0][2]
+    end
+    local P1 = rexpr [density][0][0] / (2 * ket.eta) end
+    local P2 = rexpr [density][0][1] / (2 * ket.eta) end
+    local P3 = rexpr [density][0][2] / (2 * ket.eta) end
+    local x00 = generateXExpression(R, P0, P1, P2, P3, 0, 0)
+    local x10 = generateXExpression(R, P0, P1, P2, P3, 1, 0)
+    local x11 = generateXExpression(R, P0, P1, P2, P3, 1, 1)
+    local x12 = generateXExpression(R, P0, P1, P2, P3, 1, 2)
+    local x20 = generateXExpression(R, P0, P1, P2, P3, 2, 0)
+    local x21 = generateXExpression(R, P0, P1, P2, P3, 2, 1)
+    local x22 = generateXExpression(R, P0, P1, P2, P3, 2, 2)
     statements:insert(rquote
-      var bra_denom = 0.5 / bra.eta
-      var ket_denom = 0.5 / ket.eta
-      var bra_Pj = bra.jshell_location
-      var ket_Pi = ket.ishell_location
-      var ket_Pj = ket.jshell_location
+      [results[0][0]] = (
+        bra_Pj.x * (ket_Pi.x * x00 - x10 / (2 * ket.eta) + [generateXExpression(R, P1, 0, 0, 0, 0, 0)])
+        + (ket_Pi.x * x10 - x20 / (2 * ket.eta) + [generateXExpression(R, P1, 0, 0, 0, 1, 0)]) / (2 * bra.eta)
+      )
+      ;[results[0][1]] = (
+        bra_Pj.x * (ket_Pi.y * x00 - x11 / (2 * ket.eta) + [generateXExpression(R, P2, 0, 0, 0, 0, 0)])
+        + (ket_Pi.y * x10 - x21 / (2 * ket.eta) + [generateXExpression(R, P2, 0, 0, 0, 1, 0)]) / (2 * bra.eta)
+      )
+      ;[results[0][2]] = (
+        bra_Pj.x * (ket_Pi.z * x00 - x12 / (2 * ket.eta) + [generateXExpression(R, P3, 0, 0, 0, 0, 0)])
+        + (ket_Pi.z * x10 - x22 / (2 * ket.eta) + [generateXExpression(R, P3, 0, 0, 0, 1, 0)]) / (2 * bra.eta)
+      )
+    end)
 
-      var PP0 = [density][0][0] * ket_Pj.x + [density][0][1] * ket_Pj.y + [density][0][2] * ket_Pj.z
-      var PP1 = [density][0][0] * ket_denom
-      var PP2 = [density][0][1] * ket_denom
-      var PP3 = [density][0][2] * ket_denom
-      ;[results[0][0]] += (
-        bra_Pj.x * (
-          ket_Pi.x * ([R[0][0][0][0]] * PP0 - [R[1][0][0][0]] * PP1 - [R[0][1][0][0]] * PP2 - [R[0][0][1][0]] * PP3)
-          - ket_denom * ([R[1][0][0][0]] * PP0 - [R[2][0][0][0]] * PP1 - [R[1][1][0][0]] * PP2 - [R[1][0][1][0]] * PP3)
-          + [R[0][0][0][0]] * PP1
-        )
-        + bra_denom * (
-          ket_Pi.x * ([R[1][0][0][0]] * PP0 - [R[2][0][0][0]] * PP1 - [R[1][1][0][0]] * PP2 - [R[1][0][1][0]] * PP3)
-          - ket_denom * ([R[2][0][0][0]] * PP0 - [R[3][0][0][0]] * PP1 - [R[2][1][0][0]] * PP2 - [R[2][0][1][0]] * PP3)
-          + [R[1][0][0][0]] * PP1
-        )
+    local P0 = rexpr
+      ket_Pj.x * [density][1][0]
+      + ket_Pj.y * [density][1][1]
+      + ket_Pj.z * [density][1][2]
+    end
+    local P1 = rexpr [density][1][0] / (2 * ket.eta) end
+    local P2 = rexpr [density][1][1] / (2 * ket.eta) end
+    local P3 = rexpr [density][1][2] / (2 * ket.eta) end
+    local x00 = generateXExpression(R, P0, P1, P2, P3, 0, 0)
+    local x10 = generateXExpression(R, P0, P1, P2, P3, 1, 0)
+    local x11 = generateXExpression(R, P0, P1, P2, P3, 1, 1)
+    local x12 = generateXExpression(R, P0, P1, P2, P3, 1, 2)
+    local x21 = generateXExpression(R, P0, P1, P2, P3, 2, 1)
+    local x23 = generateXExpression(R, P0, P1, P2, P3, 2, 3)
+    local x24 = generateXExpression(R, P0, P1, P2, P3, 2, 4)
+    statements:insert(rquote
+      [results[0][0]] += (
+        bra_Pj.y * (ket_Pi.x * x00 - x10 / (2 * ket.eta) + [generateXExpression(R, P1, 0, 0, 0, 0, 0)])
+        + (ket_Pi.x * x11 - x21 / (2 * ket.eta) + [generateXExpression(R, P1, 0, 0, 0, 1, 1)]) / (2 * bra.eta)
       )
       ;[results[0][1]] += (
-        bra_Pj.x * (
-          ket_Pi.y * ([R[0][0][0][0]] * PP0 - [R[1][0][0][0]] * PP1 - [R[0][1][0][0]] * PP2 - [R[0][0][1][0]] * PP3)
-          - ket_denom * ([R[0][1][0][0]] * PP0 - [R[1][1][0][0]] * PP1 - [R[0][2][0][0]] * PP2 - [R[0][1][1][0]] * PP3)
-          + [R[0][0][0][0]] * PP2
-        )
-        + bra_denom * (
-          ket_Pi.y * ([R[1][0][0][0]] * PP0 - [R[2][0][0][0]] * PP1 - [R[1][1][0][0]] * PP2 - [R[1][0][1][0]] * PP3)
-          - ket_denom * ([R[1][1][0][0]] * PP0 - [R[2][1][0][0]] * PP1 - [R[1][2][0][0]] * PP2 - [R[1][1][1][0]] * PP3)
-          + [R[1][0][0][0]] * PP2
-        )
+        bra_Pj.y * (ket_Pi.y * x00 - x11 / (2 * ket.eta) + [generateXExpression(R, P2, 0, 0, 0, 0, 0)])
+        + (ket_Pi.y * x11 - x23 / (2 * ket.eta) + [generateXExpression(R, P2, 0, 0, 0, 1, 1)]) / (2 * bra.eta)
       )
       ;[results[0][2]] += (
-        bra_Pj.x * (
-          ket_Pi.z * ([R[0][0][0][0]] * PP0 - [R[1][0][0][0]] * PP1 - [R[0][1][0][0]] * PP2 - [R[0][0][1][0]] * PP3)
-          - ket_denom * ([R[0][0][1][0]] * PP0 - [R[1][0][1][0]] * PP1 - [R[0][1][1][0]] * PP2 - [R[0][0][2][0]] * PP3)
-          + [R[0][0][0][0]] * PP3
-        )
-        + bra_denom * (
-          ket_Pi.z * ([R[1][0][0][0]] * PP0 - [R[2][0][0][0]] * PP1 - [R[1][1][0][0]] * PP2 - [R[1][0][1][0]] * PP3)
-          - ket_denom * ([R[1][0][1][0]] * PP0 - [R[2][0][1][0]] * PP1 - [R[1][1][1][0]] * PP2 - [R[1][0][2][0]] * PP3)
-          + [R[1][0][0][0]] * PP3
-        )
+        bra_Pj.y * (ket_Pi.z * x00 - x12 / (2 * ket.eta) + [generateXExpression(R, P3, 0, 0, 0, 0, 0)])
+        + (ket_Pi.z * x11 - x24 / (2 * ket.eta) + [generateXExpression(R, P3, 0, 0, 0, 1, 1)]) / (2 * bra.eta)
       )
+    end)
 
-      PP0 = [density][1][0] * ket_Pj.x + [density][1][1] * ket_Pj.y + [density][1][2] * ket_Pj.z
-      PP1 = [density][1][0] * ket_denom
-      PP2 = [density][1][1] * ket_denom
-      PP3 = [density][1][2] * ket_denom
-      ;[results[0][0]] += (
-        bra_Pj.y * (
-          ket_Pi.x * ([R[0][0][0][0]] * PP0 - [R[1][0][0][0]] * PP1 - [R[0][1][0][0]] * PP2 - [R[0][0][1][0]] * PP3)
-          - ket_denom * ([R[1][0][0][0]] * PP0 - [R[2][0][0][0]] * PP1 - [R[1][1][0][0]] * PP2 - [R[1][0][1][0]] * PP3)
-          + [R[0][0][0][0]] * PP1
-        )
-        + bra_denom * (
-          ket_Pi.x * ([R[0][1][0][0]] * PP0 - [R[1][1][0][0]] * PP1 - [R[0][2][0][0]] * PP2 - [R[0][1][1][0]] * PP3)
-          - ket_denom * ([R[1][1][0][0]] * PP0 - [R[2][1][0][0]] * PP1 - [R[1][2][0][0]] * PP2 - [R[1][1][1][0]] * PP3)
-          + [R[0][1][0][0]] * PP1
-        )
+    local P0 = rexpr
+      ket_Pj.x * [density][2][0]
+      + ket_Pj.y * [density][2][1]
+      + ket_Pj.z * [density][2][2]
+    end
+    local P1 = rexpr [density][2][0] / (2 * ket.eta) end
+    local P2 = rexpr [density][2][1] / (2 * ket.eta) end
+    local P3 = rexpr [density][2][2] / (2 * ket.eta) end
+    local x00 = generateXExpression(R, P0, P1, P2, P3, 0, 0)
+    local x10 = generateXExpression(R, P0, P1, P2, P3, 1, 0)
+    local x11 = generateXExpression(R, P0, P1, P2, P3, 1, 1)
+    local x12 = generateXExpression(R, P0, P1, P2, P3, 1, 2)
+    local x22 = generateXExpression(R, P0, P1, P2, P3, 2, 2)
+    local x24 = generateXExpression(R, P0, P1, P2, P3, 2, 4)
+    local x25 = generateXExpression(R, P0, P1, P2, P3, 2, 5)
+    statements:insert(rquote
+      [results[0][0]] += (
+        bra_Pj.z * (ket_Pi.x * x00 - x10 / (2 * ket.eta) + [generateXExpression(R, P1, 0, 0, 0, 0, 0)])
+        + (ket_Pi.x * x12 - x22 / (2 * ket.eta) + [generateXExpression(R, P1, 0, 0, 0, 1, 2)]) / (2 * bra.eta)
       )
       ;[results[0][1]] += (
-        bra_Pj.y * (
-          ket_Pi.y * ([R[0][0][0][0]] * PP0 - [R[1][0][0][0]] * PP1 - [R[0][1][0][0]] * PP2 - [R[0][0][1][0]] * PP3)
-          - ket_denom * ([R[0][1][0][0]] * PP0 - [R[1][1][0][0]] * PP1 - [R[0][2][0][0]] * PP2 - [R[0][1][1][0]] * PP3)
-          + [R[0][0][0][0]] * PP2
-        )
-        + bra_denom * (
-          ket_Pi.y * ([R[0][1][0][0]] * PP0 - [R[1][1][0][0]] * PP1 - [R[0][2][0][0]] * PP2 - [R[0][1][1][0]] * PP3)
-          - ket_denom * ([R[0][2][0][0]] * PP0 - [R[1][2][0][0]] * PP1 - [R[0][3][0][0]] * PP2 - [R[0][2][1][0]] * PP3)
-          + [R[0][1][0][0]] * PP2
-        )
+        bra_Pj.z * (ket_Pi.y * x00 - x11 / (2 * ket.eta) + [generateXExpression(R, P2, 0, 0, 0, 0, 0)])
+        + (ket_Pi.y * x12 - x24 / (2 * ket.eta) + [generateXExpression(R, P2, 0, 0, 0, 1, 2)]) / (2 * bra.eta)
       )
       ;[results[0][2]] += (
-        bra_Pj.y * (
-          ket_Pi.z * ([R[0][0][0][0]] * PP0 - [R[1][0][0][0]] * PP1 - [R[0][1][0][0]] * PP2 - [R[0][0][1][0]] * PP3)
-          - ket_denom * ([R[0][0][1][0]] * PP0 - [R[1][0][1][0]] * PP1 - [R[0][1][1][0]] * PP2 - [R[0][0][2][0]] * PP3)
-          + [R[0][0][0][0]] * PP3
-        )
-        + bra_denom * (
-          ket_Pi.z * ([R[0][1][0][0]] * PP0 - [R[1][1][0][0]] * PP1 - [R[0][2][0][0]] * PP2 - [R[0][1][1][0]] * PP3)
-          - ket_denom * ([R[0][1][1][0]] * PP0 - [R[1][1][1][0]] * PP1 - [R[0][2][1][0]] * PP2 - [R[0][1][2][0]] * PP3)
-          + [R[0][1][0][0]] * PP3
-        )
-      )
-
-      PP0 = [density][2][0] * ket_Pj.x + [density][2][1] * ket_Pj.y + [density][2][2] * ket_Pj.z
-      PP1 = [density][2][0] * ket_denom
-      PP2 = [density][2][1] * ket_denom
-      PP3 = [density][2][2] * ket_denom
-      ;[results[0][0]] += (
-        bra_Pj.z * (
-          ket_Pi.x * ([R[0][0][0][0]] * PP0 - [R[1][0][0][0]] * PP1 - [R[0][1][0][0]] * PP2 - [R[0][0][1][0]] * PP3)
-          - ket_denom * ([R[1][0][0][0]] * PP0 - [R[2][0][0][0]] * PP1 - [R[1][1][0][0]] * PP2 - [R[1][0][1][0]] * PP3)
-          + [R[0][0][0][0]] * PP1
-        )
-        + bra_denom * (
-          ket_Pi.x * ([R[0][0][1][0]] * PP0 - [R[1][0][1][0]] * PP1 - [R[0][1][1][0]] * PP2 - [R[0][0][2][0]] * PP3)
-          - ket_denom * ([R[1][0][1][0]] * PP0 - [R[2][0][1][0]] * PP1 - [R[1][1][1][0]] * PP2 - [R[1][0][2][0]] * PP3)
-          + [R[0][0][1][0]] * PP1
-        )
-      )
-      ;[results[0][1]] += (
-        bra_Pj.z * (
-          ket_Pi.y * ([R[0][0][0][0]] * PP0 - [R[1][0][0][0]] * PP1 - [R[0][1][0][0]] * PP2 - [R[0][0][1][0]] * PP3)
-          - ket_denom * ([R[0][1][0][0]] * PP0 - [R[1][1][0][0]] * PP1 - [R[0][2][0][0]] * PP2 - [R[0][1][1][0]] * PP3)
-          + [R[0][0][0][0]] * PP2
-        )
-        + bra_denom * (
-          ket_Pi.y * ([R[0][0][1][0]] * PP0 - [R[1][0][1][0]] * PP1 - [R[0][1][1][0]] * PP2 - [R[0][0][2][0]] * PP3)
-          - ket_denom * ([R[0][1][1][0]] * PP0 - [R[1][1][1][0]] * PP1 - [R[0][2][1][0]] * PP2 - [R[0][1][2][0]] * PP3)
-          + [R[0][0][1][0]] * PP2
-        )
-      )
-      ;[results[0][2]] += (
-        bra_Pj.z * (
-          ket_Pi.z * ([R[0][0][0][0]] * PP0 - [R[1][0][0][0]] * PP1 - [R[0][1][0][0]] * PP2 - [R[0][0][1][0]] * PP3)
-          - ket_denom * ([R[0][0][1][0]] * PP0 - [R[1][0][1][0]] * PP1 - [R[0][1][1][0]] * PP2 - [R[0][0][2][0]] * PP3)
-          + [R[0][0][0][0]] * PP3
-        )
-        + bra_denom * (
-          ket_Pi.z * ([R[0][0][1][0]] * PP0 - [R[1][0][1][0]] * PP1 - [R[0][1][1][0]] * PP2 - [R[0][0][2][0]] * PP3)
-          - ket_denom * ([R[0][0][2][0]] * PP0 - [R[1][0][2][0]] * PP1 - [R[0][1][2][0]] * PP2 - [R[0][0][3][0]] * PP3)
-          + [R[0][0][1][0]] * PP3
-        )
+        bra_Pj.z * (ket_Pi.z * x00 - x12 / (2 * ket.eta) + [generateXExpression(R, P3, 0, 0, 0, 0, 0)])
+        + (ket_Pi.z * x12 - x25 / (2 * ket.eta) + [generateXExpression(R, P3, 0, 0, 0, 1, 2)]) / (2 * bra.eta)
       )
     end)
 
   elseif L1 == 1 and L2 == 0 and L3 == 1 and L4 == 1 then
     -------------------------------- PSPP --------------------------------
+    local bra_Pi = rexpr bra.ishell_location end
+    local ket_Pi = rexpr ket.ishell_location end
+    local ket_Pj = rexpr ket.jshell_location end
+    local P0 = rexpr
+      ket_Pj.x * [density][0][0]
+      + ket_Pj.y * [density][0][1]
+      + ket_Pj.z * [density][0][2]
+    end
+    local P1 = rexpr [density][0][0] / (2 * ket.eta) end
+    local P2 = rexpr [density][0][1] / (2 * ket.eta) end
+    local P3 = rexpr [density][0][2] / (2 * ket.eta) end
+    local x00 = generateXExpression(R, P0, P1, P2, P3, 0, 0)
+    local x10 = generateXExpression(R, P0, P1, P2, P3, 1, 0)
+    local x11 = generateXExpression(R, P0, P1, P2, P3, 1, 1)
+    local x12 = generateXExpression(R, P0, P1, P2, P3, 1, 2)
+    local x20 = generateXExpression(R, P0, P1, P2, P3, 2, 0)
+    local x21 = generateXExpression(R, P0, P1, P2, P3, 2, 1)
+    local x22 = generateXExpression(R, P0, P1, P2, P3, 2, 2)
+    local x23 = generateXExpression(R, P0, P1, P2, P3, 2, 3)
+    local x24 = generateXExpression(R, P0, P1, P2, P3, 2, 4)
+    local x25 = generateXExpression(R, P0, P1, P2, P3, 2, 5)
     statements:insert(rquote
-      var bra_denom = 0.5 / bra.eta
-      var ket_denom = 0.5 / ket.eta
-      var bra_Pi = bra.ishell_location
-      var ket_Pi = ket.ishell_location
-      var ket_Pj = ket.jshell_location
+      [results[0][0]] = (
+        bra_Pi.x * (ket_Pi.x * x00 - x10 / (2 * ket.eta) + [generateXExpression(R, P1, 0, 0, 0, 0, 0)])
+        + (ket_Pi.x * x10 - x20 / (2 * ket.eta) + [generateXExpression(R, P1, 0, 0, 0, 1, 0)]) / (2 * bra.eta)
+      )
+      ;[results[0][1]] = (
+        bra_Pi.x * (ket_Pi.y * x00 - x11 / (2 * ket.eta) + [generateXExpression(R, P2, 0, 0, 0, 0, 0)])
+        + (ket_Pi.y * x10 - x21 / (2 * ket.eta) + [generateXExpression(R, P2, 0, 0, 0, 1, 0)]) / (2 * bra.eta)
+      )
+      ;[results[0][2]] = (
+        bra_Pi.x * (ket_Pi.z * x00 - x12 / (2 * ket.eta) + [generateXExpression(R, P3, 0, 0, 0, 0, 0)])
+        + (ket_Pi.z * x10 - x22 / (2 * ket.eta) + [generateXExpression(R, P3, 0, 0, 0, 1, 0)]) / (2 * bra.eta)
+      )
 
-      var PP0 = [density][0][0]*ket_Pj.x + [density][0][1]*ket_Pj.y + [density][0][2]*ket_Pj.z
-      var PP1 = [density][0][0] * ket_denom
-      var PP2 = [density][0][1] * ket_denom
-      var PP3 = [density][0][2] * ket_denom
+      ;[results[1][0]] = (
+        bra_Pi.y * (ket_Pi.x * x00 - x10 / (2 * ket.eta) + [generateXExpression(R, P1, 0, 0, 0, 0, 0)])
+        + (ket_Pi.x * x11 - x21 / (2 * ket.eta) + [generateXExpression(R, P1, 0, 0, 0, 1, 1)]) / (2 * bra.eta)
+      )
+      ;[results[1][1]] = (
+        bra_Pi.y * (ket_Pi.y * x00 - x11 / (2 * ket.eta) + [generateXExpression(R, P2, 0, 0, 0, 0, 0)])
+        + (ket_Pi.y * x11 - x23 / (2 * ket.eta) + [generateXExpression(R, P2, 0, 0, 0, 1, 1)]) / (2 * bra.eta)
+      )
+      ;[results[1][2]] = (
+        bra_Pi.y * (ket_Pi.z * x00 - x12 / (2 * ket.eta) + [generateXExpression(R, P3, 0, 0, 0, 0, 0)])
+        + (ket_Pi.z * x11 - x24 / (2 * ket.eta) + [generateXExpression(R, P3, 0, 0, 0, 1, 1)]) / (2 * bra.eta)
+      )
 
-      ;[results[0][0]] += (
-          bra_Pi.x * (
-          ket_Pi.x * ([R[0][0][0][0]]*PP0 - [R[1][0][0][0]]*PP1 - [R[0][1][0][0]]*PP2 - [R[0][0][1][0]]*PP3) -
-          ket_denom      * ([R[1][0][0][0]]*PP0 - [R[2][0][0][0]]*PP1 - [R[1][1][0][0]]*PP2 - [R[1][0][1][0]]*PP3) +
-          [R[0][0][0][0]] * PP1) +
-          bra_denom * (
-          ket_Pi.x * ([R[1][0][0][0]]*PP0 - [R[2][0][0][0]]*PP1 - [R[1][1][0][0]]*PP2 - [R[1][0][1][0]]*PP3) -
-          ket_denom      * ([R[2][0][0][0]]*PP0 - [R[3][0][0][0]]*PP1 - [R[2][1][0][0]]*PP2 - [R[2][0][1][0]]*PP3) +
-          [R[1][0][0][0]] * PP1))
-
-      ;[results[0][1]] += (
-          bra_Pi.x * (
-          ket_Pi.y * ([R[0][0][0][0]]*PP0 - [R[1][0][0][0]]*PP1 - [R[0][1][0][0]]*PP2 - [R[0][0][1][0]]*PP3) -
-          ket_denom      * ([R[0][1][0][0]]*PP0 - [R[1][1][0][0]]*PP1 - [R[0][2][0][0]]*PP2 - [R[0][1][1][0]]*PP3) +
-          [R[0][0][0][0]] * PP2) +
-          bra_denom * (
-          ket_Pi.y * ([R[1][0][0][0]]*PP0 - [R[2][0][0][0]]*PP1 - [R[1][1][0][0]]*PP2 - [R[1][0][1][0]]*PP3) -
-          ket_denom      * ([R[1][1][0][0]]*PP0 - [R[2][1][0][0]]*PP1 - [R[1][2][0][0]]*PP2 - [R[1][1][1][0]]*PP3) +
-          [R[1][0][0][0]] * PP2))
-
-      ;[results[0][2]] += (
-          bra_Pi.x * (
-          ket_Pi.z * ([R[0][0][0][0]]*PP0 - [R[1][0][0][0]]*PP1 - [R[0][1][0][0]]*PP2 - [R[0][0][1][0]]*PP3) -
-          ket_denom      * ([R[0][0][1][0]]*PP0 - [R[1][0][1][0]]*PP1 - [R[0][1][1][0]]*PP2 - [R[0][0][2][0]]*PP3) +
-          [R[0][0][0][0]] * PP3) +
-          bra_denom * (
-          ket_Pi.z * ([R[1][0][0][0]]*PP0 - [R[2][0][0][0]]*PP1 - [R[1][1][0][0]]*PP2 - [R[1][0][1][0]]*PP3) -
-          ket_denom      * ([R[1][0][1][0]]*PP0 - [R[2][0][1][0]]*PP1 - [R[1][1][1][0]]*PP2 - [R[1][0][2][0]]*PP3) +
-          [R[1][0][0][0]] * PP3))
-
-      ;[results[1][0]] += (
-          bra_Pi.y * (
-          ket_Pi.x * ([R[0][0][0][0]]*PP0 - [R[1][0][0][0]]*PP1 - [R[0][1][0][0]]*PP2 - [R[0][0][1][0]]*PP3) -
-          ket_denom      * ([R[1][0][0][0]]*PP0 - [R[2][0][0][0]]*PP1 - [R[1][1][0][0]]*PP2 - [R[1][0][1][0]]*PP3) +
-          [R[0][0][0][0]] * PP1) +
-          bra_denom * (
-          ket_Pi.x * ([R[0][1][0][0]]*PP0 - [R[1][1][0][0]]*PP1 - [R[0][2][0][0]]*PP2 - [R[0][1][1][0]]*PP3) -
-          ket_denom      * ([R[1][1][0][0]]*PP0 - [R[2][1][0][0]]*PP1 - [R[1][2][0][0]]*PP2 - [R[1][1][1][0]]*PP3) +
-          [R[0][1][0][0]] * PP1))
-
-      ;[results[1][1]] += (
-          bra_Pi.y * (
-          ket_Pi.y * ([R[0][0][0][0]]*PP0 - [R[1][0][0][0]]*PP1 - [R[0][1][0][0]]*PP2 - [R[0][0][1][0]]*PP3) -
-          ket_denom      * ([R[0][1][0][0]]*PP0 - [R[1][1][0][0]]*PP1 - [R[0][2][0][0]]*PP2 - [R[0][1][1][0]]*PP3) +
-          [R[0][0][0][0]] * PP2) +
-          bra_denom * (
-          ket_Pi.y * ([R[0][1][0][0]]*PP0 - [R[1][1][0][0]]*PP1 - [R[0][2][0][0]]*PP2 - [R[0][1][1][0]]*PP3) -
-          ket_denom      * ([R[0][2][0][0]]*PP0 - [R[1][2][0][0]]*PP1 - [R[0][3][0][0]]*PP2 - [R[0][2][1][0]]*PP3) +
-          [R[0][1][0][0]] * PP2))
-
-      ;[results[1][2]] += (
-          bra_Pi.y * (
-          ket_Pi.z * ([R[0][0][0][0]]*PP0 - [R[1][0][0][0]]*PP1 - [R[0][1][0][0]]*PP2 - [R[0][0][1][0]]*PP3) -
-          ket_denom      * ([R[0][0][1][0]]*PP0 - [R[1][0][1][0]]*PP1 - [R[0][1][1][0]]*PP2 - [R[0][0][2][0]]*PP3) +
-          [R[0][0][0][0]] * PP3) +
-          bra_denom * (
-          ket_Pi.z * ([R[0][1][0][0]]*PP0 - [R[1][1][0][0]]*PP1 - [R[0][2][0][0]]*PP2 - [R[0][1][1][0]]*PP3) -
-          ket_denom      * ([R[0][1][1][0]]*PP0 - [R[1][1][1][0]]*PP1 - [R[0][2][1][0]]*PP2 - [R[0][1][2][0]]*PP3) +
-          [R[0][1][0][0]] * PP3))
-
-      ;[results[2][0]] += (
-          bra_Pi.z * (
-          ket_Pi.x * ([R[0][0][0][0]]*PP0 - [R[1][0][0][0]]*PP1 - [R[0][1][0][0]]*PP2 - [R[0][0][1][0]]*PP3) -
-          ket_denom      * ([R[1][0][0][0]]*PP0 - [R[2][0][0][0]]*PP1 - [R[1][1][0][0]]*PP2 - [R[1][0][1][0]]*PP3) +
-          [R[0][0][0][0]] * PP1) +
-          bra_denom * (
-          ket_Pi.x * ([R[0][0][1][0]]*PP0 - [R[1][0][1][0]]*PP1 - [R[0][1][1][0]]*PP2 - [R[0][0][2][0]]*PP3) -
-          ket_denom      * ([R[1][0][1][0]]*PP0 - [R[2][0][1][0]]*PP1 - [R[1][1][1][0]]*PP2 - [R[1][0][2][0]]*PP3) +
-          [R[0][0][1][0]] * PP1))
-
-      ;[results[2][1]] += (
-          bra_Pi.z * (
-          ket_Pi.y * ([R[0][0][0][0]]*PP0 - [R[1][0][0][0]]*PP1 - [R[0][1][0][0]]*PP2 - [R[0][0][1][0]]*PP3) -
-          ket_denom      * ([R[0][1][0][0]]*PP0 - [R[1][1][0][0]]*PP1 - [R[0][2][0][0]]*PP2 - [R[0][1][1][0]]*PP3) +
-          [R[0][0][0][0]] * PP2) +
-          bra_denom * (
-          ket_Pi.y * ([R[0][0][1][0]]*PP0 - [R[1][0][1][0]]*PP1 - [R[0][1][1][0]]*PP2 - [R[0][0][2][0]]*PP3) -
-          ket_denom      * ([R[0][1][1][0]]*PP0 - [R[1][1][1][0]]*PP1 - [R[0][2][1][0]]*PP2 - [R[0][1][2][0]]*PP3) +
-          [R[0][0][1][0]] * PP2))
-
-      ;[results[2][2]] += (
-          bra_Pi.z * (
-          ket_Pi.z * ([R[0][0][0][0]]*PP0 - [R[1][0][0][0]]*PP1 - [R[0][1][0][0]]*PP2 - [R[0][0][1][0]]*PP3) -
-          ket_denom      * ([R[0][0][1][0]]*PP0 - [R[1][0][1][0]]*PP1 - [R[0][1][1][0]]*PP2 - [R[0][0][2][0]]*PP3) +
-          [R[0][0][0][0]] * PP3) +
-          bra_denom * (
-          ket_Pi.z * ([R[0][0][1][0]]*PP0 - [R[1][0][1][0]]*PP1 - [R[0][1][1][0]]*PP2 - [R[0][0][2][0]]*PP3) -
-          ket_denom      * ([R[0][0][2][0]]*PP0 - [R[1][0][2][0]]*PP1 - [R[0][1][2][0]]*PP2 - [R[0][0][3][0]]*PP3) +
-          [R[0][0][1][0]] * PP3))
+      ;[results[2][0]] = (
+        bra_Pi.z * (ket_Pi.x * x00 - x10 / (2 * ket.eta) + [generateXExpression(R, P1, 0, 0, 0, 0, 0)])
+        + (ket_Pi.x * x12 - x22 / (2 * ket.eta) + [generateXExpression(R, P1, 0, 0, 0, 1, 2)]) / (2 * bra.eta)
+      )
+      ;[results[2][1]] = (
+        bra_Pi.z * (ket_Pi.y * x00 - x11 / (2 * ket.eta) + [generateXExpression(R, P2, 0, 0, 0, 0, 0)])
+        + (ket_Pi.y * x12 - x24 / (2 * ket.eta) + [generateXExpression(R, P2, 0, 0, 0, 1, 2)]) / (2 * bra.eta)
+      )
+      ;[results[2][2]] = (
+        bra_Pi.z * (ket_Pi.z * x00 - x12 / (2 * ket.eta) + [generateXExpression(R, P3, 0, 0, 0, 0, 0)])
+        + (ket_Pi.z * x12 - x25 / (2 * ket.eta) + [generateXExpression(R, P3, 0, 0, 0, 1, 2)]) / (2 * bra.eta)
+      )
     end)
 
   elseif L1 == 1 and L2 == 1 and L3 == 1 and L4 == 1 then
