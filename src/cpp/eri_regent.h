@@ -140,7 +140,7 @@ public:
 
     /**
      * Returns the output values for a given shell pair. The array has length
-     * `TRIANGLE_NUMBER(L1 + 2) * TRIANGLE_NUMBER(L3 + 1)` and should be indexed
+     * `TRIANGLE_NUMBER(L1 + 1) * TRIANGLE_NUMBER(L3 + 1)` and should be indexed
      * using `i * TRIANGLE_NUMBER(L3 + 1) + j`. Should NOT be free'd.
      */
     const double *get_koutput(int L1, int L2, int L3, int L4,
