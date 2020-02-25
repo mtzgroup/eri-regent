@@ -168,6 +168,10 @@ const double *EriRegent::TeraChemKDataList::get_koutput(int L1, int L2, int L3,
   const int n3 = get_num_shells(L3);
   assert(0 <= bra_ishell_index && bra_ishell_index <= n1);
   assert(0 <= ket_ishell_index && ket_ishell_index <= n3);
+  if (L1 == L3 && L2 == L3) {
+    // Diagonal kernels only compute upper triangular elements.
+    assert(bra_ishell_index <= ket_ishell_index);
+  }
   const char *koutput1234 = (char *)koutput[INDEX_UPPER_TRIANGLE(L1, L3)] +
                             (L2 + L4 * (get_largest_momentum() + 1)) *
                                 sizeof_koutput(L1, L3) * n1 * n3;
