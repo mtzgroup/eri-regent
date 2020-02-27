@@ -2,6 +2,32 @@ import "regent"
 
 require "helper"
 
+-- This function returns the index of elements on an NxN triangle.
+--     5
+--   3 4
+-- 0 1 2
+local function magic(x, y, N)
+  local y, x = math.min(x, y), math.max(x, y)
+  return x + y * N - y * (y + 1) / 2
+end
+-- Similar, but in 3d!
+local function magic3(x, y, z)
+  local pattern = {
+    {{0, 1, 2},
+     {1, 3, 4},
+     {2, 4, 5}},
+
+    {{1, 3, 4},
+     {3, 6, 7},
+     {4, 7, 8}},
+
+    {{2, 4, 5},
+     {4, 7, 8},
+     {5, 8, 9}}
+  }
+  return pattern[x+1][y+1][z+1]
+end
+
 function genY(R, P, n, i)
   local x, y, z = unpack(generateKFockSpinPattern(n)[i+1])
   return rexpr [R[x][y][z][0]] * P end
@@ -357,52 +383,14 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
 
   elseif L1 == 1 and L2 == 0 and L3 == 1 and L4 == 1 then
     -------------------------------- PSPP --------------------------------
-      -- This function returns the index of elements on an NxN triangle.
-    --     5
-    --   3 4
-    -- 0 1 2
-    local function magic(x, y, N)
-      local y, x = math.min(x, y), math.max(x, y)
-      return x + y * N - y * (y + 1) / 2
-    end
-    -- Similar, but in 3d!
-    local function magic3(x, y, z)
-      local pattern = {
-        {{0, 1, 2},
-         {1, 3, 4},
-         {2, 4, 5}},
-
-        {{1, 3, 4},
-         {3, 6, 7},
-         {4, 7, 8}},
-
-        {{2, 4, 5},
-         {4, 7, 8},
-         {5, 8, 9}}
-      }
-      return pattern[x+1][y+1][z+1]
-    end
-
-    local Pi = {rexpr bra.ishell_location.x end,
-                rexpr bra.ishell_location.y end,
-                rexpr bra.ishell_location.z end}
-    -- local Pj = {rexpr bra.jshell_location.x end,
-    --             rexpr bra.jshell_location.y end,
-    --             rexpr bra.jshell_location.z end}
-    local Pj = {1, 0, 0}
-    local Qi = {rexpr ket.ishell_location.x end,
-                rexpr ket.ishell_location.y end,
-                rexpr ket.ishell_location.z end}
-    local Qj = {rexpr ket.jshell_location.x end,
-                rexpr ket.jshell_location.y end,
-                rexpr ket.jshell_location.z end}
+    local Pi, Pj = getBraPi(), getBraPj()
+    local Qi, Qj = getKetPi(), getKetPj()
     local bra_eta, ket_eta = rexpr bra.eta end, rexpr ket.eta end
 
     for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
       for k = 0, triangle_number(L3 + 1) - 1 do -- inclusive
         local result = rexpr 0 end
-        for n = 0, 0 do -- inclusive
-        -- for n = 0, 2 do -- inclusive
+        for n = 0, 2 do -- inclusive
           local density_triplet = {rexpr [density][n][0] end,
                                    rexpr [density][n][1] end,
                                    rexpr [density][n][2] end}
@@ -471,44 +459,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
 
   elseif L1 == 1 and L2 == 1 and L3 == 1 and L4 == 1 then
     -------------------------------- PPPP --------------------------------
-    -- This function returns the index of elements on an NxN triangle.
-    --     5
-    --   3 4
-    -- 0 1 2
-    local function magic(x, y, N)
-      local y, x = math.min(x, y), math.max(x, y)
-      return x + y * N - y * (y + 1) / 2
-    end
-    -- Similar, but in 3d!
-    local function magic3(x, y, z)
-      local pattern = {
-        {{0, 1, 2},
-         {1, 3, 4},
-         {2, 4, 5}},
-
-        {{1, 3, 4},
-         {3, 6, 7},
-         {4, 7, 8}},
-
-        {{2, 4, 5},
-         {4, 7, 8},
-         {5, 8, 9}}
-      }
-      return pattern[x+1][y+1][z+1]
-    end
-
-    local Pi = {rexpr bra.ishell_location.x end,
-                rexpr bra.ishell_location.y end,
-                rexpr bra.ishell_location.z end}
-    local Pj = {rexpr bra.jshell_location.x end,
-                rexpr bra.jshell_location.y end,
-                rexpr bra.jshell_location.z end}
-    local Qi = {rexpr ket.ishell_location.x end,
-                rexpr ket.ishell_location.y end,
-                rexpr ket.ishell_location.z end}
-    local Qj = {rexpr ket.jshell_location.x end,
-                rexpr ket.jshell_location.y end,
-                rexpr ket.jshell_location.z end}
+    local Pi, Pj = getBraPi(), getBraPj()
+    local Qi, Qj = getKetPi(), getKetPj()
     local bra_eta, ket_eta = rexpr bra.eta end, rexpr ket.eta end
 
     for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
