@@ -438,44 +438,71 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       return pattern[x+1][y+1][z+1]
     end
 
-    local Pi = getBraPi()
-    local Pj = getBraPj()
-    local Qi = getKetPi()
-    local Qj = getKetPj()
+    local Pi = {rexpr bra.ishell_location.x end,
+                rexpr bra.ishell_location.y end,
+                rexpr bra.ishell_location.z end}
+    local Pj = {rexpr bra.jshell_location.x end,
+                rexpr bra.jshell_location.y end,
+                rexpr bra.jshell_location.z end}
+    local Qi = {rexpr ket.ishell_location.x end,
+                rexpr ket.ishell_location.y end,
+                rexpr ket.ishell_location.z end}
+    local Qj = {rexpr ket.jshell_location.x end,
+                rexpr ket.jshell_location.y end,
+                rexpr ket.jshell_location.z end}
     local bra_eta, ket_eta = rexpr bra.eta end, rexpr ket.eta end
 
     for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
       for k = 0, triangle_number(L3 + 1) - 1 do -- inclusive
         local result = rexpr 0 end
         for n = 0, 2 do -- inclusive
-          -- if i > 0 or k > 0 or n > 0 then break end
-          local D = {rexpr [density][n][0] end,
-                     rexpr [density][n][1] end,
-                     rexpr [density][n][2] end}
+          local density_tripplet = {rexpr [density][n][0] end,
+                                    rexpr [density][n][1] end,
+                                    rexpr [density][n][2] end}
+
+          local function aux0(n, i)
+            local q, r, s = unpack(generateKFockSpinPattern(n)[i+1])
+            return rexpr
+              [R[q][r][s][0]] * [density_tripplet[k+1]] / (2 * ket_eta)
+            end
+          end
+          local function aux1(n, i)
+            local a, b, c = unpack(density_tripplet)
+            local x, y, z = unpack(Qj)
+            local q, r, s = unpack(generateKFockSpinPattern(n)[i+1])
+            return rexpr
+              [R[q][r][s][0]] * (a * x + b * y + c * z)
+              - (
+                [R[q+1][r][s][0]] * a
+                + [R[q][r+1][s][0]] * b
+                + [R[q][r][s+1][0]] * c
+              ) / (2 * ket_eta)
+            end
+          end
           result = rexpr
             result + (
               [Pi[i+1]] * (
                 [Pj[n+1]] * (
-                  [Qi[k+1]] * [genX(R, Qj, D, -1, ket_eta, 0, 0)]
-                  - [genX(R, Qj, D, -1, ket_eta, 1, k)] / (2 * ket_eta)
-                  + [genY(R, D[k+1], 0, 0)] / (2 * ket_eta)
+                  [Qi[k+1]] * [aux1(0, 0)]
+                  - [aux1(1, k)] / (2 * ket_eta)
+                  + [aux0(0, 0)]
                 )
                 + (
-                  [Qi[k+1]] * [genX(R, Qj, D, -1, ket_eta, 1, n)]
-                  - [genX(R, Qj, D, -1, ket_eta, 2, magic(k, n, 3))] / (2 * ket_eta)
-                  + [genY(R, D[k+1], 1, n)] / (2 * ket_eta)
+                  [Qi[k+1]] * [aux1(1, n)]
+                  - [aux1(2, magic(k, n, 3))] / (2 * ket_eta)
+                  + [aux0(1, n)]
                 ) / (2 * bra_eta)
               )
               + (
                 [Pj[n+1]] * (
-                  [Qi[k+1]] * [genX(R, Qj, D, -1, ket_eta, 1, i)]
-                  - [genX(R, Qj, D, -1, ket_eta, 2, magic(i, k, 3))] / (2 * ket_eta)
-                  + [genY(R, D[k+1], 1, i)] / (2 * ket_eta)
+                  [Qi[k+1]] * [aux1(1, i)]
+                  - [aux1(2, magic(i, k, 3))] / (2 * ket_eta)
+                  + [aux0(1, i)]
                 )
                 + (
-                  [Qi[k+1]] * [genX(R, Qj, D, -1, ket_eta, 2, magic(i, n, 3))]
-                  - [genX(R, Qj, D, -1, ket_eta, 3, magic3(i, k, n))] / (2 * ket_eta)
-                  + [genY(R, D[k+1], 2, magic(i, n, 3))] / (2 * ket_eta)
+                  [Qi[k+1]] * [aux1(2, magic(i, n, 3))]
+                  - [aux1(3, magic3(i, k, n))] / (2 * ket_eta)
+                  + [aux0(2, magic(i, n, 3))]
                 ) / (2 * bra_eta)
               ) / (2 * bra_eta)
             )
@@ -483,11 +510,9 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
           if i == n then
             result = rexpr
               result + (
-                [Qi[k+1]] * [genX(R, Qj, D, -1, ket_eta, 0, 0)]
-                - (
-                  [genX(R, Qj, D, -1, ket_eta, 1, k)]
-                  - [genY(R, D[k+1], 0, 0)]
-                ) / (2 * ket_eta)
+                [Qi[k+1]] * [aux1(0, 0)]
+                - [aux1(1, k)] / (2 * ket_eta)
+                + [aux0(0, 0)]
               ) / (2 * bra_eta)
             end
           end
