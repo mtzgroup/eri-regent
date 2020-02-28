@@ -40,16 +40,15 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
     end
   end
 
-  local statements = terralib.newlist()
   local results = {}
   for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
     results[i] = {}
     for k = 0, triangle_number(L3 + 1) - 1 do -- inclusive
-      results[i][k] = regentlib.newsymbol(double, "result_"..i.."_"..k)
-      statements:insert(rquote var [results[i][k]] = 0 end)
+      results[i][k] = 0
     end
   end
 
+  -- All kernels up to PPPP are metaprogrammed.
   if L1 <= 1 and L2 <= 1 and L3 <= 1 and L4 <= 1 then
     local Pi = {
       rexpr bra.ishell_location.x end,
@@ -80,7 +79,6 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
 
     for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
       for k = 0, triangle_number(L3 + 1) - 1 do -- inclusive
-        local result = rexpr 0 end
         for n = 0, 2 do -- inclusive
 
           local density_triplet
@@ -115,8 +113,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
             end
           end
 
-          result = rexpr
-            result + (
+          results[i][k] = rexpr
+            [results[i][k]] + (
               [Pi[i+1]] * (
                 [Pj[n+1]] * (
                   [Qi[k+1]] * [aux1(0, 0)]
@@ -145,8 +143,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
           end
 
           if L1 == 1 and L2 == 1 and i == n then
-            result = rexpr
-              result + denomPj * (
+            results[i][k] = rexpr
+              [results[i][k]] + denomPj * (
                 [Qi[k+1]] * [aux1(0, 0)]
                 - denomQi * [aux1(1, k)]
                 + [aux0(0, 0)]
@@ -154,16 +152,13 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
             end
           end
         end
-
-        statements:insert(rquote
-          [results[i][k]] = result
-        end)
       end
     end
   else
     -- assert(false, "Unimplemented KFock kernel!")
   end
 
+  local statements = terralib.newlist()
   for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
     for k = 0, triangle_number(L3 + 1) - 1 do -- inclusive
       if L1 == L3 and L2 == L4 then -- Diagonal kernel.
