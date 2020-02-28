@@ -29,36 +29,6 @@ local function magic3(x, y, z)
   return pattern[x+1][y+1][z+1]
 end
 
-function genY(R, P, n, i)
-  local x, y, z = unpack(generateKFockSpinPattern(n)[i+1])
-  return rexpr [R[x][y][z][0]] * P end
-end
-
-function genX(R, P, D, sign, eta, n, i)
-  local function getR(N, L, M, j)
-    if R[N] == nil or R[N][L] == nil or R[N][L][M] == nil or R[N][L][M][j] == nil then
-      return 0
-    else
-      return R[N][L][M][j]
-    end
-  end
-
-  if eta == nil then
-    sign = 0
-    eta = 1
-  end
-
-  local a, b, c = unpack(D)
-  local x, y, z = unpack(P)
-  local q, r, s = unpack(generateKFockSpinPattern(n)[i+1])
-  return rexpr
-    [getR(q, r, s, 0)] * (a * x + b * y + c * z)
-      + sign * [getR(q+1, r, s, 0)] * a / (2 * eta)
-      + sign * [getR(q, r+1, s, 0)] * b / (2 * eta)
-      + sign * [getR(q, r, s+1, 0)] * c / (2 * eta)
-  end
-end
-
 function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
                                        density, output)
 
@@ -70,65 +40,17 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
     end
   end
 
-  local function getBraPi()
-    if L1 == 0 then
-      return {1, 0, 0}
-    else
-      return {
-        rexpr bra.ishell_location.x end,
-        rexpr bra.ishell_location.y end,
-        rexpr bra.ishell_location.z end
-      }
-    end
-  end
-  local function getBraPj()
-    if L2 == 0 then
-      return {1, 0, 0}
-    else
-      return {
-        rexpr bra.jshell_location.x end,
-        rexpr bra.jshell_location.y end,
-        rexpr bra.jshell_location.z end
-      }
-    end
-  end
-  local function getKetPi()
-    if L3 == 0 then
-      return {1, 0, 0}
-    else
-      return {
-        rexpr ket.ishell_location.x end,
-        rexpr ket.ishell_location.y end,
-        rexpr ket.ishell_location.z end
-      }
-    end
-  end
-  local function getKetPj()
-    if L4 == 0 then
-      return {1, 0, 0}
-    else
-      return {
-        rexpr ket.jshell_location.x end,
-        rexpr ket.jshell_location.y end,
-        rexpr ket.jshell_location.z end
-      }
-    end
-  end
-
-  local H1, H2 = triangle_number(L1 + 1), triangle_number(L2 + 1)
-  local H3, H4 = triangle_number(L3 + 1), triangle_number(L4 + 1)
   local statements = terralib.newlist()
   local results = {}
-  for i = 0, H1-1 do -- inclusive
+  for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
     results[i] = {}
-    for k = 0, H3-1 do -- inclusive
-      results[i][k] = regentlib.newsymbol(double, "result"..i.."_"..k)
+    for k = 0, triangle_number(L3 + 1) - 1 do -- inclusive
+      results[i][k] = regentlib.newsymbol(double, "result_"..i.."_"..k)
       statements:insert(rquote var [results[i][k]] = 0 end)
     end
   end
 
   if L1 <= 1 and L2 <= 1 and L3 <= 1 and L4 <= 1 then
-    -------------------------------- PPPP --------------------------------
     local Pi = {
       rexpr bra.ishell_location.x end,
       rexpr bra.ishell_location.y end,
@@ -242,8 +164,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
     -- assert(false, "Unimplemented KFock kernel!")
   end
 
-  for i = 0, H1-1 do -- inclusive
-    for k = 0, H3-1 do -- inclusive
+  for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
+    for k = 0, triangle_number(L3 + 1) - 1 do -- inclusive
       if L1 == L3 and L2 == L4 then -- Diagonal kernel.
         local factor
         if i < k then -- Upper triangular element.
