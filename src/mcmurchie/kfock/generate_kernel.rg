@@ -154,6 +154,86 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
         end
       end
     end
+  elseif L1 == 0 and L2 == 0 and L3 == 0 and L4 == 2 then
+  -------------------------------------SSSD-------------------------------------
+    local Qj = {
+      rexpr ket.jshell_location.x end,
+      rexpr ket.jshell_location.y end,
+      rexpr ket.jshell_location.z end
+    }
+    local denomQj = rexpr 1 / (2 * ket.eta) end
+
+    local tmp0 = rexpr
+      [getR(0, 0, 0)] * (
+        [density][0][5] * [Qj[3]] * [Qj[3]] + (
+          ([density][0][2] * [Qj[3]]) + ([density][0][0] * [Qj[2]])
+        ) * [Qj[2]] + (
+          ([density][0][0] * [Qj[2]]) + ([density][0][1]) + ([density][0][3] * [Qj[1]])
+        ) * [Qj[1]] + ([density][0][3] + [density][0][5] + [density][0][4]) * denomQj
+      )
+    end
+
+    results[0][0] = rexpr
+      tmp0
+      - ([density][0][0] * [Qj[2]] + 2 * [density][0][3] * [Qj[1]] + [density][0][1] * [Qj[3]]) * denomQj * [getR(1, 0, 0)]
+      - ([density][0][2] * [Qj[3]] + 2 * [density][0][4] * [Qj[2]] + [density][0][0] * [Qj[1]]) * denomQj * [getR(0, 1, 0)]
+      - ([density][0][2] * [Qj[2]] + 2 * [density][0][5] * [Qj[3]] + [density][0][1] * [Qj[1]]) * denomQj * [getR(0, 0, 1)]
+      + ([density][0][0] * denomQj * denomQj * [getR(1, 1, 0)])
+      + ([density][0][1] * denomQj * denomQj * [getR(1, 0, 1)])
+      + ([density][0][2] * denomQj * denomQj * [getR(0, 1, 1)])
+      + ([density][0][3] * denomQj * denomQj * [getR(2, 0, 0)])
+      + ([density][0][4] * denomQj * denomQj * [getR(0, 2, 0)])
+      + ([density][0][5] * denomQj * denomQj * [getR(0, 0, 2)])
+    end
+
+  elseif L1 == 0 and L2 == 0 and L3 == 2 and L4 == 0 then
+  -------------------------------------SSDS-------------------------------------
+    local Qix = rexpr ket.ishell_location.x end
+    local Qiy = rexpr ket.ishell_location.y end
+    local Qiz = rexpr ket.ishell_location.z end
+    local denomQi = rexpr 1 / (2 * ket.eta) end
+    local D = rexpr [density][0][0] end
+
+    results[0][0] = rexpr
+      D * Qix * Qiy * [getR(0, 0, 0)]
+      - D * denomQi * Qiy * [getR(1, 0, 0)]
+      - D * Qix * denomQi * [getR(0, 1, 0)]
+      + D * denomQi * denomQi * [getR(1, 1, 0)]
+    end
+    results[0][1] = rexpr
+      D * Qix * Qiz * [getR(0, 0, 0)]
+      - D * denomQi * Qiz * [getR(1, 0, 0)]
+      - D * denomQi * Qix * [getR(0, 0, 1)]
+      + D * denomQi * denomQi * [getR(1, 0, 1)]
+    end
+    results[0][2] = rexpr
+      D * Qiy * Qiz * [getR(0, 0, 0)]
+      - D * Qiz * denomQi * [getR(0, 1, 0)]
+      - D * denomQi * Qiy * [getR(0, 0, 1)]
+      + D * denomQi * denomQi * [getR(0, 1, 1)]
+    end
+    results[0][3] = rexpr
+      (
+      (D * Qix * Qix + D * denomQi) * [getR(0, 0, 0)]
+      -2 * D * denomQi * Qix * [getR(1, 0, 0)]
+      + D * denomQi * denomQi * [getR(2, 0, 0)]
+      ) * 0.577350269 -- = normc<2,0,0>(), I'm not sure where this comes from.
+    end
+    results[0][4] = rexpr
+      (
+      (D * Qiy * Qiy + D * denomQi) * [getR(0, 0, 0)]
+      -2 * D * Qiy * denomQi * [getR(0, 1, 0)]
+      + D * denomQi * denomQi * [getR(0, 2, 0)]
+      ) * 0.577350269
+    end
+    results[0][5] = rexpr
+      (
+      (D * Qiz * Qiz + D * denomQi) * [getR(0, 0, 0)]
+      -2 * D * denomQi * Qiz * [getR(0, 0, 1)]
+      + D * denomQi * denomQi * [getR(0, 0, 2)]
+      ) * 0.577350269
+    end
+
   else
     -- assert(false, "Unimplemented KFock kernel!")
   end
