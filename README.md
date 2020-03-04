@@ -22,7 +22,7 @@ make
 
 ### Higher Angular Momentum Systems
 
-Be sure to select the appropriate angular momentum using the `-L [S|P|D|F|G]` option. This will tell Lua to produce the correct number of Regent tasks. Higher angular momentums need more and larger kernels which can take a long time to compile to Cuda code. The number of kernels needed is <code>(2L-1)<sup>2</sup></code>.
+Be sure to select the appropriate angular momentum using the `-L [S|P|D|F|G]` option. This will tell Lua to produce the correct number of Regent tasks. Higher angular momentums need more and larger kernels which can take a long time to compile to Cuda code. The number of kernels needed is <code>(2L-1)<sup>2</sup></code>. (This table is outdated)
 
 | Angular Momentum | Number of J Kernels | Memory     | Wall-time  |
 |:----------------:|:-------------------:|:----------:|:----------:|
@@ -39,7 +39,7 @@ When more than 1 GB of memory is needed, you must build Legion with `luajit2.1`.
 
 
 ## Testing with Python3
-First compile the test cpp code which creates `jfock_test` inside the `build` directory.
+First compile the test cpp code which creates `eri_regent_test` inside the `build` directory.
 
 ```bash
 cd src/test/cpp
