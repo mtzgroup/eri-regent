@@ -3,28 +3,35 @@ import "regent"
 require "helper"
 
 -- This function returns the index of elements on an NxN triangle.
---     5
---   3 4
--- 0 1 2
+-- For N = 3 we get.   For N = 4 we get.
+--                             9
+--     5                     7 8
+--   3 4                   4 5 6
+-- 0 1 2                 0 1 2 3
+-- Except we don't care about the order of (x, y).
+--                       3 6 8 9
+-- 2 4 5                 2 5 7 8
+-- 1 3 4                 1 4 5 6
+-- 0 1 2                 0 1 2 3
 local function magic(x, y, N)
   local y, x = math.min(x, y), math.max(x, y)
   return x + y * N - y * (y + 1) / 2
 end
 
--- Similar, but in 3d!
+-- Similar with N = 3, but in 3d!
 local function magic3(x, y, z)
   local pattern = {
-    {{0, 1, 2},
-     {1, 3, 4},
-     {2, 4, 5}},
+    {{0, 1, 2},  -- 0 1 2
+     {1, 3, 4},  --   3 4
+     {2, 4, 5}}, --     5
 
-    {{1, 3, 4},
-     {3, 6, 7},
-     {4, 7, 8}},
+    {{1, 3, 4},  --
+     {3, 6, 7},  --   6 7
+     {4, 7, 8}}, --     8
 
-    {{2, 4, 5},
-     {4, 7, 8},
-     {5, 8, 9}}
+    {{2, 4, 5},  --
+     {4, 7, 8},  --
+     {5, 8, 9}}  --     9
   }
   return pattern[x+1][y+1][z+1]
 end
@@ -165,19 +172,21 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
 
     local tmp0 = rexpr
       [getR(0, 0, 0)] * (
-        [density][0][5] * [Qj[3]] * [Qj[3]] + (
-          ([density][0][2] * [Qj[3]]) + ([density][0][0] * [Qj[2]])
-        ) * [Qj[2]] + (
-          ([density][0][0] * [Qj[2]]) + ([density][0][1]) + ([density][0][3] * [Qj[1]])
-        ) * [Qj[1]] + ([density][0][3] + [density][0][5] + [density][0][4]) * denomQj
+        [Qj[1]] * [Qj[2]] * [density][0][0]
+        + [Qj[1]] * [Qj[3]] * [density][0][1]
+        + [Qj[2]] * [Qj[3]] * [density][0][2]
+        + [Qj[1]] * [Qj[1]] * [density][0][3]
+        + [Qj[2]] * [Qj[2]] * [density][0][4]
+        + [Qj[3]] * [Qj[3]] * [density][0][5]
+        + ([density][0][3] + [density][0][4] + [density][0][5]) * denomQj
       )
     end
 
     results[0][0] = rexpr
       tmp0
-      - ([density][0][0] * [Qj[2]] + 2 * [density][0][3] * [Qj[1]] + [density][0][1] * [Qj[3]]) * denomQj * [getR(1, 0, 0)]
-      - ([density][0][2] * [Qj[3]] + 2 * [density][0][4] * [Qj[2]] + [density][0][0] * [Qj[1]]) * denomQj * [getR(0, 1, 0)]
-      - ([density][0][2] * [Qj[2]] + 2 * [density][0][5] * [Qj[3]] + [density][0][1] * [Qj[1]]) * denomQj * [getR(0, 0, 1)]
+      - ([density][0][0] * [Qj[2]] + [density][0][1] * [Qj[3]] + 2 * [density][0][3] * [Qj[1]]) * denomQj * [getR(1, 0, 0)]
+      - ([density][0][0] * [Qj[1]] + [density][0][2] * [Qj[3]] + 2 * [density][0][4] * [Qj[2]]) * denomQj * [getR(0, 1, 0)]
+      - ([density][0][1] * [Qj[1]] + [density][0][2] * [Qj[2]] + 2 * [density][0][5] * [Qj[3]]) * denomQj * [getR(0, 0, 1)]
       + ([density][0][0] * denomQj * denomQj * [getR(1, 1, 0)])
       + ([density][0][1] * denomQj * denomQj * [getR(1, 0, 1)])
       + ([density][0][2] * denomQj * denomQj * [getR(0, 1, 1)])
