@@ -4,50 +4,63 @@
 
 Calculates two-electron repulsion integrals with Regent
 
-## Running
-Run with Regent using `top.rg` inside `src/` for testing.
+## Building
+
+Use the Makefile to compile and run inside C++. This will generate a header file and a library for the eri tasks so they can be called within C++. The Makefile assumes the `RG_MAX_MOMENTUM` environment variable has been set. If you want to compile for a new `RG_MAX_MOMENTUM` then you need to run `make rg.clean` before the environment variable will affect the build.
 
 ```bash
-cd src
-regent top.rg -L P -i data/h2o -v data/h2o/output.dat
-# Use option `-fflow 0` to compile eri-regent faster
-```
-
-Use the Makefile to compile and run inside C++. This will generate a header file and a library for the eri tasks so they can be called within C++. The Makefile assumes the `$RG_MAX_MOMENTUM` environment variable has been set. If you want to compile for a new `$RG_MAX_MOMENTUM` then you need to run `make rg.clean` before the environment variable affects the build.
-
-```bash
+cd eri-regent
 export RG_MAX_MOMENTUM=P
 make
 ```
 
-### Higher Angular Momentum Systems
+## Running and Testing
+Run with Regent using `top_jfock.rg` or `top_kfock.rg` inside `src/` for testing. Note that running eri-regent with this method does not require you to run `make`.
 
-Be sure to select the appropriate angular momentum using the `-L [S|P|D|F|G]` option. This will tell Lua to produce the correct number of Regent tasks. Higher angular momentums need more and larger kernels which can take a long time to compile to Cuda code. The number of kernels needed is <code>(2L-1)<sup>2</sup></code>. (This table is outdated)
-
-| Angular Momentum | Number of J Kernels | Memory     | Wall-time  |
-|:----------------:|:-------------------:|:----------:|:----------:|
-| S                | 1                   | Negligible | Negligible |
-| P                | 9                   | Negligible | Negligible |
-| D                | 25                  | 1.5 GB     | 1 Minute   |
-| F                | 49                  | 7 GB       | 7 Minutes  |
-| G                | 81                  | 31 GB      | 1 Hour     |
-
-When more than 1 GB of memory is needed, you must build Legion with `luajit2.1`.
 ```bash
-./install.py --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
+cd eri-regent/src
+# To run JFock algorithm
+regent top_jfock.rg -L P -i tests/integ/h2o -v tests/integ/h2o/output.dat
+# To run KFock algorithm
+regent top_kfock.rg -L S -i tests/integ/h2 -v tests/integ/h2/kfock_output.dat
+# Use option `-fflow 0` to compile eri-regent faster
 ```
 
-
-## Testing with Python3
-First compile the test cpp code which creates `eri_regent_test` inside the `build` directory.
-
+To test eri-regent with C++, compile the test program inside `src/tests/cpp` after building eri-regent.
 ```bash
-cd src/test/cpp
+cd eri-regent/src/tests/cpp
 make
 ```
 
-Then use `python3` to run the tests.
+This will produce a binary inside `eri-regent/build`.
+```bash
+cd eri-regent
+# To run JFock algorithm
+build/eri_regent_test -i src/tests/integ/h2o -a jfock
+# To run KFock algorithm
+build/eri_regent_test -i src/tests/integ/h2o -a kfock
+```
 
+### Higher Angular Momentum Systems
+
+Be sure to select the appropriate angular momentum using the `-L [S|P|D|F|G]` option. This will tell Lua to produce the correct number of Regent tasks. Higher angular momentums need more and larger kernels which can take a long time to compile to Cuda code. The number of J kernels needed is <code>(2L-1)<sup>2</sup></code> and the number of K kernels needed is <code>L<sup>2</sup> * (L<sup>2</sup> + 1) / 2</code>.
+
+| Angular Momentum | Number of J Kernels | Number of K Kernels | Memory     | Wall-time   |
+|:----------------:|:-------------------:|:-------------------:|:----------:|:-----------:|
+| S = 1            | 1                   | 1                   | Negligible | < 1 Minute  |
+| P = 2            | 9                   | 10                  | 2 GB       | 2 Minutes   |
+| D = 3            | 25                  | 45                  | > 4 GB     | > 5 Minutes |
+| F = 4            | 49                  | 136                 | > 7 GB     | > 7 Minutes |
+| G = 5            | 81                  | 325                 | > 31 GB    | > 1 Hour    |
+
+When more than 1 GB of memory is needed, you must build Legion with `luajit2.1`.
+```bash
+cd legion/language
+./install.py --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
+```
+
+## Testing with Python3
+First compile the test program in `eri-regent/src/tests/cpp`, then you can use `python3` to run the binary on all test inputs.
 ```bash
 python scripts/test.py
 python scripts/test_boys.py
