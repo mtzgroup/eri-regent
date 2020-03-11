@@ -4,6 +4,20 @@
 
 Calculates two-electron repulsion integrals with Regent
 
+## Setup
+
+When more than 1 GB of memory is needed, you must build Legion with `luajit2.1`.
+```bash
+cd legion/language
+./install.py --cmake --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
+make -C build install
+```
+
+For convenience, add a link to `regent.py` in your `$PATH`.
+```bash
+sudo ln -s /path/to/legion/language/regent.py /usr/local/bin/regent
+```
+
 ## Building
 
 Use the Makefile to compile and run inside C++. This will generate a header file and a library for the eri tasks so they can be called within C++. The Makefile assumes the `RG_MAX_MOMENTUM` environment variable has been set. If you want to compile for a new `RG_MAX_MOMENTUM` then you need to run `make rg.clean` before the environment variable will affect the build.
@@ -52,12 +66,6 @@ Be sure to select the appropriate angular momentum using the `-L [S|P|D|F|G]` op
 | D = 3            | 25                  | 45                  | > 4 GB     | > 5 Minutes |
 | F = 4            | 49                  | 136                 | > 7 GB     | > 7 Minutes |
 | G = 5            | 81                  | 325                 | > 31 GB    | > 1 Hour    |
-
-When more than 1 GB of memory is needed, you must build Legion with `luajit2.1`.
-```bash
-cd legion/language
-./install.py --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
-```
 
 ## Testing with Python3
 First compile the test program in `eri-regent/src/tests/cpp`, then you can use `python3` to run the binary on all test inputs.
