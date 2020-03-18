@@ -6,16 +6,42 @@ Calculates two-electron repulsion integrals with Regent
 
 ## Setup
 
-When more than 1 GB of memory is needed, you must build Legion with `luajit2.1`.
+Start by cloning Legion
+
 ```bash
-cd legion/language
+git clone https://github.com/StanfordLegion/legion.git
+export LEGION_DIR=$PWD/legion
+cd $LEGION_DIR
+git checkout master
+```
+
+When more than 1 GB of memory is needed, you must build Legion with `luajit2.1`.
+Instructions for building on Ubuntu Linux:
+
+```bash
+cd $LEGION_DIR/language
 ./install.py --cmake --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
 make -C build install
 ```
 
-For convenience, add a link to `regent.py` in your `$PATH`.
+Instructions for building on xstream:
 ```bash
-sudo ln -s /path/to/legion/language/regent.py /usr/local/bin/regent
+cd $LEGION_DIR/language
+module load GCC/4.9.2-binutils-2.25  
+module load OpenMPI/1.8.5
+module load Python/3.6.0
+module load CMake/3.5.2
+module load CUDA/8.0.61
+module load LLVM/3.7.0
+export CONDUIT=ibv
+export CC=gcc
+export CXX=g++
+./scripts/setup_env.py --cmake  --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
+```
+
+Define an alias to regent
+```bash
+alias regent="$LEGION_DIR/language/regent.py"
 ```
 
 ## Building
