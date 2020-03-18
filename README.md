@@ -22,7 +22,7 @@ Instructions for building on Ubuntu Linux:
 cd $LEGION_DIR/language
 ./install.py --cmake --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
 make -C build install
-alias regent="/usr/local/bin/regent"
+alias regent="/usr/local/bin/regent.py"
 ```
 
 Instructions for building on xstream:
