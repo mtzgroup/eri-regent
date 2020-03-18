@@ -22,7 +22,7 @@ Instructions for building on Ubuntu Linux:
 cd $LEGION_DIR/language
 ./install.py --cmake --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
 make -C build install
-alias regent="/usr/local/bin/regent.py"
+export REGENT=/usr/local/bin/regent.py
 ```
 
 Instructions for building on xstream:
@@ -35,10 +35,11 @@ module load CMake/3.5.2
 module load CUDA/8.0.61
 module load LLVM/3.7.0
 export CONDUIT=ibv
+export USE_CUDA=1
 export CC=gcc
 export CXX=g++
 ./scripts/setup_env.py --cmake  --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
-alias regent="$LEGION_DIR/language/regent.py"
+export REGENT=$LEGION_DIR/language/regent.py
 ```
 
 ## Building
