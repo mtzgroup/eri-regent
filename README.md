@@ -22,6 +22,7 @@ Instructions for building on Ubuntu Linux:
 cd $LEGION_DIR/language
 ./install.py --cmake --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
 make -C build install
+alias regent="/usr/local/bin/regent"
 ```
 
 Instructions for building on xstream:
@@ -37,10 +38,6 @@ export CONDUIT=ibv
 export CC=gcc
 export CXX=g++
 ./scripts/setup_env.py --cmake  --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
-```
-
-Define an alias to regent
-```bash
 alias regent="$LEGION_DIR/language/regent.py"
 ```
 
