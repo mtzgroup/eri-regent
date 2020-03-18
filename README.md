@@ -23,6 +23,7 @@ cd $LEGION_DIR/language
 ./install.py --cmake --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
 make -C build install
 export REGENT=/usr/local/bin/regent.py
+alias regent=$REGENT
 ```
 
 Instructions for building on xstream:
@@ -36,10 +37,12 @@ module load CUDA/8.0.61
 module load LLVM/3.7.0
 export CONDUIT=ibv
 export USE_CUDA=1
+export CUDA=$CUDA_HOME
 export CC=gcc
 export CXX=g++
 ./scripts/setup_env.py --cmake  --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
 export REGENT=$LEGION_DIR/language/regent.py
+alias regent=$REGENT
 ```
 
 ## Building
