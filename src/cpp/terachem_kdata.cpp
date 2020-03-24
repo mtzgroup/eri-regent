@@ -37,6 +37,12 @@ EriRegent::TeraChemKDataList::~TeraChemKDataList() {
       if (num_kpairs[index] > 0) {
         free(kpairs[index]);
       }
+      if (num_kbra_prevals[index] > 0) {
+        free(kbra_prevals[index]);
+      }
+      if (num_kket_prevals[index] > 0) {
+        free(kket_prevals[index]);
+      }
     }
   }
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
@@ -57,12 +63,28 @@ int EriRegent::TeraChemKDataList::get_num_kpairs(int L1, int L2) {
   return num_kpairs[index];
 }
 
+int EriRegent::TeraChemKDataList::get_num_kbra_prevals(int L1, int L2) {
+  assert(0 <= L1 && L1 <= MAX_MOMENTUM);
+  assert(0 <= L2 && L2 <= MAX_MOMENTUM);
+  const int index = INDEX_SQUARE(L1, L2);
+  return num_kbra_prevals[index];
+}
+
+int EriRegent::TeraChemKDataList::get_num_kket_prevals(int L1, int L2) {
+  assert(0 <= L1 && L1 <= MAX_MOMENTUM);
+  assert(0 <= L2 && L2 <= MAX_MOMENTUM);
+  const int index = INDEX_SQUARE(L1, L2);
+  return num_kket_prevals[index];
+}
+
 int EriRegent::TeraChemKDataList::get_num_shells(int L) {
   assert(0 <= L && L <= MAX_MOMENTUM);
   return num_shells[L];
 }
 
-void EriRegent::TeraChemKDataList::allocate_kpairs(int L1, int L2, int n) {
+void EriRegent::TeraChemKDataList::allocate_kpairs(int L1, int L2, int n,
+                                                   int _num_kbra_prevals,
+                                                   int _num_kket_prevals) {
   assert(0 <= L1 && L1 <= MAX_MOMENTUM);
   assert(0 <= L2 && L2 <= MAX_MOMENTUM);
   const int index = INDEX_SQUARE(L1, L2);
@@ -71,6 +93,16 @@ void EriRegent::TeraChemKDataList::allocate_kpairs(int L1, int L2, int n) {
     num_kpairs[index] = n;
     kpairs[index] = calloc(n, sizeof_kpairs());
     assert(kpairs[index]);
+  }
+  if (_num_kbra_prevals > 0) {
+    num_kbra_prevals[index] = _num_kbra_prevals;
+    kbra_prevals[index] = calloc(n, sizeof(double) * _num_kbra_prevals);
+    assert(kbra_prevals[index]);
+  }
+  if (_num_kket_prevals > 0) {
+    num_kket_prevals[index] = _num_kket_prevals;
+    kket_prevals[index] = calloc(n, sizeof(double) * _num_kket_prevals);
+    assert(kket_prevals[index]);
   }
 }
 
@@ -141,6 +173,32 @@ void EriRegent::TeraChemKDataList::set_kpair(
   }
 }
 
+void EriRegent::TeraChemKDataList::set_kbra_preval(int L1, int L2, int i, int k,
+                                                   double value) {
+  assert(0 <= i && i < get_num_kpairs(L1, L2));
+  assert(0 <= k && k < get_num_kbra_prevals(L1, L2));
+  char *dest = (char *)kbra_prevals[INDEX_SQUARE(L1, L2)] +
+               i * sizeof(double) * get_num_kbra_prevals(L1, L2) +
+               k * sizeof(double);
+  {
+    double *ptr = (double *)dest;
+    ptr[0] = value;
+  }
+}
+
+void EriRegent::TeraChemKDataList::set_kket_preval(int L1, int L2, int i, int k,
+                                                   double value) {
+  assert(0 <= i && i < get_num_kpairs(L1, L2));
+  assert(0 <= k && k < get_num_kket_prevals(L1, L2));
+  char *dest = (char *)kbra_prevals[INDEX_SQUARE(L1, L2)] +
+               i * sizeof(double) * get_num_kket_prevals(L1, L2) +
+               k * sizeof(double);
+  {
+    double *ptr = (double *)dest;
+    ptr[0] = value;
+  }
+}
+
 void EriRegent::TeraChemKDataList::set_kdensity(int L2, int L4,
                                                 int bra_jshell_index,
                                                 int ket_jshell_index,
@@ -180,6 +238,20 @@ void *EriRegent::TeraChemKDataList::get_kpair_data(int L1, int L2) {
   assert(0 <= L1 && L1 <= MAX_MOMENTUM);
   assert(0 <= L2 && L2 <= MAX_MOMENTUM);
   return kpairs[INDEX_SQUARE(L1, L2)];
+}
+
+void *EriRegent::TeraChemKDataList::get_kbra_preval_data(int L1, int L2) {
+
+  assert(0 <= L1 && L1 <= MAX_MOMENTUM);
+  assert(0 <= L2 && L2 <= MAX_MOMENTUM);
+  return kbra_prevals[INDEX_SQUARE(L1, L2)];
+}
+
+void *EriRegent::TeraChemKDataList::get_kket_preval_data(int L1, int L2) {
+
+  assert(0 <= L1 && L1 <= MAX_MOMENTUM);
+  assert(0 <= L2 && L2 <= MAX_MOMENTUM);
+  return kket_prevals[INDEX_SQUARE(L1, L2)];
 }
 
 void *EriRegent::TeraChemKDataList::get_kdensity_data(int L2, int L4) {

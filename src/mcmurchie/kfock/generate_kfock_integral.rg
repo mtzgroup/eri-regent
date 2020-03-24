@@ -35,12 +35,14 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
   __demand(__cuda)
   task kfock_integral(r_bras        : region(ispace(int1d), getKFockPair(L1, L2)),
                       r_kets        : region(ispace(int1d), getKFockPair(L3, L4)),
+                      r_bra_prevals : region(ispace(int2d), double),
+                      r_ket_prevals : region(ispace(int2d), double),
                       r_density     : region(ispace(int2d), getKFockDensity(L2, L4)),
                       r_output      : region(ispace(int3d), getKFockOutput(L1, L3)),
                       r_gamma_table : region(ispace(int2d), double[5]),
                       threshold : float, threshold2 : float, kguard : float, largest_momentum : int)
   where
-    reads(r_bras, r_kets, r_density, r_gamma_table),
+    reads(r_bras, r_kets, r_bra_prevals, r_ket_prevals, r_density, r_gamma_table),
     reads writes(r_output)
   do
     var N24 = L2 + L4 * (largest_momentum + 1)
@@ -71,7 +73,7 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4)
         ;[generateStatementsComputeRTable(R, L1+L2+L3+L4+1, t, alpha, lambda,
                                           a, b, c, r_gamma_table)]
         ;[generateKFockKernelStatements(
-          R, L1, L2, L3, L4, bra, ket,
+          R, L1, L2, L3, L4, bra, ket, r_bra_prevals, r_ket_prevals, bra_idx, ket_idx,
           rexpr density.values end,
           rexpr r_output[{N24, bra.ishell_index, ket.ishell_index}].values end
         )]

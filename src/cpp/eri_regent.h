@@ -113,7 +113,8 @@ public:
     /**
      * Allocate `n` kpairs for a given angular momentum pair.
      */
-    void allocate_kpairs(int L1, int L2, int n);
+    void allocate_kpairs(int L1, int L2, int n, int num_kbra_prevals,
+                         int num_kket_prevals);
 
     /**
      * Allocate a density matrix for a given angular momentum pair where `n2` is
@@ -128,6 +129,9 @@ public:
                    double eta, double C, float bound, double PIx, double PIy,
                    double PIz, double PJx, double PJy, double PJz,
                    int1d_t ishell_index, int1d_t jshell_index);
+
+    void set_kbra_preval(int L1, int L2, int i, int k, double value);
+    void set_kket_preval(int L1, int L2, int i, int k, double value);
 
     /**
      * Copy the data from `src` to the density values for a given
@@ -158,13 +162,23 @@ public:
     int get_largest_momentum();
 
     int get_num_kpairs(int L1, int L2);
+    int get_num_kbra_prevals(int L1, int L2);
+    int get_num_kket_prevals(int L1, int L2);
     int get_num_shells(int L);
     void *get_kpair_data(int L1, int L2);
+    void *get_kbra_preval_data(int L1, int L2);
+    void *get_kket_preval_data(int L1, int L2);
     void *get_kdensity_data(int L2, int L4);
     void *get_koutput_data(int L1, int L3);
 
     int num_kpairs[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
     void *kpairs[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+
+    int num_kbra_prevals[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+    void *kbra_prevals[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+
+    int num_kket_prevals[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+    void *kket_prevals[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
 
     int num_shells[MAX_MOMENTUM + 1];
     void *kdensity[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
@@ -196,6 +210,10 @@ private:
   Legion::FieldSpace jbra_fspaces[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   Legion::FieldSpace jket_fspaces[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   Legion::FieldSpace kpair_fspaces[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  Legion::FieldSpace
+      kbra_preval_fspaces[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  Legion::FieldSpace
+      kket_preval_fspaces[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   Legion::FieldSpace kdensity_fspaces[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   Legion::FieldSpace koutput_fspaces[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
 
@@ -208,6 +226,8 @@ private:
 #define JBRA_FIELD_ID(L1, L2, F_NAME) JBRA##L1##L2##_FIELD_##F_NAME##_ID
 #define JKET_FIELD_ID(L1, L2, F_NAME) JKET##L1##L2##_FIELD_##F_NAME##_ID
 #define KPAIR_FIELD_ID(L1, L2, F_NAME) KPAIR##L1##L2##_FIELD##F_NAME##_ID
+#define KBRA_PREVAL_FIELD_ID(L1, L2) KBRA_PREVAL##L1##L2##_ID
+#define KKET_PREVAL_FIELD_ID(L1, L2) KKET_PREVAL##L1##L2##_ID
 #define KDENSITY_FIELD_ID(L2, L4, F_NAME) KDENSITY##L2##L4##_FIELD##F_NAME##_ID
 #define KOUTPUT_FIELD_ID(L1, L3, F_NAME) KOUTPUT##L1##L3##_FIELD##F_NAME##_ID
 
@@ -217,6 +237,8 @@ private:
 #define NUM_JBRA_FIELDS (7)
 #define NUM_JKET_FIELDS (7)
 #define NUM_KPAIR_FIELDS (14)
+#define NUM_KBRA_PREVAL_FIELDS (1)
+#define NUM_KKET_PREVAL_FIELDS (1)
 #define NUM_KDENSITY_FIELDS (2)
 #define NUM_KOUTPUT_FIELDS (1)
 
@@ -241,6 +263,10 @@ private:
       KPAIR_FIELD_ID(L1, L2, JSHELL_Y), KPAIR_FIELD_ID(L1, L2, JSHELL_Z),      \
       KPAIR_FIELD_ID(L1, L2, ISHELL_INDEX),                                    \
       KPAIR_FIELD_ID(L1, L2, JSHELL_INDEX)
+
+#define KBRA_PREVAL_FIELD_IDS(L1, L2) KBRA_PREVAL_FIELD_ID(L1, L2)
+
+#define KKET_PREVAL_FIELD_IDS(L1, L2) KKET_PREVAL_FIELD_ID(L1, L2)
 
 #define KDENSITY_FIELD_IDS(L2, L4)                                             \
   KDENSITY_FIELD_ID(L2, L4, VALUES), KDENSITY_FIELD_ID(L2, L4, BOUND)
@@ -309,6 +335,57 @@ private:
     KPAIR_FIELD_IDS(4, 2),
     KPAIR_FIELD_IDS(4, 3),
     KPAIR_FIELD_IDS(4, 4),
+
+    KBRA_PREVAL_FIELD_IDS(0, 0),
+    KBRA_PREVAL_FIELD_IDS(0, 1),
+    KBRA_PREVAL_FIELD_IDS(0, 2),
+    KBRA_PREVAL_FIELD_IDS(0, 3),
+    KBRA_PREVAL_FIELD_IDS(0, 4),
+    KBRA_PREVAL_FIELD_IDS(1, 0),
+    KBRA_PREVAL_FIELD_IDS(1, 1),
+    KBRA_PREVAL_FIELD_IDS(1, 2),
+    KBRA_PREVAL_FIELD_IDS(1, 3),
+    KBRA_PREVAL_FIELD_IDS(1, 4),
+    KBRA_PREVAL_FIELD_IDS(2, 0),
+    KBRA_PREVAL_FIELD_IDS(2, 1),
+    KBRA_PREVAL_FIELD_IDS(2, 2),
+    KBRA_PREVAL_FIELD_IDS(2, 3),
+    KBRA_PREVAL_FIELD_IDS(2, 4),
+    KBRA_PREVAL_FIELD_IDS(3, 0),
+    KBRA_PREVAL_FIELD_IDS(3, 1),
+    KBRA_PREVAL_FIELD_IDS(3, 2),
+    KBRA_PREVAL_FIELD_IDS(3, 3),
+    KBRA_PREVAL_FIELD_IDS(3, 4),
+    KBRA_PREVAL_FIELD_IDS(4, 0),
+    KBRA_PREVAL_FIELD_IDS(4, 1),
+    KBRA_PREVAL_FIELD_IDS(4, 2),
+    KBRA_PREVAL_FIELD_IDS(4, 3),
+    KBRA_PREVAL_FIELD_IDS(4, 4),
+    KKET_PREVAL_FIELD_IDS(0, 0),
+    KKET_PREVAL_FIELD_IDS(0, 1),
+    KKET_PREVAL_FIELD_IDS(0, 2),
+    KKET_PREVAL_FIELD_IDS(0, 3),
+    KKET_PREVAL_FIELD_IDS(0, 4),
+    KKET_PREVAL_FIELD_IDS(1, 0),
+    KKET_PREVAL_FIELD_IDS(1, 1),
+    KKET_PREVAL_FIELD_IDS(1, 2),
+    KKET_PREVAL_FIELD_IDS(1, 3),
+    KKET_PREVAL_FIELD_IDS(1, 4),
+    KKET_PREVAL_FIELD_IDS(2, 0),
+    KKET_PREVAL_FIELD_IDS(2, 1),
+    KKET_PREVAL_FIELD_IDS(2, 2),
+    KKET_PREVAL_FIELD_IDS(2, 3),
+    KKET_PREVAL_FIELD_IDS(2, 4),
+    KKET_PREVAL_FIELD_IDS(3, 0),
+    KKET_PREVAL_FIELD_IDS(3, 1),
+    KKET_PREVAL_FIELD_IDS(3, 2),
+    KKET_PREVAL_FIELD_IDS(3, 3),
+    KKET_PREVAL_FIELD_IDS(3, 4),
+    KKET_PREVAL_FIELD_IDS(4, 0),
+    KKET_PREVAL_FIELD_IDS(4, 1),
+    KKET_PREVAL_FIELD_IDS(4, 2),
+    KKET_PREVAL_FIELD_IDS(4, 3),
+    KKET_PREVAL_FIELD_IDS(4, 4),
     KDENSITY_FIELD_IDS(0, 0),
     KDENSITY_FIELD_IDS(0, 1),
     KDENSITY_FIELD_IDS(0, 2),
@@ -375,6 +452,40 @@ private:
       {KPAIR_FIELD_IDS(4, 1)}, {KPAIR_FIELD_IDS(4, 2)}, {KPAIR_FIELD_IDS(4, 3)},
       {KPAIR_FIELD_IDS(4, 4)},
   };
+  const Legion::FieldID
+      kbra_preval_fields_list[(MAX_MOMENTUM + 1) *
+                              (MAX_MOMENTUM + 1)][NUM_KPAIR_FIELDS] = {
+          {KBRA_PREVAL_FIELD_IDS(0, 0)}, {KBRA_PREVAL_FIELD_IDS(0, 1)},
+          {KBRA_PREVAL_FIELD_IDS(0, 2)}, {KBRA_PREVAL_FIELD_IDS(0, 3)},
+          {KBRA_PREVAL_FIELD_IDS(0, 4)}, {KBRA_PREVAL_FIELD_IDS(1, 0)},
+          {KBRA_PREVAL_FIELD_IDS(1, 1)}, {KBRA_PREVAL_FIELD_IDS(1, 2)},
+          {KBRA_PREVAL_FIELD_IDS(1, 3)}, {KBRA_PREVAL_FIELD_IDS(1, 4)},
+          {KBRA_PREVAL_FIELD_IDS(2, 0)}, {KBRA_PREVAL_FIELD_IDS(2, 1)},
+          {KBRA_PREVAL_FIELD_IDS(2, 2)}, {KBRA_PREVAL_FIELD_IDS(2, 3)},
+          {KBRA_PREVAL_FIELD_IDS(2, 4)}, {KBRA_PREVAL_FIELD_IDS(3, 0)},
+          {KBRA_PREVAL_FIELD_IDS(3, 1)}, {KBRA_PREVAL_FIELD_IDS(3, 2)},
+          {KBRA_PREVAL_FIELD_IDS(3, 3)}, {KBRA_PREVAL_FIELD_IDS(3, 4)},
+          {KBRA_PREVAL_FIELD_IDS(4, 0)}, {KBRA_PREVAL_FIELD_IDS(4, 1)},
+          {KBRA_PREVAL_FIELD_IDS(4, 2)}, {KBRA_PREVAL_FIELD_IDS(4, 3)},
+          {KBRA_PREVAL_FIELD_IDS(4, 4)},
+  };
+  const Legion::FieldID
+      kket_preval_fields_list[(MAX_MOMENTUM + 1) *
+                              (MAX_MOMENTUM + 1)][NUM_KPAIR_FIELDS] = {
+          {KKET_PREVAL_FIELD_IDS(0, 0)}, {KKET_PREVAL_FIELD_IDS(0, 1)},
+          {KKET_PREVAL_FIELD_IDS(0, 2)}, {KKET_PREVAL_FIELD_IDS(0, 3)},
+          {KKET_PREVAL_FIELD_IDS(0, 4)}, {KKET_PREVAL_FIELD_IDS(1, 0)},
+          {KKET_PREVAL_FIELD_IDS(1, 1)}, {KKET_PREVAL_FIELD_IDS(1, 2)},
+          {KKET_PREVAL_FIELD_IDS(1, 3)}, {KKET_PREVAL_FIELD_IDS(1, 4)},
+          {KKET_PREVAL_FIELD_IDS(2, 0)}, {KKET_PREVAL_FIELD_IDS(2, 1)},
+          {KKET_PREVAL_FIELD_IDS(2, 2)}, {KKET_PREVAL_FIELD_IDS(2, 3)},
+          {KKET_PREVAL_FIELD_IDS(2, 4)}, {KKET_PREVAL_FIELD_IDS(3, 0)},
+          {KKET_PREVAL_FIELD_IDS(3, 1)}, {KKET_PREVAL_FIELD_IDS(3, 2)},
+          {KKET_PREVAL_FIELD_IDS(3, 3)}, {KKET_PREVAL_FIELD_IDS(3, 4)},
+          {KKET_PREVAL_FIELD_IDS(4, 0)}, {KKET_PREVAL_FIELD_IDS(4, 1)},
+          {KKET_PREVAL_FIELD_IDS(4, 2)}, {KKET_PREVAL_FIELD_IDS(4, 3)},
+          {KKET_PREVAL_FIELD_IDS(4, 4)},
+  };
   const Legion::FieldID kdensity_fields_list[TRIANGLE_NUMBER(
       MAX_MOMENTUM + 1)][NUM_KPAIR_FIELDS] = {
       {KDENSITY_FIELD_IDS(0, 0)}, {KDENSITY_FIELD_IDS(0, 1)},
@@ -401,6 +512,8 @@ private:
 #undef JBRA_FIELD_IDS
 #undef JKET_FIELD_IDS
 #undef KPAIR_FIELD_IDS
+#undef KBRA_PREVAL_FIELD_IDS
+#undef KKET_PREVAL_FIELD_IDS
 #undef KDENSITY_FIELD_IDS
 #undef KOUTPUT_FIELD_IDS
 };

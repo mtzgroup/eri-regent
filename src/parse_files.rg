@@ -121,7 +121,7 @@ function writeJKetsToRegions(filename, region_vars)
 end
 
 -- Writes data found in `filename` to an array of regions given by `region_vars`
-function writeKFockToRegions(filename, region_vars)
+function writeKFockToRegions(filename, region_vars, preval_vars)
   local filep = regentlib.newsymbol()
   local statements = terralib.newlist({rquote
     var [filep] = c.fopen(filename, "r")
@@ -131,6 +131,7 @@ function writeKFockToRegions(filename, region_vars)
     for L2 = 0, getCompiledMaxMomentum() do -- inclusive
       local field_space = getKFockPair(L1, L2)
       local r_kpairs = region_vars[L1][L2]
+      local bra_prevals, ket_prevals = unpack(preval_vars[L1][L2])
       statements:insert(rquote
         var int_data : int[3]
         var double_data : double[12]
@@ -141,9 +142,11 @@ function writeKFockToRegions(filename, region_vars)
         assert(L1 == int_data[0] and L2 == int_data[1],
                "Unexpected angular momentum in kfock pairs!")
         var [r_kpairs] = region(ispace(int1d, N), field_space)
+        var [bra_prevals] = region(ispace(int2d, {N, [KFockNumBraPrevals[L1][L2]]}), double)
+        var [ket_prevals] = region(ispace(int2d, {N, [KFockNumKetPrevals[L1][L2]]}), double)
         for i = 0, N do -- exclusive
           num_values = c.fscanf(filep,
-            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,i_shell_idx=%d,j_shell_idx=%d,PIx=%lf,PIy=%lf,PIz=%lf,PJx=%lf,PJy=%lf,PJz=%lf\n",
+            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,i_shell_idx=%d,j_shell_idx=%d,PIx=%lf,PIy=%lf,PIz=%lf,PJx=%lf,PJy=%lf,PJz=%lf,",
             double_data+0, double_data+1, double_data+2,
             double_data+3, double_data+4, double_data+5,
             int_data+0, int_data+1,
@@ -158,6 +161,23 @@ function writeKFockToRegions(filename, region_vars)
             ishell_location={x=double_data[6], y=double_data[7], z=double_data[8]},
             jshell_location={x=double_data[9], y=double_data[10], z=double_data[11]},
           }
+
+          num_values = c.fscanf(filep, "bra_prevals=")
+          assert(num_values == 0, "Did not read bra_prevals!")
+          for k = 0, [KFockNumBraPrevals[L1][L2]] do -- exclusive
+            num_values = c.fscanf(filep, "%lf,", double_data)
+            assert(num_values == 1, "Did not read bra_preval value!")
+            bra_prevals[{i, k}] = double_data[0]
+          end
+          num_values = c.fscanf(filep, "ket_prevals=")
+          assert(num_values == 0, "Did not read ket_prevals!")
+          for k = 0, [KFockNumKetPrevals[L1][L2]] do -- exclusive
+            num_values = c.fscanf(filep, "%lf,", double_data)
+            assert(num_values == 1, "Did not read ket_preval value!")
+            ket_prevals[{i, k}] = double_data[0]
+          end
+          num_values = c.fscanf(filep, "\n")
+          assert(num_values == 0, "Did not read to end of line!")
         end
       end)
     end

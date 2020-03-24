@@ -71,6 +71,18 @@ function getKFockPair(L1, L2)
   return KFockPairCache[index]
 end
 
+KFockNumBraPrevals = {
+  [0] = {[0] = 0, [1] = 4, [2] = 16},
+  [1] = {[0] = 4, [1] = 25, [2] = 91},
+  [2] = {[0] = 16, [1] = 91, [2] = 301},
+}
+
+KFockNumKetPrevals = {
+  [0] = {[0] = 0, [1] = 4, [2] = 16},
+  [1] = {[0] = 6, [1] = 27, [2] = 93},
+  [2] = {[0] = 21, [1] = 96, [2] = 306},
+}
+
 local KFockDensityCache = {}
 function getKFockDensity(L2, L4)
   if L2 > L4 then

@@ -37,6 +37,8 @@ local function magic3(x, y, z)
 end
 
 function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
+                                       bra_prevals, ket_prevals,
+                                       bra_idx, ket_idx,
                                        density, output)
 
   local function getR(N, L, M)
@@ -243,8 +245,305 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       ) * 0.577350269
     end
 
+  elseif L1 == 0 and L2 == 0 and L3 == 2 and L4 == 2 then
+  -------------------------------------SSDD-------------------------------------
+
+    -- TODO: Does not work for some reason.
+    -- results[0][0] = rexpr
+    --   [getR(0, 0, 0)] * (
+    --     [density][0][0] * ket_prevals[{ket_idx, 0}]
+    --     + [density][0][1] * ket_prevals[{ket_idx, 1}]
+    --     + [density][0][2] * ket_prevals[{ket_idx, 2}]
+    --     + [density][0][3] * ket_prevals[{ket_idx, 3}]
+    --     + [density][0][4] * ket_prevals[{ket_idx, 4}]
+    --     + [density][0][5] * ket_prevals[{ket_idx, 5}]
+    --   )
+    --   - [getR(1, 0, 0)] * (
+    --     [density][0][0] * ket_prevals[{ket_idx, 6}]
+    --     + [density][0][1] * ket_prevals[{ket_idx, 7}]
+    --     + [density][0][2] * ket_prevals[{ket_idx, 8}]
+    --     + [density][0][3] * ket_prevals[{ket_idx, 9}]
+    --     + [density][0][4] * ket_prevals[{ket_idx, 10}]
+    --     + [density][0][5] * ket_prevals[{ket_idx, 11}]
+    --   )
+    --   - [getR(0, 1, 0)] * (
+    --     [density][0][0] * ket_prevals[{ket_idx, 12}]
+    --     + [density][0][1] * ket_prevals[{ket_idx, 13}]
+    --     + [density][0][2] * ket_prevals[{ket_idx, 14}]
+    --     + [density][0][3] * ket_prevals[{ket_idx, 15}]
+    --     + [density][0][4] * ket_prevals[{ket_idx, 16}]
+    --     + [density][0][5] * ket_prevals[{ket_idx, 17}]
+    --   )
+    --   - [getR(0, 0, 1)] * (
+    --     [density][0][1] * ket_prevals[{ket_idx, 18}]
+    --     + [density][0][2] * ket_prevals[{ket_idx, 19}]
+    --     + [density][0][5] * ket_prevals[{ket_idx, 20}]
+    --   )
+    --
+    --   + [getR(1, 1, 0)] * (
+    --     [density][0][0] * ket_prevals[{ket_idx, 21}]
+    --     + [density][0][1] * ket_prevals[{ket_idx, 22}]
+    --     + [density][0][2] * ket_prevals[{ket_idx, 23}]
+    --     + [density][0][3] * ket_prevals[{ket_idx, 24}]
+    --     + [density][0][4] * ket_prevals[{ket_idx, 25}]
+    --     + [density][0][5] * ket_prevals[{ket_idx, 26}]
+    --   )
+    --   + [getR(1, 0, 1)] * (
+    --     [density][0][1] * ket_prevals[{ket_idx, 27}]
+    --     + [density][0][2] * ket_prevals[{ket_idx, 28}]
+    --     + [density][0][5] * ket_prevals[{ket_idx, 29}]
+    --   )
+    --   + [getR(0, 1, 1)] * (
+    --     [density][0][1] * ket_prevals[{ket_idx, 30}]
+    --     + [density][0][2] * ket_prevals[{ket_idx, 31}]
+    --     + [density][0][5] * ket_prevals[{ket_idx, 32}]
+    --   )
+    --   + [getR(2, 0, 0)] * (
+    --     [density][0][0] * ket_prevals[{ket_idx, 33}]
+    --     + [density][0][1] * ket_prevals[{ket_idx, 34}]
+    --     + [density][0][3] * ket_prevals[{ket_idx, 35}]
+    --   )
+    --   + [getR(0, 2, 0)] * (
+    --     [density][0][0] * ket_prevals[{ket_idx, 36}]
+    --     + [density][0][2] * ket_prevals[{ket_idx, 37}]
+    --     + [density][0][4] * ket_prevals[{ket_idx, 38}]
+    --   )
+    --   + [getR(0, 0, 2)] * (
+    --     [density][0][5] * ket_prevals[{ket_idx, 39}]
+    --   )
+    --
+    --   - [getR(1, 1, 1)] * (
+    --     [density][0][1] * ket_prevals[{ket_idx, 40}]
+    --     + [density][0][2] * ket_prevals[{ket_idx, 41}]
+    --     + [density][0][5] * ket_prevals[{ket_idx, 42}]
+    --   )
+    --   - [getR(2, 1, 0)] * (
+    --     [density][0][0] * ket_prevals[{ket_idx, 43}]
+    --     + [density][0][1] * ket_prevals[{ket_idx, 44}]
+    --     + [density][0][3] * ket_prevals[{ket_idx, 45}]
+    --   )
+    --   - [getR(1, 2, 0)] * (
+    --     [density][0][0] * ket_prevals[{ket_idx, 46}]
+    --     + [density][0][2] * ket_prevals[{ket_idx, 47}]
+    --     + [density][0][4] * ket_prevals[{ket_idx, 48}]
+    --   )
+    --   - [getR(2, 0, 1)] * (
+    --     [density][0][1] * ket_prevals[{ket_idx, 49}]
+    --   )
+    --   - [getR(0, 2, 1)] * (
+    --     [density][0][2] * ket_prevals[{ket_idx, 50}]
+    --   )
+    --   - [getR(1, 0, 2)] * (
+    --     [density][0][5] * ket_prevals[{ket_idx, 51}]
+    --   )
+    --   - [getR(0, 1, 2)] * (
+    --     [density][0][5] * ket_prevals[{ket_idx, 52}]
+    --   )
+    --   - [getR(3, 0, 0)] * (
+    --     [density][0][3] * ket_prevals[{ket_idx, 53}]
+    --   )
+    --   - [getR(0, 3, 0)] * (
+    --     [density][0][4] * ket_prevals[{ket_idx, 54}]
+    --   )
+    --
+    --   + [getR(2, 1, 1)] * (
+    --     [density][0][1] * ket_prevals[{ket_idx, 55}]
+    --   )
+    --   + [getR(1, 2, 1)] * (
+    --     [density][0][2] * ket_prevals[{ket_idx, 55}]
+    --   )
+    --   + [getR(1, 1, 2)] * (
+    --     [density][0][5] * ket_prevals[{ket_idx, 55}]
+    --   )
+    --   + [getR(2, 2, 0)] * (
+    --     [density][0][0] * ket_prevals[{ket_idx, 55}]
+    --   )
+    --   + [getR(3, 1, 0)] * (
+    --     [density][0][3] * ket_prevals[{ket_idx, 55}]
+    --   )
+    --   + [getR(1, 3, 0)] * (
+    --     [density][0][4] * ket_prevals[{ket_idx, 55}]
+    --   )
+    -- end
+
+  elseif L1 == 1 and L2 == 0 and L3 == 1 and L4 == 2 then
+  -------------------------------------PSPD-------------------------------------
+
+    local D00 = rexpr [density][0][0] end
+    local D01 = rexpr [density][0][1] end
+    local D02 = rexpr [density][0][2] end
+    local D03 = rexpr [density][0][3] end
+    local D04 = rexpr [density][0][4] end
+    local D05 = rexpr [density][0][5] end
+
+    local R0000 = rexpr [getR(0, 0, 0)] end
+    local R1000 = rexpr [getR(1, 0, 0)] end
+    local R0100 = rexpr [getR(0, 1, 0)] end
+    local R0010 = rexpr [getR(0, 0, 1)] end
+    local R1100 = rexpr [getR(1, 1, 0)] end
+    local R1010 = rexpr [getR(1, 0, 1)] end
+    local R0110 = rexpr [getR(0, 1, 1)] end
+    local R2000 = rexpr [getR(2, 0, 0)] end
+    local R0200 = rexpr [getR(0, 2, 0)] end
+    local R0020 = rexpr [getR(0, 0, 2)] end
+    local R1110 = rexpr [getR(1, 1, 1)] end
+    local R2100 = rexpr [getR(2, 1, 0)] end
+    local R2010 = rexpr [getR(2, 0, 1)] end
+    local R1200 = rexpr [getR(1, 2, 0)] end
+    local R1020 = rexpr [getR(1, 0, 2)] end
+    local R2200 = rexpr [getR(2, 2, 0)] end
+    local R2110 = rexpr [getR(2, 1, 1)] end
+    local R2020 = rexpr [getR(2, 0, 2)] end
+    local R3000 = rexpr [getR(3, 0, 0)] end
+    local R3100 = rexpr [getR(3, 1, 0)] end
+    local R3010 = rexpr [getR(3, 0, 1)] end
+    local R4000 = rexpr [getR(4, 0, 0)] end
+
+    local coeff = rexpr
+      D00*ket_prevals[{ket_idx, 0}]
+      + D01*ket_prevals[{ket_idx, 1}]
+      + D02*ket_prevals[{ket_idx, 2}]
+      + D03*ket_prevals[{ket_idx, 3}]
+      + D04*ket_prevals[{ket_idx, 4}]
+      + D05*ket_prevals[{ket_idx, 5}]
+    end
+
+    local L000 = rexpr R0000 * coeff end
+    local L100 = rexpr R1000 * coeff end
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx, 6}]
+      + D01*ket_prevals[{ket_idx, 7}]
+      + D02*ket_prevals[{ket_idx, 8}]
+      + D03*ket_prevals[{ket_idx, 9}]
+      + D04*ket_prevals[{ket_idx, 10}]
+      + D05*ket_prevals[{ket_idx, 11}]
+    end
+
+    L000 = rexpr L000 - R1000 * coeff end
+    L100 = rexpr L100 - R2000 * coeff end
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx, 12}]
+      + D02*ket_prevals[{ket_idx, 13}]
+      + D04*ket_prevals[{ket_idx, 14}]
+    end
+
+    L000 = rexpr L000 - R0100 * coeff end
+    L100 = rexpr L100 - R1100 * coeff end
+
+    coeff = rexpr
+      D01*ket_prevals[{ket_idx,  15}]
+      + D02*ket_prevals[{ket_idx,  16}]
+      + D05*ket_prevals[{ket_idx,  17}]
+    end
+
+    L000 = rexpr L000 - R0010 * coeff end
+    L100 = rexpr L100 - R1010 * coeff end
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx,  18}]
+      + D02*ket_prevals[{ket_idx,  19}]
+      + D04*ket_prevals[{ket_idx,  20}]
+    end
+
+    L000 = rexpr L000 + R1100 * coeff end
+    L100 = rexpr L100 + R2100 * coeff end
+
+    coeff = rexpr
+      D01*ket_prevals[{ket_idx,  21}]
+      + D02*ket_prevals[{ket_idx,  22}]
+      + D05*ket_prevals[{ket_idx,  23}]
+    end
+
+    L000 = rexpr L000 + R1010 * coeff end
+    L100 = rexpr L100 + R2010 * coeff end
+
+    coeff = rexpr
+      D02*ket_prevals[{ket_idx,  24}]
+    end
+
+    L000 = rexpr L000 + R0110 * coeff end
+    L100 = rexpr L100 + R1110 * coeff end
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx,  25}]
+      + D01*ket_prevals[{ket_idx,  26}]
+      + D03*ket_prevals[{ket_idx,  27}]
+    end
+
+    L000 = rexpr L000 + R2000 * coeff end
+    L100 = rexpr L100 + R3000 * coeff end
+
+    coeff = rexpr
+      D04*ket_prevals[{ket_idx,  28}]
+    end
+
+    L000 = rexpr L000 + R0200 * coeff end
+    L100 = rexpr L100 + R1200 * coeff end
+
+    coeff = rexpr
+      D05*ket_prevals[{ket_idx,  29}]
+    end
+
+    L000 = rexpr L000 + R0020 * coeff end
+    L100 = rexpr L100 + R1020 * coeff end
+
+    coeff = rexpr
+      D02*ket_prevals[{ket_idx,  30}]
+    end
+
+    L000 = rexpr L000 - R1110 * coeff end
+    L100 = rexpr L100 - R2110 * coeff end
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx,  30}]
+    end
+
+    L000 = rexpr L000 - R2100 * coeff end
+    L100 = rexpr L100 - R3100 * coeff end
+
+    coeff = rexpr
+      D04*ket_prevals[{ket_idx,  30}]
+    end
+
+    L000 = rexpr L000 - R1200 * coeff end
+    L100 = rexpr L100 - R2200 * coeff end
+
+    coeff = rexpr
+      D01*ket_prevals[{ket_idx,  30}]
+    end
+
+    L000 = rexpr L000 - R2010 * coeff end
+    L100 = rexpr L100 - R3010 * coeff end
+
+
+    coeff = rexpr
+      D05*ket_prevals[{ket_idx,  30}]
+    end
+
+    L000 = rexpr L000 - R1020 * coeff end
+    L100 = rexpr L100 - R2020 * coeff end
+
+
+    coeff = rexpr
+      D03*ket_prevals[{ket_idx,  30}]
+    end
+
+    L000 = rexpr L000 - R3000 * coeff end
+    L100 = rexpr L100 - R4000 * coeff end
+
+
+    results[0][0] = rexpr
+      L000*bra_prevals[{bra_idx, 0}]
+      + L100*bra_prevals[{bra_idx, 3}]
+    end
+
+    -- TODO: results[0][0..8] are not yet written.
+
   else
-    -- assert(false, "Unimplemented KFock kernel!")
+    -- All kernels above PPPP except SSSD and SSDS.
+    -- TODO
   end
 
   local statements = terralib.newlist()

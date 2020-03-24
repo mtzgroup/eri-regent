@@ -135,9 +135,21 @@ void read_kpairs(string filename, EriRegent::TeraChemKDataList *kdata_list) {
     assert(false);
   }
 
+  const int num_kbra_prevals[3][3] = {
+      {0, 4, 16},
+      {4, 25, 91},
+      {16, 91, 301},
+  };
+  const int num_kket_prevals[3][3] = {
+      {0, 4, 16},
+      {6, 27, 93},
+      {21, 96, 306},
+  };
+
   int L1, L2, n;
   while (fscanf(filep, "L1=%d,L2=%d,N=%d\n", &L1, &L2, &n) == 3) {
-    kdata_list->allocate_kpairs(L1, L2, n);
+    kdata_list->allocate_kpairs(L1, L2, n, num_kbra_prevals[L1][L2],
+                                num_kket_prevals[L1][L2]);
     for (int i = 0; i < n; i++) {
       double x, y, z, eta, C;
       float bound;
@@ -147,12 +159,33 @@ void read_kpairs(string filename, EriRegent::TeraChemKDataList *kdata_list) {
           fscanf(filep,
                  "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%f,"
                  "i_shell_idx=%d,j_shell_idx=%d,"
-                 "PIx=%lf,PIy=%lf,PIz=%lf,PJx=%lf,PJy=%lf,PJz=%lf\n",
+                 "PIx=%lf,PIy=%lf,PIz=%lf,PJx=%lf,PJy=%lf,PJz=%lf,",
                  &x, &y, &z, &eta, &C, &bound, &ishell_idx, &jshell_idx, &PIx,
                  &PIy, &PIz, &PJx, &PJy, &PJz);
       assert(num_values == 14 && "Did not read all kpair values!");
       kdata_list->set_kpair(L1, L2, i, x, y, z, eta, C, bound, PIx, PIy, PIz,
                             PJx, PJy, PJz, ishell_idx, jshell_idx);
+
+      num_values = fscanf(filep, "bra_prevals=");
+      assert(num_values == 0);
+      for (int k = 0; k < num_kbra_prevals[L1][L2]; k++) {
+        double bra_preval;
+        int num_values = fscanf(filep, "%lf,", &bra_preval);
+        assert(num_values == 1 && "Did not read bra preval!");
+        kdata_list->set_kbra_preval(L1, L2, i, k, bra_preval);
+      }
+
+      num_values = fscanf(filep, "ket_prevals=");
+      assert(num_values == 0);
+      for (int k = 0; k < num_kket_prevals[L1][L2]; k++) {
+        double ket_preval;
+        int num_values = fscanf(filep, "%lf,", &ket_preval);
+        assert(num_values == 1 && "Did not read bra preval!");
+        kdata_list->set_kket_preval(L1, L2, i, k, ket_preval);
+      }
+
+      num_values = fscanf(filep, "\n");
+      assert(num_values == 0 && "Did not read end of line!");
     }
   }
   fclose(filep);
