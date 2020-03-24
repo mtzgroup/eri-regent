@@ -402,7 +402,9 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
     local R3100 = rexpr [getR(3, 1, 0)] end
     local R3010 = rexpr [getR(3, 0, 1)] end
     local R1300 = rexpr [getR(1, 3, 0)] end
+    local R1030 = rexpr [getR(1, 0, 3)] end
     local R0300 = rexpr [getR(0, 3, 0)] end
+    local R0030 = rexpr [getR(0, 0, 3)] end
     local R4000 = rexpr [getR(4, 0, 0)] end
 
     local coeff = rexpr
@@ -684,6 +686,146 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
     results[0][1] = rexpr
       L000 * bra_prevals[{bra_idx, 0}]
       + L100 * bra_prevals[{bra_idx, 3}]
+    end
+
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx, 62}]
+      + D01*ket_prevals[{ket_idx, 63}]
+      + D02*ket_prevals[{ket_idx, 64}]
+      + D03*ket_prevals[{ket_idx, 65}]
+      + D04*ket_prevals[{ket_idx, 66}]
+      + D05*ket_prevals[{ket_idx, 67}]
+    end
+
+    L000 = rexpr R0000 * coeff end
+    L100 = rexpr R1000 * coeff end
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx, 68}]
+      + D01*ket_prevals[{ket_idx, 69}]
+      + D03*ket_prevals[{ket_idx, 70}]
+    end
+
+    L000 = rexpr L000 - R1000 * coeff end
+    L100 = rexpr L100 - R2000 * coeff end
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx, 71}]
+      + D02*ket_prevals[{ket_idx, 72}]
+      + D04*ket_prevals[{ket_idx, 73}]
+    end
+
+    L000 = rexpr L000 - R0100 * coeff end
+    L100 = rexpr L100 - R1100 * coeff end
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx, 74}]
+      + D01*ket_prevals[{ket_idx, 75}]
+      + D02*ket_prevals[{ket_idx, 76}]
+      + D03*ket_prevals[{ket_idx, 77}]
+      + D04*ket_prevals[{ket_idx, 78}]
+      + D05*ket_prevals[{ket_idx, 79}]
+    end
+
+    L000 = rexpr L000 - R0010 * coeff end
+    L100 = rexpr L100 - R1010 * coeff end
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx, 80}]
+    end
+
+    L000 = rexpr L000 + R1100 * coeff end
+    L100 = rexpr L100 + R2100 * coeff end
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx, 81}]
+      + D01*ket_prevals[{ket_idx, 82}]
+      + D03*ket_prevals[{ket_idx, 83}]
+    end
+
+    L000 = rexpr L000 + R1010 * coeff end
+    L100 = rexpr L100 + R2010 * coeff end
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx, 84}]
+      + D02*ket_prevals[{ket_idx, 85}]
+      + D04*ket_prevals[{ket_idx, 86}]
+    end
+
+    L000 = rexpr L000 + R0110 * coeff end
+    L100 = rexpr L100 + R1110 * coeff end
+
+    coeff = rexpr
+      D03*ket_prevals[{ket_idx, 87}]
+    end
+
+    L000 = rexpr L000 + R2000 * coeff end
+    L100 = rexpr L100 + R3000 * coeff end
+
+    coeff = rexpr
+      D04*ket_prevals[{ket_idx, 88}]
+    end
+
+    L000 = rexpr L000 + R0200 * coeff end
+    L100 = rexpr L100 + R1200 * coeff end
+
+    coeff = rexpr
+      D01*ket_prevals[{ket_idx, 89}]
+      + D02*ket_prevals[{ket_idx, 90}]
+      + D05*ket_prevals[{ket_idx, 91}]
+    end
+
+    L000 = rexpr L000 + R0020 * coeff end
+    L100 = rexpr L100 + R1020 * coeff end
+
+    coeff = rexpr
+      D00*ket_prevals[{ket_idx, 92}]
+    end
+
+    L000 = rexpr L000 - R1110 * coeff end
+    L100 = rexpr L100 - R2110 * coeff end
+
+
+    coeff = rexpr
+      D03*ket_prevals[{ket_idx, 92}]
+    end
+
+    L000 = rexpr L000 - R2010 * coeff end
+    L100 = rexpr L100 - R3010 * coeff end
+
+    coeff = rexpr
+      D04*ket_prevals[{ket_idx, 92}]
+    end
+
+    L000 = rexpr L000 - R0210 * coeff end
+    L100 = rexpr L100 - R1210 * coeff end
+
+    coeff = rexpr
+      D01*ket_prevals[{ket_idx, 92}]
+    end
+
+    L000 = rexpr L000 - R1020 * coeff end
+    L100 = rexpr L100 - R2020 * coeff end
+
+    coeff = rexpr
+      D02*ket_prevals[{ket_idx, 92}]
+    end
+
+    L000 = rexpr L000 - R0120 * coeff end
+    L100 = rexpr L100 - R1120 * coeff end
+
+
+    coeff = rexpr
+      D05*ket_prevals[{ket_idx, 92}]
+    end
+
+    L000 = rexpr L000 - R0030 * coeff end
+    L100 = rexpr L100 - R1030 * coeff end
+
+    results[0][2] = rexpr
+      L000*bra_prevals[{bra_idx, 0}]
+      + L100*bra_prevals[{bra_idx, 3}]
     end
 
     -- TODO: results[0][0..8] are not yet written.
