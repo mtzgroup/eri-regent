@@ -245,127 +245,6 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       ) * 0.577350269
     end
 
-  elseif L1 == 0 and L2 == 0 and L3 == 2 and L4 == 2 then
-  -------------------------------------SSDD-------------------------------------
-
-    -- TODO: Does not work for some reason.
-    -- results[0][0] = rexpr
-    --   [getR(0, 0, 0)] * (
-    --     [density][0][0] * ket_prevals[{ket_idx, 0}]
-    --     + [density][0][1] * ket_prevals[{ket_idx, 1}]
-    --     + [density][0][2] * ket_prevals[{ket_idx, 2}]
-    --     + [density][0][3] * ket_prevals[{ket_idx, 3}]
-    --     + [density][0][4] * ket_prevals[{ket_idx, 4}]
-    --     + [density][0][5] * ket_prevals[{ket_idx, 5}]
-    --   )
-    --   - [getR(1, 0, 0)] * (
-    --     [density][0][0] * ket_prevals[{ket_idx, 6}]
-    --     + [density][0][1] * ket_prevals[{ket_idx, 7}]
-    --     + [density][0][2] * ket_prevals[{ket_idx, 8}]
-    --     + [density][0][3] * ket_prevals[{ket_idx, 9}]
-    --     + [density][0][4] * ket_prevals[{ket_idx, 10}]
-    --     + [density][0][5] * ket_prevals[{ket_idx, 11}]
-    --   )
-    --   - [getR(0, 1, 0)] * (
-    --     [density][0][0] * ket_prevals[{ket_idx, 12}]
-    --     + [density][0][1] * ket_prevals[{ket_idx, 13}]
-    --     + [density][0][2] * ket_prevals[{ket_idx, 14}]
-    --     + [density][0][3] * ket_prevals[{ket_idx, 15}]
-    --     + [density][0][4] * ket_prevals[{ket_idx, 16}]
-    --     + [density][0][5] * ket_prevals[{ket_idx, 17}]
-    --   )
-    --   - [getR(0, 0, 1)] * (
-    --     [density][0][1] * ket_prevals[{ket_idx, 18}]
-    --     + [density][0][2] * ket_prevals[{ket_idx, 19}]
-    --     + [density][0][5] * ket_prevals[{ket_idx, 20}]
-    --   )
-    --
-    --   + [getR(1, 1, 0)] * (
-    --     [density][0][0] * ket_prevals[{ket_idx, 21}]
-    --     + [density][0][1] * ket_prevals[{ket_idx, 22}]
-    --     + [density][0][2] * ket_prevals[{ket_idx, 23}]
-    --     + [density][0][3] * ket_prevals[{ket_idx, 24}]
-    --     + [density][0][4] * ket_prevals[{ket_idx, 25}]
-    --     + [density][0][5] * ket_prevals[{ket_idx, 26}]
-    --   )
-    --   + [getR(1, 0, 1)] * (
-    --     [density][0][1] * ket_prevals[{ket_idx, 27}]
-    --     + [density][0][2] * ket_prevals[{ket_idx, 28}]
-    --     + [density][0][5] * ket_prevals[{ket_idx, 29}]
-    --   )
-    --   + [getR(0, 1, 1)] * (
-    --     [density][0][1] * ket_prevals[{ket_idx, 30}]
-    --     + [density][0][2] * ket_prevals[{ket_idx, 31}]
-    --     + [density][0][5] * ket_prevals[{ket_idx, 32}]
-    --   )
-    --   + [getR(2, 0, 0)] * (
-    --     [density][0][0] * ket_prevals[{ket_idx, 33}]
-    --     + [density][0][1] * ket_prevals[{ket_idx, 34}]
-    --     + [density][0][3] * ket_prevals[{ket_idx, 35}]
-    --   )
-    --   + [getR(0, 2, 0)] * (
-    --     [density][0][0] * ket_prevals[{ket_idx, 36}]
-    --     + [density][0][2] * ket_prevals[{ket_idx, 37}]
-    --     + [density][0][4] * ket_prevals[{ket_idx, 38}]
-    --   )
-    --   + [getR(0, 0, 2)] * (
-    --     [density][0][5] * ket_prevals[{ket_idx, 39}]
-    --   )
-    --
-    --   - [getR(1, 1, 1)] * (
-    --     [density][0][1] * ket_prevals[{ket_idx, 40}]
-    --     + [density][0][2] * ket_prevals[{ket_idx, 41}]
-    --     + [density][0][5] * ket_prevals[{ket_idx, 42}]
-    --   )
-    --   - [getR(2, 1, 0)] * (
-    --     [density][0][0] * ket_prevals[{ket_idx, 43}]
-    --     + [density][0][1] * ket_prevals[{ket_idx, 44}]
-    --     + [density][0][3] * ket_prevals[{ket_idx, 45}]
-    --   )
-    --   - [getR(1, 2, 0)] * (
-    --     [density][0][0] * ket_prevals[{ket_idx, 46}]
-    --     + [density][0][2] * ket_prevals[{ket_idx, 47}]
-    --     + [density][0][4] * ket_prevals[{ket_idx, 48}]
-    --   )
-    --   - [getR(2, 0, 1)] * (
-    --     [density][0][1] * ket_prevals[{ket_idx, 49}]
-    --   )
-    --   - [getR(0, 2, 1)] * (
-    --     [density][0][2] * ket_prevals[{ket_idx, 50}]
-    --   )
-    --   - [getR(1, 0, 2)] * (
-    --     [density][0][5] * ket_prevals[{ket_idx, 51}]
-    --   )
-    --   - [getR(0, 1, 2)] * (
-    --     [density][0][5] * ket_prevals[{ket_idx, 52}]
-    --   )
-    --   - [getR(3, 0, 0)] * (
-    --     [density][0][3] * ket_prevals[{ket_idx, 53}]
-    --   )
-    --   - [getR(0, 3, 0)] * (
-    --     [density][0][4] * ket_prevals[{ket_idx, 54}]
-    --   )
-    --
-    --   + [getR(2, 1, 1)] * (
-    --     [density][0][1] * ket_prevals[{ket_idx, 55}]
-    --   )
-    --   + [getR(1, 2, 1)] * (
-    --     [density][0][2] * ket_prevals[{ket_idx, 55}]
-    --   )
-    --   + [getR(1, 1, 2)] * (
-    --     [density][0][5] * ket_prevals[{ket_idx, 55}]
-    --   )
-    --   + [getR(2, 2, 0)] * (
-    --     [density][0][0] * ket_prevals[{ket_idx, 55}]
-    --   )
-    --   + [getR(3, 1, 0)] * (
-    --     [density][0][3] * ket_prevals[{ket_idx, 55}]
-    --   )
-    --   + [getR(1, 3, 0)] * (
-    --     [density][0][4] * ket_prevals[{ket_idx, 55}]
-    --   )
-    -- end
-
   elseif L1 == 1 and L2 == 0 and L3 == 1 and L4 == 2 then
   -------------------------------------PSPD-------------------------------------
 
@@ -376,37 +255,6 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
     local D04 = rexpr [density][0][4] end
     local D05 = rexpr [density][0][5] end
 
-    local R0000 = rexpr [getR(0, 0, 0)] end
-    local R1000 = rexpr [getR(1, 0, 0)] end
-    local R0100 = rexpr [getR(0, 1, 0)] end
-    local R0010 = rexpr [getR(0, 0, 1)] end
-    local R1100 = rexpr [getR(1, 1, 0)] end
-    local R1010 = rexpr [getR(1, 0, 1)] end
-    local R0110 = rexpr [getR(0, 1, 1)] end
-    local R2000 = rexpr [getR(2, 0, 0)] end
-    local R0200 = rexpr [getR(0, 2, 0)] end
-    local R0020 = rexpr [getR(0, 0, 2)] end
-    local R1110 = rexpr [getR(1, 1, 1)] end
-    local R2100 = rexpr [getR(2, 1, 0)] end
-    local R0210 = rexpr [getR(0, 2, 1)] end
-    local R0120 = rexpr [getR(0, 1, 2)] end
-    local R1210 = rexpr [getR(1, 2, 1)] end
-    local R1120 = rexpr [getR(1, 1, 2)] end
-    local R2010 = rexpr [getR(2, 0, 1)] end
-    local R1200 = rexpr [getR(1, 2, 0)] end
-    local R1020 = rexpr [getR(1, 0, 2)] end
-    local R2200 = rexpr [getR(2, 2, 0)] end
-    local R2110 = rexpr [getR(2, 1, 1)] end
-    local R2020 = rexpr [getR(2, 0, 2)] end
-    local R3000 = rexpr [getR(3, 0, 0)] end
-    local R3100 = rexpr [getR(3, 1, 0)] end
-    local R3010 = rexpr [getR(3, 0, 1)] end
-    local R1300 = rexpr [getR(1, 3, 0)] end
-    local R1030 = rexpr [getR(1, 0, 3)] end
-    local R0300 = rexpr [getR(0, 3, 0)] end
-    local R0030 = rexpr [getR(0, 0, 3)] end
-    local R4000 = rexpr [getR(4, 0, 0)] end
-
     local coeff = rexpr
       D00*ket_prevals[{ket_idx, 0}]
       + D01*ket_prevals[{ket_idx, 1}]
@@ -416,8 +264,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D05*ket_prevals[{ket_idx, 5}]
     end
 
-    local L000 = rexpr R0000 * coeff end
-    local L100 = rexpr R1000 * coeff end
+    local L000 = rexpr [R[0][0][0][0]] * coeff end
+    local L100 = rexpr [R[1][0][0][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx, 6}]
@@ -428,8 +276,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D05*ket_prevals[{ket_idx, 11}]
     end
 
-    L000 = rexpr L000 - R1000 * coeff end
-    L100 = rexpr L100 - R2000 * coeff end
+    L000 = rexpr L000 - [R[1][0][0][0]] * coeff end
+    L100 = rexpr L100 - [R[2][0][0][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx, 12}]
@@ -437,8 +285,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D04*ket_prevals[{ket_idx, 14}]
     end
 
-    L000 = rexpr L000 - R0100 * coeff end
-    L100 = rexpr L100 - R1100 * coeff end
+    L000 = rexpr L000 - [R[0][1][0][0]] * coeff end
+    L100 = rexpr L100 - [R[1][1][0][0]] * coeff end
 
     coeff = rexpr
       D01*ket_prevals[{ket_idx,  15}]
@@ -446,8 +294,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D05*ket_prevals[{ket_idx,  17}]
     end
 
-    L000 = rexpr L000 - R0010 * coeff end
-    L100 = rexpr L100 - R1010 * coeff end
+    L000 = rexpr L000 - [R[0][0][1][0]] * coeff end
+    L100 = rexpr L100 - [R[1][0][1][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx,  18}]
@@ -455,8 +303,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D04*ket_prevals[{ket_idx,  20}]
     end
 
-    L000 = rexpr L000 + R1100 * coeff end
-    L100 = rexpr L100 + R2100 * coeff end
+    L000 = rexpr L000 + [R[1][1][0][0]] * coeff end
+    L100 = rexpr L100 + [R[2][1][0][0]] * coeff end
 
     coeff = rexpr
       D01*ket_prevals[{ket_idx,  21}]
@@ -464,15 +312,15 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D05*ket_prevals[{ket_idx,  23}]
     end
 
-    L000 = rexpr L000 + R1010 * coeff end
-    L100 = rexpr L100 + R2010 * coeff end
+    L000 = rexpr L000 + [R[1][0][1][0]] * coeff end
+    L100 = rexpr L100 + [R[2][0][1][0]] * coeff end
 
     coeff = rexpr
       D02*ket_prevals[{ket_idx,  24}]
     end
 
-    L000 = rexpr L000 + R0110 * coeff end
-    L100 = rexpr L100 + R1110 * coeff end
+    L000 = rexpr L000 + [R[0][1][1][0]] * coeff end
+    L100 = rexpr L100 + [R[1][1][1][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx,  25}]
@@ -480,66 +328,66 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D03*ket_prevals[{ket_idx,  27}]
     end
 
-    L000 = rexpr L000 + R2000 * coeff end
-    L100 = rexpr L100 + R3000 * coeff end
+    L000 = rexpr L000 + [R[2][0][0][0]] * coeff end
+    L100 = rexpr L100 + [R[3][0][0][0]] * coeff end
 
     coeff = rexpr
       D04*ket_prevals[{ket_idx,  28}]
     end
 
-    L000 = rexpr L000 + R0200 * coeff end
-    L100 = rexpr L100 + R1200 * coeff end
+    L000 = rexpr L000 + [R[0][2][0][0]] * coeff end
+    L100 = rexpr L100 + [R[1][2][0][0]] * coeff end
 
     coeff = rexpr
       D05*ket_prevals[{ket_idx,  29}]
     end
 
-    L000 = rexpr L000 + R0020 * coeff end
-    L100 = rexpr L100 + R1020 * coeff end
+    L000 = rexpr L000 + [R[0][0][2][0]] * coeff end
+    L100 = rexpr L100 + [R[1][0][2][0]] * coeff end
 
     coeff = rexpr
       D02*ket_prevals[{ket_idx,  30}]
     end
 
-    L000 = rexpr L000 - R1110 * coeff end
-    L100 = rexpr L100 - R2110 * coeff end
+    L000 = rexpr L000 - [R[1][1][1][0]] * coeff end
+    L100 = rexpr L100 - [R[2][1][1][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx,  30}]
     end
 
-    L000 = rexpr L000 - R2100 * coeff end
-    L100 = rexpr L100 - R3100 * coeff end
+    L000 = rexpr L000 - [R[2][1][0][0]] * coeff end
+    L100 = rexpr L100 - [R[3][1][0][0]] * coeff end
 
     coeff = rexpr
       D04*ket_prevals[{ket_idx,  30}]
     end
 
-    L000 = rexpr L000 - R1200 * coeff end
-    L100 = rexpr L100 - R2200 * coeff end
+    L000 = rexpr L000 - [R[1][2][0][0]] * coeff end
+    L100 = rexpr L100 - [R[2][2][0][0]] * coeff end
 
     coeff = rexpr
       D01*ket_prevals[{ket_idx,  30}]
     end
 
-    L000 = rexpr L000 - R2010 * coeff end
-    L100 = rexpr L100 - R3010 * coeff end
+    L000 = rexpr L000 - [R[2][0][1][0]] * coeff end
+    L100 = rexpr L100 - [R[3][0][1][0]] * coeff end
 
 
     coeff = rexpr
       D05*ket_prevals[{ket_idx,  30}]
     end
 
-    L000 = rexpr L000 - R1020 * coeff end
-    L100 = rexpr L100 - R2020 * coeff end
+    L000 = rexpr L000 - [R[1][0][2][0]] * coeff end
+    L100 = rexpr L100 - [R[2][0][2][0]] * coeff end
 
 
     coeff = rexpr
       D03*ket_prevals[{ket_idx,  30}]
     end
 
-    L000 = rexpr L000 - R3000 * coeff end
-    L100 = rexpr L100 - R4000 * coeff end
+    L000 = rexpr L000 - [R[3][0][0][0]] * coeff end
+    L100 = rexpr L100 - [R[4][0][0][0]] * coeff end
 
 
     results[0][0] = rexpr
@@ -557,8 +405,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D05*ket_prevals[{ket_idx,  36}]
     end
 
-    L000  = rexpr R0000 * coeff end
-    L100  = rexpr R1000 * coeff end
+    L000  = rexpr [R[0][0][0][0]] * coeff end
+    L100  = rexpr [R[1][0][0][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx,  37}]
@@ -566,8 +414,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D03*ket_prevals[{ket_idx,  39}]
     end
 
-    L000  = rexpr L000 - R1000 * coeff end
-    L100  = rexpr L100 - R2000 * coeff end
+    L000  = rexpr L000 - [R[1][0][0][0]] * coeff end
+    L100  = rexpr L100 - [R[2][0][0][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx,  40}]
@@ -578,8 +426,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D05*ket_prevals[{ket_idx,  45}]
     end
 
-    L000  = rexpr L000 - R0100 * coeff end
-    L100  = rexpr L100 - R1100 * coeff end
+    L000  = rexpr L000 - [R[0][1][0][0]] * coeff end
+    L100  = rexpr L100 - [R[1][1][0][0]] * coeff end
 
     coeff = rexpr
       D01*ket_prevals[{ket_idx,  46}]
@@ -587,8 +435,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D05*ket_prevals[{ket_idx,  48}]
     end
 
-    L000  = rexpr L000 - R0010 * coeff end
-    L100  = rexpr L100 - R1010 * coeff end
+    L000  = rexpr L000 - [R[0][0][1][0]] * coeff end
+    L100  = rexpr L100 - [R[1][0][1][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx,  49}]
@@ -596,15 +444,15 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D03*ket_prevals[{ket_idx,  51}]
     end
 
-    L000  = rexpr L000 + R1100 * coeff end
-    L100  = rexpr L100 + R2100 * coeff end
+    L000  = rexpr L000 + [R[1][1][0][0]] * coeff end
+    L100  = rexpr L100 + [R[2][1][0][0]] * coeff end
 
     coeff = rexpr
       D01*ket_prevals[{ket_idx,  52}]
     end
 
-    L000  = rexpr L000 + R1010 * coeff end
-    L100  = rexpr L100 + R2010 * coeff end
+    L000  = rexpr L000 + [R[1][0][1][0]] * coeff end
+    L100  = rexpr L100 + [R[2][0][1][0]] * coeff end
 
     coeff = rexpr
       D01*ket_prevals[{ket_idx,  53}]
@@ -612,15 +460,15 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D05*ket_prevals[{ket_idx,  55}]
     end
 
-    L000  = rexpr L000 + R0110 * coeff end
-    L100  = rexpr L100 + R1110 * coeff end
+    L000  = rexpr L000 + [R[0][1][1][0]] * coeff end
+    L100  = rexpr L100 + [R[1][1][1][0]] * coeff end
 
     coeff = rexpr
       D03*ket_prevals[{ket_idx,  56}]
     end
 
-    L000  = rexpr L000 + R2000 * coeff end
-    L100  = rexpr L100 + R3000 * coeff end
+    L000  = rexpr L000 + [R[2][0][0][0]] * coeff end
+    L100  = rexpr L100 + [R[3][0][0][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx,  57}]
@@ -628,60 +476,60 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D04*ket_prevals[{ket_idx,  59}]
     end
 
-    L000  = rexpr L000 + R0200 * coeff end
-    L100  = rexpr L100 + R1200 * coeff end
+    L000  = rexpr L000 + [R[0][2][0][0]] * coeff end
+    L100  = rexpr L100 + [R[1][2][0][0]] * coeff end
 
     coeff = rexpr
       D05*ket_prevals[{ket_idx,  60}]
     end
 
-    L000  = rexpr L000 + R0020 * coeff end
-    L100  = rexpr L100 + R1020 * coeff end
+    L000  = rexpr L000 + [R[0][0][2][0]] * coeff end
+    L100  = rexpr L100 + [R[1][0][2][0]] * coeff end
 
     coeff = rexpr
       D01*ket_prevals[{ket_idx,  61}]
     end
 
-    L000  = rexpr L000 - R1110 * coeff end
-    L100  = rexpr L100 - R2110 * coeff end
+    L000  = rexpr L000 - [R[1][1][1][0]] * coeff end
+    L100  = rexpr L100 - [R[2][1][1][0]] * coeff end
 
     coeff = rexpr
       D03*ket_prevals[{ket_idx,  61}]
     end
 
-    L000  = rexpr L000 - R2100 * coeff end
-    L100  = rexpr L100 - R3100 * coeff end
+    L000  = rexpr L000 - [R[2][1][0][0]] * coeff end
+    L100  = rexpr L100 - [R[3][1][0][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx,  61}]
     end
 
-    L000  = rexpr L000 - R1200 * coeff end
-    L100  = rexpr L100 - R2200 * coeff end
+    L000  = rexpr L000 - [R[1][2][0][0]] * coeff end
+    L100  = rexpr L100 - [R[2][2][0][0]] * coeff end
 
 
     coeff = rexpr
       D02*ket_prevals[{ket_idx,  61}]
     end
 
-    L000  = rexpr L000 - R0210 * coeff end
-    L100  = rexpr L100 - R1210 * coeff end
+    L000  = rexpr L000 - [R[0][2][1][0]] * coeff end
+    L100  = rexpr L100 - [R[1][2][1][0]] * coeff end
 
 
     coeff = rexpr
       D05*ket_prevals[{ket_idx,  61}]
     end
 
-    L000  = rexpr L000 - R0120 * coeff end
-    L100  = rexpr L100 - R1120 * coeff end
+    L000  = rexpr L000 - [R[0][1][2][0]] * coeff end
+    L100  = rexpr L100 - [R[1][1][2][0]] * coeff end
 
 
     coeff = rexpr
       D04*ket_prevals[{ket_idx,  61}]
     end
 
-    L000  = rexpr L000 - R0300 * coeff end
-    L100  = rexpr L100 - R1300 * coeff end
+    L000  = rexpr L000 - [R[0][3][0][0]] * coeff end
+    L100  = rexpr L100 - [R[1][3][0][0]] * coeff end
 
     results[0][1] = rexpr
       L000 * bra_prevals[{bra_idx, 0}]
@@ -698,8 +546,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D05*ket_prevals[{ket_idx, 67}]
     end
 
-    L000 = rexpr R0000 * coeff end
-    L100 = rexpr R1000 * coeff end
+    L000 = rexpr [R[0][0][0][0]] * coeff end
+    L100 = rexpr [R[1][0][0][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx, 68}]
@@ -707,8 +555,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D03*ket_prevals[{ket_idx, 70}]
     end
 
-    L000 = rexpr L000 - R1000 * coeff end
-    L100 = rexpr L100 - R2000 * coeff end
+    L000 = rexpr L000 - [R[1][0][0][0]] * coeff end
+    L100 = rexpr L100 - [R[2][0][0][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx, 71}]
@@ -716,8 +564,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D04*ket_prevals[{ket_idx, 73}]
     end
 
-    L000 = rexpr L000 - R0100 * coeff end
-    L100 = rexpr L100 - R1100 * coeff end
+    L000 = rexpr L000 - [R[0][1][0][0]] * coeff end
+    L100 = rexpr L100 - [R[1][1][0][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx, 74}]
@@ -728,15 +576,15 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D05*ket_prevals[{ket_idx, 79}]
     end
 
-    L000 = rexpr L000 - R0010 * coeff end
-    L100 = rexpr L100 - R1010 * coeff end
+    L000 = rexpr L000 - [R[0][0][1][0]] * coeff end
+    L100 = rexpr L100 - [R[1][0][1][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx, 80}]
     end
 
-    L000 = rexpr L000 + R1100 * coeff end
-    L100 = rexpr L100 + R2100 * coeff end
+    L000 = rexpr L000 + [R[1][1][0][0]] * coeff end
+    L100 = rexpr L100 + [R[2][1][0][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx, 81}]
@@ -744,8 +592,8 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D03*ket_prevals[{ket_idx, 83}]
     end
 
-    L000 = rexpr L000 + R1010 * coeff end
-    L100 = rexpr L100 + R2010 * coeff end
+    L000 = rexpr L000 + [R[1][0][1][0]] * coeff end
+    L100 = rexpr L100 + [R[2][0][1][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx, 84}]
@@ -753,22 +601,22 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D04*ket_prevals[{ket_idx, 86}]
     end
 
-    L000 = rexpr L000 + R0110 * coeff end
-    L100 = rexpr L100 + R1110 * coeff end
+    L000 = rexpr L000 + [R[0][1][1][0]] * coeff end
+    L100 = rexpr L100 + [R[1][1][1][0]] * coeff end
 
     coeff = rexpr
       D03*ket_prevals[{ket_idx, 87}]
     end
 
-    L000 = rexpr L000 + R2000 * coeff end
-    L100 = rexpr L100 + R3000 * coeff end
+    L000 = rexpr L000 + [R[2][0][0][0]] * coeff end
+    L100 = rexpr L100 + [R[3][0][0][0]] * coeff end
 
     coeff = rexpr
       D04*ket_prevals[{ket_idx, 88}]
     end
 
-    L000 = rexpr L000 + R0200 * coeff end
-    L100 = rexpr L100 + R1200 * coeff end
+    L000 = rexpr L000 + [R[0][2][0][0]] * coeff end
+    L100 = rexpr L100 + [R[1][2][0][0]] * coeff end
 
     coeff = rexpr
       D01*ket_prevals[{ket_idx, 89}]
@@ -776,59 +624,59 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       + D05*ket_prevals[{ket_idx, 91}]
     end
 
-    L000 = rexpr L000 + R0020 * coeff end
-    L100 = rexpr L100 + R1020 * coeff end
+    L000 = rexpr L000 + [R[0][0][2][0]] * coeff end
+    L100 = rexpr L100 + [R[1][0][2][0]] * coeff end
 
     coeff = rexpr
       D00*ket_prevals[{ket_idx, 92}]
     end
 
-    L000 = rexpr L000 - R1110 * coeff end
-    L100 = rexpr L100 - R2110 * coeff end
+    L000 = rexpr L000 - [R[1][1][1][0]] * coeff end
+    L100 = rexpr L100 - [R[2][1][1][0]] * coeff end
 
 
     coeff = rexpr
       D03*ket_prevals[{ket_idx, 92}]
     end
 
-    L000 = rexpr L000 - R2010 * coeff end
-    L100 = rexpr L100 - R3010 * coeff end
+    L000 = rexpr L000 - [R[2][0][1][0]] * coeff end
+    L100 = rexpr L100 - [R[3][0][1][0]] * coeff end
 
     coeff = rexpr
       D04*ket_prevals[{ket_idx, 92}]
     end
 
-    L000 = rexpr L000 - R0210 * coeff end
-    L100 = rexpr L100 - R1210 * coeff end
+    L000 = rexpr L000 - [R[0][2][1][0]] * coeff end
+    L100 = rexpr L100 - [R[1][2][1][0]] * coeff end
 
     coeff = rexpr
       D01*ket_prevals[{ket_idx, 92}]
     end
 
-    L000 = rexpr L000 - R1020 * coeff end
-    L100 = rexpr L100 - R2020 * coeff end
+    L000 = rexpr L000 - [R[1][0][2][0]] * coeff end
+    L100 = rexpr L100 - [R[2][0][2][0]] * coeff end
 
     coeff = rexpr
       D02*ket_prevals[{ket_idx, 92}]
     end
 
-    L000 = rexpr L000 - R0120 * coeff end
-    L100 = rexpr L100 - R1120 * coeff end
+    L000 = rexpr L000 - [R[0][1][2][0]] * coeff end
+    L100 = rexpr L100 - [R[1][1][2][0]] * coeff end
 
 
     coeff = rexpr
       D05*ket_prevals[{ket_idx, 92}]
     end
 
-    L000 = rexpr L000 - R0030 * coeff end
-    L100 = rexpr L100 - R1030 * coeff end
+    L000 = rexpr L000 - [R[0][0][3][0]] * coeff end
+    L100 = rexpr L100 - [R[1][0][3][0]] * coeff end
 
     results[0][2] = rexpr
       L000*bra_prevals[{bra_idx, 0}]
       + L100*bra_prevals[{bra_idx, 3}]
     end
 
-    -- TODO: results[0][0..8] are not yet written.
+    -- TODO: results[1..2][0..2] are not yet written.
 
   else
     -- All kernels above PPPP except SSSD and SSDS.
