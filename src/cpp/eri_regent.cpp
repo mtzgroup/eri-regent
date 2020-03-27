@@ -84,8 +84,13 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_UPPER_TRIANGLE(L1, L2);
-      const Rect<1> rect(0, jdata_list.get_num_jbras(L1, L2) - 1);
-      jbras_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      if (jdata_list.get_num_jbras(L1, L2) == 0) {
+        jbras_ispace_list[index] =
+            runtime->create_index_space(ctx, Rect<1>::make_empty());
+      } else {
+        const Rect<1> rect(0, jdata_list.get_num_jbras(L1, L2) - 1);
+        jbras_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      }
       jbras_lr_list[index] = runtime->create_logical_region(
           ctx, jbras_ispace_list[index], jbra_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, jbras_lr_list[index],
@@ -106,8 +111,13 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_UPPER_TRIANGLE(L1, L2);
-      const Rect<1> rect(0, jdata_list.get_num_jkets(L1, L2) - 1);
-      jkets_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      if (jdata_list.get_num_jkets(L1, L2) == 0) {
+        jkets_ispace_list[index] =
+            runtime->create_index_space(ctx, Rect<1>::make_empty());
+      } else {
+        const Rect<1> rect(0, jdata_list.get_num_jkets(L1, L2) - 1);
+        jkets_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      }
       jkets_lr_list[index] = runtime->create_logical_region(
           ctx, jkets_ispace_list[index], jket_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, jkets_lr_list[index],
@@ -209,8 +219,13 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_SQUARE(L1, L2);
-      const Rect<1> rect(0, kdata_list.get_num_kpairs(L1, L2) - 1);
-      kpair_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      if (kdata_list.get_num_kpairs(L1, L2) == 0) {
+        kpair_ispace_list[index] =
+            runtime->create_index_space(ctx, Rect<1>::make_empty());
+      } else {
+        const Rect<1> rect(0, kdata_list.get_num_kpairs(L1, L2) - 1);
+        kpair_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      }
       kpair_lr_list[index] = runtime->create_logical_region(
           ctx, kpair_ispace_list[index], kpair_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, kpair_lr_list[index],
@@ -232,10 +247,17 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_SQUARE(L1, L2);
-      // FIXME: If there are 0 elements then rect = {{0, 0}, {N, -1}}.
-      const Rect<2> rect({0, 0}, {kdata_list.get_num_kpairs(L1, L2) - 1,
-                                  kdata_list.get_num_kbra_prevals(L1, L2) - 1});
-      kbra_preval_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      if (kdata_list.get_num_kpairs(L1, L2) == 0 ||
+          kdata_list.get_num_kbra_prevals(L1, L2) == 0) {
+        // FIXME: Crashes when trying to create an empty region.
+        kbra_preval_ispace_list[index] =
+            runtime->create_index_space(ctx, Rect<2>::make_empty());
+      } else {
+        const Rect<2> rect({0, 0},
+                           {kdata_list.get_num_kpairs(L1, L2) - 1,
+                            kdata_list.get_num_kbra_prevals(L1, L2) - 1});
+        kbra_preval_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      }
       kbra_preval_lr_list[index] = runtime->create_logical_region(
           ctx, kbra_preval_ispace_list[index], kbra_preval_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, kbra_preval_lr_list[index],
@@ -258,9 +280,16 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_SQUARE(L1, L2);
-      const Rect<2> rect({0, 0}, {kdata_list.get_num_kpairs(L1, L2) - 1,
-                                  kdata_list.get_num_kket_prevals(L1, L2) - 1});
-      kket_preval_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      if (kdata_list.get_num_kpairs(L1, L2) == 0 ||
+          kdata_list.get_num_kket_prevals(L1, L2) == 0) {
+        kket_preval_ispace_list[index] =
+            runtime->create_index_space(ctx, Rect<2>::make_empty());
+      } else {
+        const Rect<2> rect({0, 0},
+                           {kdata_list.get_num_kpairs(L1, L2) - 1,
+                            kdata_list.get_num_kket_prevals(L1, L2) - 1});
+        kket_preval_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      }
       kket_preval_lr_list[index] = runtime->create_logical_region(
           ctx, kket_preval_ispace_list[index], kket_preval_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, kket_preval_lr_list[index],
@@ -283,9 +312,15 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
     for (int L4 = L2; L4 <= MAX_MOMENTUM; L4++) {
       const int index = INDEX_UPPER_TRIANGLE(L2, L4);
-      const Rect<2> rect({0, 0}, {kdata_list.get_num_shells(L2) - 1,
-                                  kdata_list.get_num_shells(L4) - 1});
-      kdensity_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      if (kdata_list.get_num_shells(L2) == 0 ||
+          kdata_list.get_num_shells(L4) == 0) {
+        kdensity_ispace_list[index] =
+            runtime->create_index_space(ctx, Rect<2>::make_empty());
+      } else {
+        const Rect<2> rect({0, 0}, {kdata_list.get_num_shells(L2) - 1,
+                                    kdata_list.get_num_shells(L4) - 1});
+        kdensity_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      }
       kdensity_lr_list[index] = runtime->create_logical_region(
           ctx, kdensity_ispace_list[index], kdensity_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, kdensity_lr_list[index],
@@ -309,13 +344,19 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L3 = L1; L3 <= MAX_MOMENTUM; L3++) {
       const int index = INDEX_UPPER_TRIANGLE(L1, L3);
-      const Rect<3> rect({0, 0, 0},
-                         {(kdata_list.get_largest_momentum() + 1) *
-                                  (kdata_list.get_largest_momentum() + 1) -
-                              1,
-                          kdata_list.get_num_shells(L1) - 1,
-                          kdata_list.get_num_shells(L3) - 1});
-      koutput_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      if (kdata_list.get_num_shells(L1) == 0 ||
+          kdata_list.get_num_shells(L3) == 0) {
+        koutput_ispace_list[index] =
+            runtime->create_index_space(ctx, Rect<3>::make_empty());
+      } else {
+        const Rect<3> rect({0, 0, 0},
+                           {(kdata_list.get_largest_momentum() + 1) *
+                                    (kdata_list.get_largest_momentum() + 1) -
+                                1,
+                            kdata_list.get_num_shells(L1) - 1,
+                            kdata_list.get_num_shells(L3) - 1});
+        koutput_ispace_list[index] = runtime->create_index_space(ctx, rect);
+      }
       koutput_lr_list[index] = runtime->create_logical_region(
           ctx, koutput_ispace_list[index], koutput_fspaces[index]);
       AttachLauncher launcher(EXTERNAL_INSTANCE, koutput_lr_list[index],
