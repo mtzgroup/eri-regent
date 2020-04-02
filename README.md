@@ -40,7 +40,9 @@ export USE_CUDA=1
 export CUDA=$CUDA_HOME
 export CC=gcc
 export CXX=g++
-./scripts/setup_env.py --cmake  --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
+export LEGION_SRC=$HOME/work/legion
+export LEGION_INSTALL_PATH=$HOME/work/legion_install
+./scripts/setup_env.py --cmake  --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1 --extra=-DCMAKE_INSTALL_PREFIX=$LEGION_INSTALL_PATH
 export REGENT=$LEGION_DIR/language/regent.py
 alias regent=$REGENT
 ```
