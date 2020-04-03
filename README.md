@@ -9,10 +9,14 @@ Calculates two-electron repulsion integrals with Regent
 Start by cloning Legion
 
 ```bash
-git clone https://github.com/StanfordLegion/legion.git
+git clone https://github.com/StanfordLegion/legion.git -b hijack_registration_hack
 export LEGION_DIR=$PWD/legion
-cd $LEGION_DIR
-git checkout master
+```
+
+Edit $LEGION_DIR/runtime/realm/cuda/cuda_module.cc at line 2656 to insert the following line:
+
+```
+if(i<1)continue;
 ```
 
 When more than 1 GB of memory is needed, you must build Legion with `luajit2.1`.
