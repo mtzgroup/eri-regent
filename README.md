@@ -9,7 +9,7 @@ Calculates two-electron repulsion integrals with Regent
 Start by cloning Legion
 
 ```bash
-git clone https://github.com/StanfordLegion/legion.git -b hijack_registration_hack
+git clone https://gitlab.com/StanfordLegion/legion.git -b hijack_registration_hack
 export LEGION_DIR=$PWD/legion
 ```
 
