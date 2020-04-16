@@ -9,10 +9,14 @@ Calculates two-electron repulsion integrals with Regent
 Start by cloning Legion
 
 ```bash
-git clone https://github.com/StanfordLegion/legion.git
+git clone https://gitlab.com/StanfordLegion/legion.git -b hijack_registration_hack
 export LEGION_DIR=$PWD/legion
-cd $LEGION_DIR
-git checkout master
+```
+
+Edit $LEGION_DIR/runtime/realm/cuda/cuda_module.cc at line 2656 to insert the following line:
+
+```
+if(i<1)continue;
 ```
 
 When more than 1 GB of memory is needed, you must build Legion with `luajit2.1`.
@@ -40,7 +44,9 @@ export USE_CUDA=1
 export CUDA=$CUDA_HOME
 export CC=gcc
 export CXX=g++
-./scripts/setup_env.py --cmake  --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1
+export LEGION_SRC=$HOME/work/legion
+export LEGION_INSTALL_PATH=$HOME/work/legion_install
+./scripts/setup_env.py --cmake  --terra-url https://github.com/StanfordLegion/terra.git --terra-branch luajit2.1 --extra=-DCMAKE_INSTALL_PREFIX=$LEGION_INSTALL_PATH
 export REGENT=$LEGION_DIR/language/regent.py
 alias regent=$REGENT
 ```
@@ -75,6 +81,7 @@ make
 
 This will produce a binary inside `eri-regent/build`.
 ```bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LEGION_DIR/language/build/lib/
 cd eri-regent
 # To run JFock algorithm
 build/eri_regent_test -i src/tests/integ/h2o -a jfock

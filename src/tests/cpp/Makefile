@@ -15,7 +15,13 @@ ERI_REGENT_SRC := $(PWD)/../..
 CPP := c++
 CPPFLAGS := -O2 -Wall -Werror -std=c++11
 CPPFLAGS += -I$(LEGIONHOME)/include -I$(PREFIX)/include -I$(ERI_REGENT_SRC)/cpp
+ifdef LEGION_DIR
+CPPFLAGS += -I$(LEGION_DIR)/runtime -I$(LEGION_DIR)/language/build/runtime/
+endif
 LDFLAGS := -L$(LEGIONLIB) -lrealm -llegion -lregent -L$(ERI_REGENT_LIB) -lERIRegent
+ifdef LEGION_DIR
+LDFLAGS += -L$(LEGION_DIR)/language/build/lib/
+endif
 LDFLAGS += -Wl,-rpath,$(LEGIONLIB),-rpath,$(ERI_REGENT_LIB)
 
 SRCS := main.cpp
