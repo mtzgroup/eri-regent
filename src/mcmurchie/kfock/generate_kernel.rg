@@ -1,6 +1,7 @@
 import "regent"
 
 require "helper"
+local c = regentlib.c -- KGJ: delete this
 
 -- This function returns the index of elements on an NxN triangle.
 -- For N = 3 we get.   For N = 4 we get.
@@ -34,6 +35,18 @@ local function magic3(x, y, z)
      {5, 8, 9}}  --     9
   }
   return pattern[x+1][y+1][z+1]
+end
+
+-- returns the expeted number of bra preprocessed values
+local function num_bra_preproc(L1, L2)
+  -- Note: beyond L1=L2=2 is not actually implemented in TeraChem
+  local values = {
+    { 0,   4,  16,   47}, -- L1 = 0
+    { 4,  25,  91,  244}, -- L1 = 1
+    {16,  91, 301,  757}, -- L1 = 2
+    {47, 244, 757, 1820}  -- L1 = 3
+  }
+  return values[L1+1][L2+1]
 end
 
 function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
@@ -679,9 +692,128 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
     -- TODO: results[1..2][0..2] are not yet written.
 
   else
+  --------------------------------------------------------------------------
     -- All kernels above PPPP except SSSD and SSDS.
-    -- TODO
+    c.printf("Compiling a D kernel...\n\n")
+
+    -- Loop through as follows: [ -2nd- , -3rd- | -1st- , __ ]  Loop index notation: (ij|kl)
+
+    local H12, H34 = tetrahedral_number(L1+L2+1), tetrahedral_number(L3+L4+1)
+    
+    c.printf("\nL1 = %1.f  L2 = %1.f  L3 = %1.f  L4 = %1.f\n", L1, L2, L3, L4)
+    c.printf("\nH12 = %1.f  H34 = %1.f\n", H12, H34)
+
+    local patternL1 = generateJFockSpinPatternRestricted(L1)
+    local patternL2 = generateJFockSpinPatternRestricted(L2)
+    local patternL3 = generateJFockSpinPatternRestricted(L3)
+    local Dpattern = generateJFockSpinPatternRestricted(L4)
+
+    local pattern12 = generateJFockSpinPatternSorted(L1+L2)
+    local pattern34 = generateJFockSpinPatternSorted(L3+L4)
+
+    -- TODO: initialize arrays out here?
+    local ket_count = -1
+    c.printf("Triangle numbers: L1 = %1.f  L2 = %1.f  L3 = %1.f  L4 = %1.f\n\n", triangle_number(L1+1), triangle_number(L2+1),triangle_number(L3+1),triangle_number(L4+1)) 
+    for k = 0, triangle_number(L3+1)-1 do -- inclusive
+      c.printf("k = %1.f\n", k)
+      local largest_ket_count = ket_count + 1 -- move ket preprocessing counter to the next chunk
+      local bra_count = 0 -- bra preprocessing counter
+      for i = 0, triangle_number(L1+1)-1 do -- inclusive
+        c.printf("    i = %1.f\n", i)
+        for j = 0, triangle_number(L2+1)-1 do -- inclusive
+          c.printf("        j = %1.f\n", j)
+          ket_count = largest_ket_count -- reset ket preprocessing counter 
+          local Ni, Li, Mi = unpack(patternL1[i+1])
+          local Nj, Lj, Mj = unpack(patternL2[j+1])
+          local Nk, Lk, Mk = unpack(patternL3[k+1])
+          local Lfilt = {Ni+Nj, Li+Lj, Mi+Mj}
+
+          -- apply density filter
+          for l = 0, triangle_number(L4+1)-1 do -- inclusive
+            Dpattern[l+1][1] = Dpattern[l+1][1] + Nk
+            Dpattern[l+1][2] = Dpattern[l+1][2] + Lk
+            Dpattern[l+1][3] = Dpattern[l+1][3] + Mk
+          end
+
+          -- Write L expressions and ket preprocessing
+          --local D = {}   -- make loop-local copy of the part of the density we need (necessary?)
+          --for l = 0, triangle_number(L4+1)-1 do -- inclusive
+          --  D[l] = rexpr [density][j][l] end -- regent arrays are zero-indexed
+          --end
+          local Larr = {} -- Reset L arrays. More are allocated here than necessary
+          for x = 0, L1+L2 do -- inclusive
+            Larr[x] = {}
+            for y = 0, L1+L2 do -- inclusive
+              Larr[x][y] = {}
+              for z = 0, L1+L2 do -- inclusive
+                Larr[x][y][z] = 0.0
+              end
+            end
+          end
+
+          for u = 0, H34-1 do -- inclusive
+            for t = 0, H12-1 do -- inclusive
+              local Nt, Lt, Mt = unpack(pattern12[t+1])
+              local Nu, Lu, Mu = unpack(pattern34[u+1])
+              local N, L, M = Nt + Nu, Lt + Lu, Mt + Mu
+              local coeff = 0 
+              -- Handle density complications here
+              if t == 0 then
+                local den = {}
+                for l = 0, triangle_number(L4+1)-1 do -- inclusive
+                  local X = Dpattern[l+1][1] - N
+                  local Y = Dpattern[l+1][2] - L
+                  local Z = Dpattern[l+1][3] - M
+                  if X >= 0 and Y >=0 and Z >= 0 then
+                    table.insert(den, l)
+                  end
+                end
+                -- if density list is empty, break out of t loop
+                if table.getn(den) == 0 then break end
+                -- Now add density contributions
+                for l = 0, table.getn(den)-1 do -- inclusive
+                  --coeff = rexpr coeff + [D[den[l+1]]] * ket_prevals[{ket_idx, ket_count}] end  -- den is one-indexed
+                  --coeff = rexpr coeff + [density][j][den[l+1]] * ket_prevals[{ket_idx, ket_count}] end  -- den is one-indexed
+                  local idx = den[l+1]
+                  coeff = rexpr coeff + [density][j][idx] * ket_prevals[{ket_idx, ket_count}] end  -- den is one-indexed
+                  ket_count = ket_count + 1
+                end
+                -- If you're on last ket level, don't increment ket preprocessing counter
+                if N+L+M == L3+L4 then ket_count = ket_count - 1 end
+              end
+              -- Write L expressions
+              if Nt <= Lfilt[1] and Lt <= Lfilt[2] and Mt <= Lfilt[3] then
+                if (Nu + Lu + Mu) % 2 == 0 then
+                  Larr[Nt][Lt][Mt] = rexpr [Larr[Nt][Lt][Mt]] + [R[N][L][M][0]] * coeff end
+                else
+                  Larr[Nt][Lt][Mt] = rexpr [Larr[Nt][Lt][Mt]] - [R[N][L][M][0]] * coeff end
+                end
+              end
+            end
+          end
+          -- Write bra post-processing and results
+          for t = 0, H12-1 do -- inclusive
+            local Nt, Lt, Mt = unpack(pattern12[t+1])
+            if Nt <= Lfilt[1] and Lt <= Lfilt[2] and Mt <= Lfilt[3] then
+              -- if you're on last bra level, use special preprocessed value
+              if Nt + Lt + Mt == L1 + L2 then
+                local tot_bra_preproc = num_bra_preproc(L1,L2)
+                results[i][k] = rexpr [results[i][k]] + [Larr[Nt][Lt][Mt]] * bra_prevals[{bra_idx, tot_bra_preproc - 1}] end 
+              else
+                results[i][k] = rexpr [results[i][k]] + [Larr[Nt][Lt][Mt]] * bra_prevals[{bra_idx, bra_count}] end 
+                bra_count = bra_count + 1 
+              end
+            end
+          end
+
+        end
+      end
+    end
+
   end
+
+
+  -----------------------------------------------------------------------------
 
   local statements = terralib.newlist()
   for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
