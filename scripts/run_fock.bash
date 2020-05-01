@@ -7,12 +7,15 @@
 #SBATCH --partition normal
 #SBATCH --gres gpu:2
 
-source ~/setup.bash
-
+export REGENT=$WORK/legion/language/regent.py
+module load GCC/4.9.2-binutils-2.25
 module load intel/2017u8
 module load binutils/2.25
+module load CUDA/9.0.176
+module load binutils/2.25
 
-cd ~/work/production/regintbox/src/eri-regent/src
+
+cd $WORK/production/regintbox/src/eri-regent/src
 
 srun $REGENT top_jfock.rg -L P -i tests/integ/h2o -v tests/integ/h2o/output.dat 
 

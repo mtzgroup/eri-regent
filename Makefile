@@ -32,7 +32,7 @@ RGSRCS += $(RGSRC)/mcmurchie/generate_R_table.rg
 
 .PHONY: rg.clean
 
-INCLUDE_PATH += ";$(CUDAINC)"
+INCLUDE_PATH += ";$(CUDA_HOME)/include"
 
 all: $(RGTARGETS)
 

@@ -19,6 +19,15 @@ Edit $LEGION_DIR/runtime/realm/cuda/cuda_module.cc at line 2656 to insert the fo
 if(i<1)continue;
 ```
 
+### Submodule
+
+Normally this project (eri-regent) is a submodule of the larger TeraChem project and is located at production/regintbox/src/eri-regent.  
+When this is the case you should build Legion using the scripts in production/scripts/xstream, such as build_legion_k80.bash.
+
+### Standalone
+
+If you are building eri-regent in a standalone configuration follow these instructions:
+
 When more than 1 GB of memory is needed, you must build Legion with `luajit2.1`.
 Instructions for building on Ubuntu Linux:
 
