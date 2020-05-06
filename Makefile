@@ -1,3 +1,6 @@
+
+-include ../../../make.vars
+
 ifndef RGLIB
 RGLIB := $(PWD)/build/lib
 endif
@@ -32,7 +35,7 @@ RGSRCS += $(RGSRC)/mcmurchie/generate_R_table.rg
 
 .PHONY: rg.clean
 
-INCLUDE_PATH += ";$(CUDA_HOME)/include"
+INCLUDE_PATH += ";$(CUDAINC)"
 
 all: $(RGTARGETS)
 
@@ -42,7 +45,7 @@ ifndef RG_MAX_MOMENTUM
 endif
 	@mkdir -p $(RGLIB) $(RGINCLUDE)
 	INCLUDE_PATH=$(INCLUDE_PATH) \
-	$(REGENT) $(RGSRC)/generate_lib.rg --lib $(RGLIB)/libERIRegent.so --header $(RGINCLUDE)/eri_regent_tasks.h -L $(RG_MAX_MOMENTUM) $(RGFLAGS)
+	$(REGENT) $(RGSRC)/generate_lib.rg --lib $(RGLIB)/libERIRegent.so --header $(RGINCLUDE)/eri_regent_tasks.h -L $(RG_MAX_MOMENTUM) $(RGFLAGS) 
 
 $(RGINCLUDE)/eri_regent_tasks.h: $(RGLIB)/libERIRegent.so
 
