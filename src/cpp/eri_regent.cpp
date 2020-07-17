@@ -2,6 +2,7 @@
 #include "eri_regent_tasks.h"
 #include "helper.h"
 #include "legion.h"
+#include <stdio.h>  // for printf (KGJ remove)
 
 using namespace std;
 using namespace Legion;
@@ -219,6 +220,7 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_SQUARE(L1, L2);
+      //printf("KGJ: get_num_kpairs(%d, %d) = %d \n", L1, L2, kdata_list.get_num_kpairs(L1, L2));
       if (kdata_list.get_num_kpairs(L1, L2) == 0) {
         kpair_ispace_list[index] =
             runtime->create_index_space(ctx, Rect<1>::make_empty());
@@ -247,6 +249,7 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_SQUARE(L1, L2);
+      //printf("KGJ: get_num_kbra_prevals(%d, %d) = %d \n", L1, L2, kdata_list.get_num_kbra_prevals(L1, L2));
       if (kdata_list.get_num_kpairs(L1, L2) == 0 ||
           kdata_list.get_num_kbra_prevals(L1, L2) == 0) {
         // FIXME: Crashes when trying to create an empty region.
@@ -257,6 +260,10 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
                            {kdata_list.get_num_kpairs(L1, L2) - 1,
                             kdata_list.get_num_kbra_prevals(L1, L2) - 1});
         kbra_preval_ispace_list[index] = runtime->create_index_space(ctx, rect);
+        /// KGJ: TESTING
+        //printf("MEMORY TEST: get_num_kpairs(%d, %d) = %d \n", L1, L2, kdata_list.get_num_kpairs(L1, L2));
+        //printf("MEMORY TEST: get_num_kbra_prevals(%d, %d) = %d \n", L1, L2, kdata_list.get_num_kbra_prevals(L1, L2));
+        ///
       }
       kbra_preval_lr_list[index] = runtime->create_logical_region(
           ctx, kbra_preval_ispace_list[index], kbra_preval_fspaces[index]);
@@ -279,6 +286,7 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   IndexSpace kket_preval_ispace_list[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
+      //printf("KGJ: get_num_kket_prevals(%d, %d) = %d \n", L1, L2, kdata_list.get_num_kket_prevals(L1, L2));
       const int index = INDEX_SQUARE(L1, L2);
       if (kdata_list.get_num_kpairs(L1, L2) == 0 ||
           kdata_list.get_num_kket_prevals(L1, L2) == 0) {
@@ -289,6 +297,10 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
                            {kdata_list.get_num_kpairs(L1, L2) - 1,
                             kdata_list.get_num_kket_prevals(L1, L2) - 1});
         kket_preval_ispace_list[index] = runtime->create_index_space(ctx, rect);
+        /// KGJ: TESTING
+        //printf("\nMEMORY TEST: get_num_kpairs(%d, %d) = %d \n", L1, L2, kdata_list.get_num_kpairs(L1, L2));
+        //printf("MEMORY TEST: get_num_kket_prevals(%d, %d) = %d \n", L1, L2, kdata_list.get_num_kket_prevals(L1, L2));
+        ///
       }
       kket_preval_lr_list[index] = runtime->create_logical_region(
           ctx, kket_preval_ispace_list[index], kket_preval_fspaces[index]);
@@ -311,6 +323,8 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   IndexSpace kdensity_ispace_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
     for (int L4 = L2; L4 <= MAX_MOMENTUM; L4++) {
+      //printf("KGJ: get_num_shells(%d) = %d \n", L2, kdata_list.get_num_shells(L2));
+      //printf("KGJ: get_num_shells(%d) = %d \n", L4, kdata_list.get_num_shells(L4));
       const int index = INDEX_UPPER_TRIANGLE(L2, L4);
       if (kdata_list.get_num_shells(L2) == 0 ||
           kdata_list.get_num_shells(L4) == 0) {
@@ -343,6 +357,9 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   IndexSpace koutput_ispace_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L3 = L1; L3 <= MAX_MOMENTUM; L3++) {
+      //printf("KGJ: get_num_shells(%d) = %d \n", L1, kdata_list.get_num_shells(L1));
+      //printf("KGJ: get_num_shells(%d) = %d \n", L3, kdata_list.get_num_shells(L3));
+      //printf("KGJ: get_largest_momentum() = %d \n", kdata_list.get_largest_momentum());
       const int index = INDEX_UPPER_TRIANGLE(L1, L3);
       if (kdata_list.get_num_shells(L1) == 0 ||
           kdata_list.get_num_shells(L3) == 0) {

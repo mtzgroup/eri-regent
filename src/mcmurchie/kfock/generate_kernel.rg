@@ -49,10 +49,80 @@ local function num_bra_preproc(L1, L2)
   return values[L1+1][L2+1]
 end
 
-function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
+
+-- returns the ket_count for a given k loop (used in D kernels)
+local function get_ket_count(L3, L4, k)
+  local values = {
+    {{  0},            -- SS (not used)
+     {  0},            -- SP (not used)
+     {  0}},           -- SD
+
+    {{  0,   2,   4},  -- PS
+     {  0,   9,  18},  -- PP
+     {  0,  31,  62}}, -- PD
+
+    {{  0,   4,   8,  12,  15,  18},  -- DS
+     {  0,  18,  36,  54,  68,  82},  -- DP
+     {  0,  56, 112, 168, 214, 260}}  -- DD
+  }
+  return values[L3+1][L4+1][k+1]
+end
+
+
+-- index by [i+1][k+1] since terra tables are one-indexed
+-- TODO: extend this past D
+local bra_norms = {
+
+  {1.00000000000000000000,  -- i = 0 
+   1.00000000000000000000,
+   1.00000000000000000000,
+   0.57735026918962576452,
+   0.57735026918962576452,
+   0.57735026918962576452}, 
+
+  {1.00000000000000000000,  -- i = 1 
+   1.00000000000000000000,
+   1.00000000000000000000,
+   0.57735026918962576452,
+   0.57735026918962576452,
+   0.57735026918962576452}, 
+
+  {1.00000000000000000000,  -- i = 2 
+   1.00000000000000000000,
+   1.00000000000000000000,
+   0.57735026918962576452,
+   0.57735026918962576452,
+   0.57735026918962576452}, 
+
+  {0.57735026918962576452,  -- i = 3
+   0.57735026918962576452,
+   0.57735026918962576452,
+   0.33333333333333333333,
+   0.33333333333333333333,
+   0.33333333333333333333}, 
+
+  {0.57735026918962576452,  -- i = 4
+   0.57735026918962576452,
+   0.57735026918962576452,
+   0.33333333333333333333,
+   0.33333333333333333333,
+   0.33333333333333333333}, 
+
+  {0.57735026918962576452,  -- i = 5
+   0.57735026918962576452,
+   0.57735026918962576452,
+   0.33333333333333333333,
+   0.33333333333333333333,
+   0.33333333333333333333} 
+
+}
+
+function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
                                        bra_prevals, ket_prevals,
                                        bra_idx, ket_idx,
                                        density, output)
+
+  local statements = terralib.newlist() -- TODO: move this back down after debugging
 
   local function getR(N, L, M)
     if R[N] == nil or R[N][L] == nil or R[N][L][M] == nil or R[N][L][M][0] == nil then
@@ -106,6 +176,10 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
           local density_triplet
           if L2 == 0 and L4 == 0 then
             density_triplet = {rexpr [density][n][0] end, 0, 0}
+          elseif L2 > L4 then                                     -- KGJ: special case for SPPS kernel
+            density_triplet = {rexpr [density][0][n] end,
+                               rexpr [density][1][n] end,
+                               rexpr [density][2][n] end}
           else
             density_triplet = {rexpr [density][n][0] end,
                                rexpr [density][n][1] end,
@@ -241,494 +315,64 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
       (D * Qix * Qix + D * denomQi) * [getR(0, 0, 0)]
       -2 * D * denomQi * Qix * [getR(1, 0, 0)]
       + D * denomQi * denomQi * [getR(2, 0, 0)]
-      ) * 0.577350269 -- = normc<2,0,0>(), I'm not sure where this comes from.
+      --) * 0.577350269 -- = normc<2,0,0>(), I'm not sure where this comes from.  TODO: remove this, will get accounted for below
+      )
     end
     results[0][4] = rexpr
       (
       (D * Qiy * Qiy + D * denomQi) * [getR(0, 0, 0)]
       -2 * D * Qiy * denomQi * [getR(0, 1, 0)]
       + D * denomQi * denomQi * [getR(0, 2, 0)]
-      ) * 0.577350269
+      --) * 0.577350269
+      )
     end
     results[0][5] = rexpr
       (
       (D * Qiz * Qiz + D * denomQi) * [getR(0, 0, 0)]
       -2 * D * denomQi * Qiz * [getR(0, 0, 1)]
       + D * denomQi * denomQi * [getR(0, 0, 2)]
-      ) * 0.577350269
+      --) * 0.577350269
+      )
     end
-
-  elseif L1 == 1 and L2 == 0 and L3 == 1 and L4 == 2 then
-  -------------------------------------PSPD-------------------------------------
-
-    local D00 = rexpr [density][0][0] end
-    local D01 = rexpr [density][0][1] end
-    local D02 = rexpr [density][0][2] end
-    local D03 = rexpr [density][0][3] end
-    local D04 = rexpr [density][0][4] end
-    local D05 = rexpr [density][0][5] end
-
-    local coeff = rexpr
-      D00*ket_prevals[{ket_idx, 0}]
-      + D01*ket_prevals[{ket_idx, 1}]
-      + D02*ket_prevals[{ket_idx, 2}]
-      + D03*ket_prevals[{ket_idx, 3}]
-      + D04*ket_prevals[{ket_idx, 4}]
-      + D05*ket_prevals[{ket_idx, 5}]
-    end
-
-    local L000 = rexpr [R[0][0][0][0]] * coeff end
-    local L100 = rexpr [R[1][0][0][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx, 6}]
-      + D01*ket_prevals[{ket_idx, 7}]
-      + D02*ket_prevals[{ket_idx, 8}]
-      + D03*ket_prevals[{ket_idx, 9}]
-      + D04*ket_prevals[{ket_idx, 10}]
-      + D05*ket_prevals[{ket_idx, 11}]
-    end
-
-    L000 = rexpr L000 - [R[1][0][0][0]] * coeff end
-    L100 = rexpr L100 - [R[2][0][0][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx, 12}]
-      + D02*ket_prevals[{ket_idx, 13}]
-      + D04*ket_prevals[{ket_idx, 14}]
-    end
-
-    L000 = rexpr L000 - [R[0][1][0][0]] * coeff end
-    L100 = rexpr L100 - [R[1][1][0][0]] * coeff end
-
-    coeff = rexpr
-      D01*ket_prevals[{ket_idx,  15}]
-      + D02*ket_prevals[{ket_idx,  16}]
-      + D05*ket_prevals[{ket_idx,  17}]
-    end
-
-    L000 = rexpr L000 - [R[0][0][1][0]] * coeff end
-    L100 = rexpr L100 - [R[1][0][1][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx,  18}]
-      + D02*ket_prevals[{ket_idx,  19}]
-      + D04*ket_prevals[{ket_idx,  20}]
-    end
-
-    L000 = rexpr L000 + [R[1][1][0][0]] * coeff end
-    L100 = rexpr L100 + [R[2][1][0][0]] * coeff end
-
-    coeff = rexpr
-      D01*ket_prevals[{ket_idx,  21}]
-      + D02*ket_prevals[{ket_idx,  22}]
-      + D05*ket_prevals[{ket_idx,  23}]
-    end
-
-    L000 = rexpr L000 + [R[1][0][1][0]] * coeff end
-    L100 = rexpr L100 + [R[2][0][1][0]] * coeff end
-
-    coeff = rexpr
-      D02*ket_prevals[{ket_idx,  24}]
-    end
-
-    L000 = rexpr L000 + [R[0][1][1][0]] * coeff end
-    L100 = rexpr L100 + [R[1][1][1][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx,  25}]
-      + D01*ket_prevals[{ket_idx,  26}]
-      + D03*ket_prevals[{ket_idx,  27}]
-    end
-
-    L000 = rexpr L000 + [R[2][0][0][0]] * coeff end
-    L100 = rexpr L100 + [R[3][0][0][0]] * coeff end
-
-    coeff = rexpr
-      D04*ket_prevals[{ket_idx,  28}]
-    end
-
-    L000 = rexpr L000 + [R[0][2][0][0]] * coeff end
-    L100 = rexpr L100 + [R[1][2][0][0]] * coeff end
-
-    coeff = rexpr
-      D05*ket_prevals[{ket_idx,  29}]
-    end
-
-    L000 = rexpr L000 + [R[0][0][2][0]] * coeff end
-    L100 = rexpr L100 + [R[1][0][2][0]] * coeff end
-
-    coeff = rexpr
-      D02*ket_prevals[{ket_idx,  30}]
-    end
-
-    L000 = rexpr L000 - [R[1][1][1][0]] * coeff end
-    L100 = rexpr L100 - [R[2][1][1][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx,  30}]
-    end
-
-    L000 = rexpr L000 - [R[2][1][0][0]] * coeff end
-    L100 = rexpr L100 - [R[3][1][0][0]] * coeff end
-
-    coeff = rexpr
-      D04*ket_prevals[{ket_idx,  30}]
-    end
-
-    L000 = rexpr L000 - [R[1][2][0][0]] * coeff end
-    L100 = rexpr L100 - [R[2][2][0][0]] * coeff end
-
-    coeff = rexpr
-      D01*ket_prevals[{ket_idx,  30}]
-    end
-
-    L000 = rexpr L000 - [R[2][0][1][0]] * coeff end
-    L100 = rexpr L100 - [R[3][0][1][0]] * coeff end
-
-
-    coeff = rexpr
-      D05*ket_prevals[{ket_idx,  30}]
-    end
-
-    L000 = rexpr L000 - [R[1][0][2][0]] * coeff end
-    L100 = rexpr L100 - [R[2][0][2][0]] * coeff end
-
-
-    coeff = rexpr
-      D03*ket_prevals[{ket_idx,  30}]
-    end
-
-    L000 = rexpr L000 - [R[3][0][0][0]] * coeff end
-    L100 = rexpr L100 - [R[4][0][0][0]] * coeff end
-
-
-    results[0][0] = rexpr
-      L000*bra_prevals[{bra_idx, 0}]
-      + L100*bra_prevals[{bra_idx, 3}]
-    end
-
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx,  31}]
-      + D01*ket_prevals[{ket_idx,  32}]
-      + D02*ket_prevals[{ket_idx,  33}]
-      + D03*ket_prevals[{ket_idx,  34}]
-      + D04*ket_prevals[{ket_idx,  35}]
-      + D05*ket_prevals[{ket_idx,  36}]
-    end
-
-    L000  = rexpr [R[0][0][0][0]] * coeff end
-    L100  = rexpr [R[1][0][0][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx,  37}]
-      + D01*ket_prevals[{ket_idx,  38}]
-      + D03*ket_prevals[{ket_idx,  39}]
-    end
-
-    L000  = rexpr L000 - [R[1][0][0][0]] * coeff end
-    L100  = rexpr L100 - [R[2][0][0][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx,  40}]
-      + D01*ket_prevals[{ket_idx,  41}]
-      + D02*ket_prevals[{ket_idx,  42}]
-      + D03*ket_prevals[{ket_idx,  43}]
-      + D04*ket_prevals[{ket_idx,  44}]
-      + D05*ket_prevals[{ket_idx,  45}]
-    end
-
-    L000  = rexpr L000 - [R[0][1][0][0]] * coeff end
-    L100  = rexpr L100 - [R[1][1][0][0]] * coeff end
-
-    coeff = rexpr
-      D01*ket_prevals[{ket_idx,  46}]
-      + D02*ket_prevals[{ket_idx,  47}]
-      + D05*ket_prevals[{ket_idx,  48}]
-    end
-
-    L000  = rexpr L000 - [R[0][0][1][0]] * coeff end
-    L100  = rexpr L100 - [R[1][0][1][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx,  49}]
-      + D01*ket_prevals[{ket_idx,  50}]
-      + D03*ket_prevals[{ket_idx,  51}]
-    end
-
-    L000  = rexpr L000 + [R[1][1][0][0]] * coeff end
-    L100  = rexpr L100 + [R[2][1][0][0]] * coeff end
-
-    coeff = rexpr
-      D01*ket_prevals[{ket_idx,  52}]
-    end
-
-    L000  = rexpr L000 + [R[1][0][1][0]] * coeff end
-    L100  = rexpr L100 + [R[2][0][1][0]] * coeff end
-
-    coeff = rexpr
-      D01*ket_prevals[{ket_idx,  53}]
-      + D02*ket_prevals[{ket_idx,  54}]
-      + D05*ket_prevals[{ket_idx,  55}]
-    end
-
-    L000  = rexpr L000 + [R[0][1][1][0]] * coeff end
-    L100  = rexpr L100 + [R[1][1][1][0]] * coeff end
-
-    coeff = rexpr
-      D03*ket_prevals[{ket_idx,  56}]
-    end
-
-    L000  = rexpr L000 + [R[2][0][0][0]] * coeff end
-    L100  = rexpr L100 + [R[3][0][0][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx,  57}]
-      + D02*ket_prevals[{ket_idx,  58}]
-      + D04*ket_prevals[{ket_idx,  59}]
-    end
-
-    L000  = rexpr L000 + [R[0][2][0][0]] * coeff end
-    L100  = rexpr L100 + [R[1][2][0][0]] * coeff end
-
-    coeff = rexpr
-      D05*ket_prevals[{ket_idx,  60}]
-    end
-
-    L000  = rexpr L000 + [R[0][0][2][0]] * coeff end
-    L100  = rexpr L100 + [R[1][0][2][0]] * coeff end
-
-    coeff = rexpr
-      D01*ket_prevals[{ket_idx,  61}]
-    end
-
-    L000  = rexpr L000 - [R[1][1][1][0]] * coeff end
-    L100  = rexpr L100 - [R[2][1][1][0]] * coeff end
-
-    coeff = rexpr
-      D03*ket_prevals[{ket_idx,  61}]
-    end
-
-    L000  = rexpr L000 - [R[2][1][0][0]] * coeff end
-    L100  = rexpr L100 - [R[3][1][0][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx,  61}]
-    end
-
-    L000  = rexpr L000 - [R[1][2][0][0]] * coeff end
-    L100  = rexpr L100 - [R[2][2][0][0]] * coeff end
-
-
-    coeff = rexpr
-      D02*ket_prevals[{ket_idx,  61}]
-    end
-
-    L000  = rexpr L000 - [R[0][2][1][0]] * coeff end
-    L100  = rexpr L100 - [R[1][2][1][0]] * coeff end
-
-
-    coeff = rexpr
-      D05*ket_prevals[{ket_idx,  61}]
-    end
-
-    L000  = rexpr L000 - [R[0][1][2][0]] * coeff end
-    L100  = rexpr L100 - [R[1][1][2][0]] * coeff end
-
-
-    coeff = rexpr
-      D04*ket_prevals[{ket_idx,  61}]
-    end
-
-    L000  = rexpr L000 - [R[0][3][0][0]] * coeff end
-    L100  = rexpr L100 - [R[1][3][0][0]] * coeff end
-
-    results[0][1] = rexpr
-      L000 * bra_prevals[{bra_idx, 0}]
-      + L100 * bra_prevals[{bra_idx, 3}]
-    end
-
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx, 62}]
-      + D01*ket_prevals[{ket_idx, 63}]
-      + D02*ket_prevals[{ket_idx, 64}]
-      + D03*ket_prevals[{ket_idx, 65}]
-      + D04*ket_prevals[{ket_idx, 66}]
-      + D05*ket_prevals[{ket_idx, 67}]
-    end
-
-    L000 = rexpr [R[0][0][0][0]] * coeff end
-    L100 = rexpr [R[1][0][0][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx, 68}]
-      + D01*ket_prevals[{ket_idx, 69}]
-      + D03*ket_prevals[{ket_idx, 70}]
-    end
-
-    L000 = rexpr L000 - [R[1][0][0][0]] * coeff end
-    L100 = rexpr L100 - [R[2][0][0][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx, 71}]
-      + D02*ket_prevals[{ket_idx, 72}]
-      + D04*ket_prevals[{ket_idx, 73}]
-    end
-
-    L000 = rexpr L000 - [R[0][1][0][0]] * coeff end
-    L100 = rexpr L100 - [R[1][1][0][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx, 74}]
-      + D01*ket_prevals[{ket_idx, 75}]
-      + D02*ket_prevals[{ket_idx, 76}]
-      + D03*ket_prevals[{ket_idx, 77}]
-      + D04*ket_prevals[{ket_idx, 78}]
-      + D05*ket_prevals[{ket_idx, 79}]
-    end
-
-    L000 = rexpr L000 - [R[0][0][1][0]] * coeff end
-    L100 = rexpr L100 - [R[1][0][1][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx, 80}]
-    end
-
-    L000 = rexpr L000 + [R[1][1][0][0]] * coeff end
-    L100 = rexpr L100 + [R[2][1][0][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx, 81}]
-      + D01*ket_prevals[{ket_idx, 82}]
-      + D03*ket_prevals[{ket_idx, 83}]
-    end
-
-    L000 = rexpr L000 + [R[1][0][1][0]] * coeff end
-    L100 = rexpr L100 + [R[2][0][1][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx, 84}]
-      + D02*ket_prevals[{ket_idx, 85}]
-      + D04*ket_prevals[{ket_idx, 86}]
-    end
-
-    L000 = rexpr L000 + [R[0][1][1][0]] * coeff end
-    L100 = rexpr L100 + [R[1][1][1][0]] * coeff end
-
-    coeff = rexpr
-      D03*ket_prevals[{ket_idx, 87}]
-    end
-
-    L000 = rexpr L000 + [R[2][0][0][0]] * coeff end
-    L100 = rexpr L100 + [R[3][0][0][0]] * coeff end
-
-    coeff = rexpr
-      D04*ket_prevals[{ket_idx, 88}]
-    end
-
-    L000 = rexpr L000 + [R[0][2][0][0]] * coeff end
-    L100 = rexpr L100 + [R[1][2][0][0]] * coeff end
-
-    coeff = rexpr
-      D01*ket_prevals[{ket_idx, 89}]
-      + D02*ket_prevals[{ket_idx, 90}]
-      + D05*ket_prevals[{ket_idx, 91}]
-    end
-
-    L000 = rexpr L000 + [R[0][0][2][0]] * coeff end
-    L100 = rexpr L100 + [R[1][0][2][0]] * coeff end
-
-    coeff = rexpr
-      D00*ket_prevals[{ket_idx, 92}]
-    end
-
-    L000 = rexpr L000 - [R[1][1][1][0]] * coeff end
-    L100 = rexpr L100 - [R[2][1][1][0]] * coeff end
-
-
-    coeff = rexpr
-      D03*ket_prevals[{ket_idx, 92}]
-    end
-
-    L000 = rexpr L000 - [R[2][0][1][0]] * coeff end
-    L100 = rexpr L100 - [R[3][0][1][0]] * coeff end
-
-    coeff = rexpr
-      D04*ket_prevals[{ket_idx, 92}]
-    end
-
-    L000 = rexpr L000 - [R[0][2][1][0]] * coeff end
-    L100 = rexpr L100 - [R[1][2][1][0]] * coeff end
-
-    coeff = rexpr
-      D01*ket_prevals[{ket_idx, 92}]
-    end
-
-    L000 = rexpr L000 - [R[1][0][2][0]] * coeff end
-    L100 = rexpr L100 - [R[2][0][2][0]] * coeff end
-
-    coeff = rexpr
-      D02*ket_prevals[{ket_idx, 92}]
-    end
-
-    L000 = rexpr L000 - [R[0][1][2][0]] * coeff end
-    L100 = rexpr L100 - [R[1][1][2][0]] * coeff end
-
-
-    coeff = rexpr
-      D05*ket_prevals[{ket_idx, 92}]
-    end
-
-    L000 = rexpr L000 - [R[0][0][3][0]] * coeff end
-    L100 = rexpr L100 - [R[1][0][3][0]] * coeff end
-
-    results[0][2] = rexpr
-      L000*bra_prevals[{bra_idx, 0}]
-      + L100*bra_prevals[{bra_idx, 3}]
-    end
-
-    -- TODO: results[1..2][0..2] are not yet written.
 
   else
   --------------------------------------------------------------------------
     -- All kernels above PPPP except SSSD and SSDS.
-    c.printf("Compiling a D kernel...\n\n")
+    --c.printf("Compiling a D kernel...\n\n")
 
     -- Loop through as follows: [ -2nd- , -3rd- | -1st- , __ ]  Loop index notation: (ij|kl)
 
     local H12, H34 = tetrahedral_number(L1+L2+1), tetrahedral_number(L3+L4+1)
     
-    c.printf("\nL1 = %1.f  L2 = %1.f  L3 = %1.f  L4 = %1.f\n", L1, L2, L3, L4)
-    c.printf("\nH12 = %1.f  H34 = %1.f\n", H12, H34)
+    --c.printf("\nL1 = %1.f  L2 = %1.f  L3 = %1.f  L4 = %1.f\n", L1, L2, L3, L4)
+    --c.printf("\nH12 = %1.f  H34 = %1.f\n", H12, H34)
 
     local patternL1 = generateJFockSpinPatternRestricted(L1)
     local patternL2 = generateJFockSpinPatternRestricted(L2)
     local patternL3 = generateJFockSpinPatternRestricted(L3)
-    local Dpattern = generateJFockSpinPatternRestricted(L4)
 
     local pattern12 = generateJFockSpinPatternSorted(L1+L2)
     local pattern34 = generateJFockSpinPatternSorted(L3+L4)
 
-    -- TODO: initialize arrays out here?
-    local ket_count = -1
-    c.printf("Triangle numbers: L1 = %1.f  L2 = %1.f  L3 = %1.f  L4 = %1.f\n\n", triangle_number(L1+1), triangle_number(L2+1),triangle_number(L3+1),triangle_number(L4+1)) 
-    for k = 0, triangle_number(L3+1)-1 do -- inclusive
-      c.printf("k = %1.f\n", k)
+    local ket_count = get_ket_count(L3, L4, k_idx) - 1
+
+    --for k = 0, triangle_number(L3+1)-1 do -- inclusive
+      --c.printf("k_idx = %1.f\n", k_idx)
       local largest_ket_count = ket_count + 1 -- move ket preprocessing counter to the next chunk
       local bra_count = 0 -- bra preprocessing counter
       for i = 0, triangle_number(L1+1)-1 do -- inclusive
-        c.printf("    i = %1.f\n", i)
+        --c.printf("    i = %1.f\n", i)
         for j = 0, triangle_number(L2+1)-1 do -- inclusive
-          c.printf("        j = %1.f\n", j)
+          --c.printf("        j = %1.f\n", j)
+
           ket_count = largest_ket_count -- reset ket preprocessing counter 
           local Ni, Li, Mi = unpack(patternL1[i+1])
           local Nj, Lj, Mj = unpack(patternL2[j+1])
-          local Nk, Lk, Mk = unpack(patternL3[k+1])
+          local Nk, Lk, Mk = unpack(patternL3[k_idx+1])
           local Lfilt = {Ni+Nj, Li+Lj, Mi+Mj}
 
           -- apply density filter
+          local Dpattern = generateJFockSpinPatternRestricted(L4)
           for l = 0, triangle_number(L4+1)-1 do -- inclusive
             Dpattern[l+1][1] = Dpattern[l+1][1] + Nk
             Dpattern[l+1][2] = Dpattern[l+1][2] + Lk
@@ -736,30 +380,34 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
           end
 
           -- Write L expressions and ket preprocessing
-          --local D = {}   -- make loop-local copy of the part of the density we need (necessary?)
-          --for l = 0, triangle_number(L4+1)-1 do -- inclusive
-          --  D[l] = rexpr [density][j][l] end -- regent arrays are zero-indexed
-          --end
           local Larr = {} -- Reset L arrays. More are allocated here than necessary
           for x = 0, L1+L2 do -- inclusive
             Larr[x] = {}
             for y = 0, L1+L2 do -- inclusive
               Larr[x][y] = {}
               for z = 0, L1+L2 do -- inclusive
-                Larr[x][y][z] = 0.0
+                Larr[x][y][z] = regentlib.newsymbol(double, "Larr"..x..y..z)
+                statements:insert(rquote
+                  var [Larr[x][y][z]] = 0.0
+                end)
               end
             end
           end
 
           for u = 0, H34-1 do -- inclusive
+
+            local coeff = regentlib.newsymbol(double, "Coeff")
+            statements:insert(rquote
+              var [coeff] = 0.0
+            end)
+
             for t = 0, H12-1 do -- inclusive
               local Nt, Lt, Mt = unpack(pattern12[t+1])
               local Nu, Lu, Mu = unpack(pattern34[u+1])
               local N, L, M = Nt + Nu, Lt + Lu, Mt + Mu
-              local coeff = 0 
               -- Handle density complications here
+              local den = {}
               if t == 0 then
-                local den = {}
                 for l = 0, triangle_number(L4+1)-1 do -- inclusive
                   local X = Dpattern[l+1][1] - N
                   local Y = Dpattern[l+1][2] - L
@@ -769,55 +417,102 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
                   end
                 end
                 -- if density list is empty, break out of t loop
-                if table.getn(den) == 0 then break end
+                if table.getn(den) == 0 then 
+                  break 
+                end
                 -- Now add density contributions
                 for l = 0, table.getn(den)-1 do -- inclusive
-                  --coeff = rexpr coeff + [D[den[l+1]]] * ket_prevals[{ket_idx, ket_count}] end  -- den is one-indexed
-                  --coeff = rexpr coeff + [density][j][den[l+1]] * ket_prevals[{ket_idx, ket_count}] end  -- den is one-indexed
                   local idx = den[l+1]
-                  coeff = rexpr coeff + [density][j][idx] * ket_prevals[{ket_idx, ket_count}] end  -- den is one-indexed
+                  if L2 > L4 then
+                    statements:insert(rquote
+                      [coeff] += [density][idx][j] * ket_prevals[{ket_idx, ket_count}]
+                    end)
+                  else
+                    statements:insert(rquote
+                      [coeff] += [density][j][idx] * ket_prevals[{ket_idx, ket_count}]
+                    end)
+                  end
+                  --c.printf("\ncoeff += D[%1.f][%1.f] * ket_prevals[ket_idx, %1.f]\n", j, idx, ket_count)
+                  --statements:insert(rquote c.printf("     coeff (%lf) += density[%d][%d] (%lf)  *  ket_prevals[%d, %d] (%lf)\n", [coeff], j, idx, [density][j][idx], ket_idx, ket_count, ket_prevals[{ket_idx, ket_count}]) end)
                   ket_count = ket_count + 1
                 end
                 -- If you're on last ket level, don't increment ket preprocessing counter
                 if N+L+M == L3+L4 then ket_count = ket_count - 1 end
               end
+
+
               -- Write L expressions
               if Nt <= Lfilt[1] and Lt <= Lfilt[2] and Mt <= Lfilt[3] then
                 if (Nu + Lu + Mu) % 2 == 0 then
-                  Larr[Nt][Lt][Mt] = rexpr [Larr[Nt][Lt][Mt]] + [R[N][L][M][0]] * coeff end
+                  statements:insert(rquote
+                    [Larr[Nt][Lt][Mt]] += [getR(N, L, M)] * [coeff]
+                    --c.printf("L%1.f%1.f%1.f += R%1.f%1.f%1.f * coeff\n", Nt, Lt, Mt, N, L, M)
+                    --statements:insert(rquote c.printf("           Larr[%d][%d][%d] (%lf) += R[%d][%d][%d] (%lf)  *  coeff (%lf)\n\n", Nt, Lt, Mt, [Larr[Nt][Lt][Mt]], N, L, M, [getR(N, L, M)], [coeff]) end)
+                  end)
                 else
-                  Larr[Nt][Lt][Mt] = rexpr [Larr[Nt][Lt][Mt]] - [R[N][L][M][0]] * coeff end
+                  statements:insert(rquote
+                    [Larr[Nt][Lt][Mt]] -= [getR(N, L, M)] * [coeff]
+                    --c.printf("L%1.f%1.f%1.f -= R%1.f%1.f%1.f * coeff\n", Nt, Lt, Mt, N, L, M)
+                    --statements:insert(rquote c.printf("           Larr[%d][%d][%d] (%lf) -= R[%d][%d][%d] (%lf)  *  coeff (%lf)\n\n", Nt, Lt, Mt, [Larr[Nt][Lt][Mt]], N, L, M, [getR(N, L, M)], [coeff]) end)
+                  end)
                 end
               end
             end
           end
+
           -- Write bra post-processing and results
           for t = 0, H12-1 do -- inclusive
             local Nt, Lt, Mt = unpack(pattern12[t+1])
             if Nt <= Lfilt[1] and Lt <= Lfilt[2] and Mt <= Lfilt[3] then
               -- if you're on last bra level, use special preprocessed value
               if Nt + Lt + Mt == L1 + L2 then
-                local tot_bra_preproc = num_bra_preproc(L1,L2)
-                results[i][k] = rexpr [results[i][k]] + [Larr[Nt][Lt][Mt]] * bra_prevals[{bra_idx, tot_bra_preproc - 1}] end 
+                if L1 + L2 == 0 then
+                  results[i][k_idx] = rexpr [results[i][k_idx]] + [Larr[Nt][Lt][Mt]] end
+                  --c.printf("results[%1.f][%1.f] += L%1.f%1.f%1.f\n", i, k_idx, Nt, Lt, Mt)
+                  --statements:insert(rquote c.printf("    results[%d][%d] ( %lf) += Larr[%d][%d][%d]\n", i, k_idx, [results[i][k_idx]], Nt, Lt, Mt, [Larr[Nt][Lt][Mt]]) end)
+                else
+                  local tot_bra_preproc = num_bra_preproc(L1,L2)
+                  results[i][k_idx] = rexpr [results[i][k_idx]] + [Larr[Nt][Lt][Mt]] * bra_prevals[{bra_idx, tot_bra_preproc - 1}] end
+                  --c.printf("results[%1.f][%1.f] += L%1.f%1.f%1.f * bra_prevals[bra_idx, %1.f]\n", i, k_idx, Nt, Lt, Mt, tot_bra_preproc-1)
+                  --statements:insert(rquote c.printf("    results[%d][%d] (%lf) += Larr[%d][%d][%d] (%lf)  * bra_prevals[%d, %d] (%lf)\n", i, k_idx, [results[i][k_idx]], Nt, Lt, Mt, [Larr[Nt][Lt][Mt]], bra_idx, tot_bra_preproc-1, bra_prevals[{bra_idx, tot_bra_preproc-1}]) end)
+                end
               else
-                results[i][k] = rexpr [results[i][k]] + [Larr[Nt][Lt][Mt]] * bra_prevals[{bra_idx, bra_count}] end 
+                results[i][k_idx] = rexpr [results[i][k_idx]] + [Larr[Nt][Lt][Mt]] * bra_prevals[{bra_idx, bra_count}] end 
+                --c.printf("results[%1.f][%1.f] += L%1.f%1.f%1.f * bra_prevals[bra_idx, %1.f]\n", i, k_idx, Nt, Lt, Mt, bra_count)
+                --statements:insert(rquote c.printf("    results[%d][%d] (%lf) += Larr[%d][%d][%d] (%lf)  * bra_prevals[%d, %d] (%lf)\n", i, k_idx, [results[i][k_idx]], Nt, Lt, Mt, [Larr[Nt][Lt][Mt]], bra_idx, bra_count, bra_prevals[{bra_idx, bra_count}]) end)
                 bra_count = bra_count + 1 
               end
             end
           end
 
         end
-      end
-    end
+      end -- i loop
+    --end -- k loop
 
   end
 
 
   -----------------------------------------------------------------------------
 
-  local statements = terralib.newlist()
+  -- Handle lower D kernel exceptions with k_idx
+  local k_min = 0 
+  local k_max = triangle_number(L3 + 1) - 1 
+  if L1 >= 2 or L2 >= 2 or L3 >= 2 or L4 >=2 then
+    k_min = k_idx
+    k_max = k_idx
+  end
+  if L1 == 0 and L2 == 0 and L3 == 0 and L4 == 2 then -- SSSD exception
+    k_min = 0
+    k_max = triangle_number(L3 + 1) - 1
+  end
+  if L1 == 0 and L2 == 0 and L3 == 2 and L4 == 0 then -- SSDS exception
+    k_min = 0
+    k_max = triangle_number(L3 + 1) - 1
+  end
+
+  --local statements = terralib.newlist()
   for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
-    for k = 0, triangle_number(L3 + 1) - 1 do -- inclusive
+    for k = k_min, k_max do -- inclusive
       if L1 == L3 and L2 == L4 then -- Diagonal kernel.
         local factor
         if i < k then -- Upper triangular element.
@@ -832,9 +527,9 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
 
         statements:insert(rquote
           if bra.ishell_index < ket.ishell_index then -- Upper triangular element.
-            [output][i][k] += [results[i][k]]
+            [output][i][k] += [results[i][k]] * [bra_norms[i+1][k+1]]
           elseif bra.ishell_index == ket.ishell_index then -- Diagonal element
-            [output][i][k] += factor * [results[i][k]]
+            [output][i][k] += factor * [results[i][k]] * [bra_norms[i+1][k+1]]
           else -- Lower triangular element.
             -- NOTE: Diagonal kernels skip the lower triangular elements.
             -- no-op
@@ -842,9 +537,10 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, bra, ket,
         end)
       else -- Upper triangular kernel.
         statements:insert(rquote
-          [output][i][k] += [results[i][k]]
+          [output][i][k] += [results[i][k]] * [bra_norms[i+1][k+1]]
         end)
       end
+      --statements:insert(rquote c.printf("       output(%d,%d).values(%d,%d) = %lf\n", bra.ishell_index, ket.ishell_index, i, k, [output][i][k]) end)
     end
   end
 

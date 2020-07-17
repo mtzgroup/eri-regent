@@ -85,14 +85,15 @@ KFockNumKetPrevals = {
 
 local KFockDensityCache = {}
 function getKFockDensity(L2, L4)
-  if L2 > L4 then
+  if L2 > L4 then -- original
     L2, L4 = L4, L2
   end
   local index = LToStr[L2]..LToStr[L4]
   if KFockDensityCache[index] == nil then
     local H2, H4 = triangle_number(L2 + 1), triangle_number(L4 + 1)
     local fspace KFockDensity {
-      values : double[H2][H4];
+      --values : double[H2][H4];
+      values : double[H4][H2]; -- Regent array indexing opposite of C
       bound  : float;
     }
     KFockDensityCache[index] = KFockDensity
@@ -106,7 +107,8 @@ function getKFockOutput(L1, L3)
   if KFockOutputCache[index] == nil then
     local H1, H3 = triangle_number(L1 + 1), triangle_number(L3 + 1)
     local fspace KFockOutput {
-      values : double[H1][H3]
+      --values : double[H1][H3]
+      values : double[H3][H1] -- Regent array indexing opposite of C
     }
     KFockOutputCache[index] = KFockOutput
   end

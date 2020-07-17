@@ -19,6 +19,7 @@ RGFLAGS :=
 endif
 
 RGFLAGS += -fflow 0
+RGFLAGS += -flog task_id=1
 
 RGTARGETS := $(RGLIB)/libERIRegent.so $(RGINCLUDE)/eri_regent_tasks.h
 
