@@ -21,3 +21,15 @@
  * Assumes Y <= X.
  */
 #define INDEX_UPPER_TRIANGLE(Y, X) (INDEX_SQUARE(Y, X) - TRIANGLE_NUMBER(Y))
+
+#include <stddef.h>
+
+size_t sizeof_jdata();
+size_t sizeof_jdata_array(int L1, int L2);
+size_t stride(int L1, int L2);
+
+#include <unistd.h>
+
+#define __TRACE {\
+char h[80]; gethostname(h, 80); \
+std::cout << h << " " << __FUNCTION__ << " " << __FILE__ << ":" << __LINE__ << std::endl; }
