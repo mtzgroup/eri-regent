@@ -181,8 +181,11 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
   launcher.add_argument_threshold(threshold);
   launcher.add_argument_parallelism(parallelism);
   launcher.add_argument_largest_momentum(jdata_list.get_largest_momentum());
+__TRACE
   Future future = launcher.execute(runtime, ctx);
+__TRACE
   future.wait();
+__TRACE
 
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
