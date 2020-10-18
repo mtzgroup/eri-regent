@@ -2,11 +2,13 @@
 #include "eri_regent_tasks.h"
 #include "helper.h"
 #include "legion.h"
+#include "fundint.h"
+
 
 using namespace std;
 using namespace Legion;
 
-EriRegent::EriRegent(const double *gamma_table) {
+EriRegent::EriRegent() {
   runtime = Runtime::get_runtime();
   ctx = runtime->begin_implicit_task(ERI_REGENT_TASK_ID,
                                      /*mapper_id=*/0, Processor::LOC_PROC,
@@ -29,7 +31,7 @@ EriRegent::EriRegent(const double *gamma_table) {
   gamma_table_lr = runtime->create_logical_region(ctx, gamma_table_ispace,
                                                   gamma_table_fspace);
   AttachLauncher launcher(EXTERNAL_INSTANCE, gamma_table_lr, gamma_table_lr);
-  launcher.attach_array_aos((void *)gamma_table, /*column major*/ false,
+  launcher.attach_array_aos(GammaTable, /*column major*/ false,
                             {GAMMA_TABLE_FIELD_ID}, memory);
   gamma_table_pr = runtime->attach_external_resource(ctx, launcher);
 

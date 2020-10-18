@@ -14,7 +14,7 @@ public:
   /**
    * `gamma_table` must have size 18 x 700 x 5
    */
-  EriRegent(const double *gamma_table);
+  EriRegent();
   ~EriRegent();
 
   /**
