@@ -3,6 +3,8 @@ import "regent"
 require "helper"
 require "mcmurchie.jfock.generate_jfock_integral"
 
+local c = regentlib.c
+
 function jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism)
   local statements = terralib.newlist()
   -- TODO: Reverse the launch order so that large kernels launch first
@@ -30,5 +32,6 @@ function jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism
       end
     end
   end
+  statements:insert(rquote c.printf("exiting jfock\n"); end)
   return statements
 end

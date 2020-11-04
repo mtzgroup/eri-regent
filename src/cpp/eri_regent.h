@@ -2,6 +2,9 @@
 
 #include "helper.h"
 #include "legion.h"
+#include "legion/legion_types.h"
+
+using namespace Legion;
 
 class EriRegent {
 public:
@@ -14,7 +17,7 @@ public:
   /**
    * `gamma_table` must have size 18 x 700 x 5
    */
-  EriRegent(const double *gamma_table);
+  EriRegent(Runtime* runtime, Context ctx);
   ~EriRegent();
 
   /**
@@ -29,6 +32,7 @@ public:
    * `eri_regent_tasks.h` just to use `eri_regent_tasks_h_register()`.
    */
   static void register_tasks();
+
 
   /**
    * A list of JBra and JKet data to be passed to `launch_jfock_task`.

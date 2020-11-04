@@ -23,6 +23,9 @@ endif
 
 RGFLAGS += -fflow 0
 
+# to view the metaprogrammed result use -fpretty 1
+#RGFLAGS += -fpretty 1
+
 RGTARGETS := $(RGLIB)/libERIRegent.so $(RGINCLUDE)/eri_regent_tasks.h
 
 RGSRCS := $(RGSRC)/jfock.rg $(RGSRC)/kfock.rg

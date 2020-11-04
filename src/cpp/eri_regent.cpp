@@ -2,25 +2,36 @@
 #include "eri_regent_tasks.h"
 #include "helper.h"
 #include "legion.h"
+#include "fundint.h"
+
 
 using namespace std;
 using namespace Legion;
 
-EriRegent::EriRegent(const double *gamma_table) {
-  runtime = Runtime::get_runtime();
+
+EriRegent::EriRegent(Runtime* runtime_, Context ctx_) {
+
+__TRACE
+  runtime = runtime_;
+  ctx = ctx_;
+__TRACE
+#if 0
   ctx = runtime->begin_implicit_task(ERI_REGENT_TASK_ID,
                                      /*mapper_id=*/0, Processor::LOC_PROC,
                                      "eri_regent_toplevel_task",
                                      /*control_replicable=*/true);
+#endif
   memory = Machine::MemoryQuery(Machine::get_machine())
                .has_affinity_to(runtime->get_executing_processor(ctx))
                .only_kind(Memory::SYSTEM_MEM)
                .first();
 
+__TRACE
   // Create gamma table region
   const Rect<2> rect({0, 0}, {18 - 1, 700 - 1});
   gamma_table_ispace = runtime->create_index_space(ctx, rect);
   gamma_table_fspace = runtime->create_field_space(ctx);
+__TRACE
   {
     FieldAllocator falloc =
         runtime->create_field_allocator(ctx, gamma_table_fspace);
@@ -28,13 +39,20 @@ EriRegent::EriRegent(const double *gamma_table) {
   }
   gamma_table_lr = runtime->create_logical_region(ctx, gamma_table_ispace,
                                                   gamma_table_fspace);
+__TRACE
   AttachLauncher launcher(EXTERNAL_INSTANCE, gamma_table_lr, gamma_table_lr);
-  launcher.attach_array_aos((void *)gamma_table, /*column major*/ false,
+  launcher.attach_array_aos(GammaTable, /*column major*/ false,
                             {GAMMA_TABLE_FIELD_ID}, memory);
   gamma_table_pr = runtime->attach_external_resource(ctx, launcher);
+__TRACE
+
+  AcquireLauncher gammaAcquireLauncher(gamma_table_lr, gamma_table_lr, gamma_table_pr);
+  gammaAcquireLauncher.add_field(GAMMA_TABLE_FIELD_ID);
+  runtime->issue_acquire(ctx, gammaAcquireLauncher);
 
   initialize_jfock_field_spaces();
   initialize_kfock_field_spaces();
+__TRACE
 }
 
 EriRegent::~EriRegent() {
@@ -68,10 +86,12 @@ EriRegent::~EriRegent() {
       runtime->destroy_field_space(ctx, koutput_fspaces[index]);
     }
   }
-  runtime->finish_implicit_task(ctx);
+  //runtime->finish_implicit_task(ctx);
 }
 
+
 void EriRegent::register_tasks() { eri_regent_tasks_h_register(); }
+
 
 void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
                                   float threshold, int parallelism) {
@@ -94,6 +114,13 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
       launcher.attach_array_aos(jdata_list.jbras[index], /*column major*/ false,
                                 field_list, memory);
       jbras_pr_list[index] = runtime->attach_external_resource(ctx, launcher);
+      AcquireLauncher jbraAcquireLauncher(jbras_lr_list[index], jbras_lr_list[index], jbras_pr_list[index]);
+      vector<FieldID> fl = field_list;
+      for(vector<FieldID>::iterator it = fl.begin();
+          it != fl.end(); ++it) {
+          jbraAcquireLauncher.add_field(*it);
+      }
+      runtime->issue_acquire(ctx, jbraAcquireLauncher);
     }
   }
 
@@ -115,6 +142,13 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
       launcher.attach_array_aos(jdata_list.jkets[index], /*column major*/ false,
                                 field_list, memory);
       jkets_pr_list[index] = runtime->attach_external_resource(ctx, launcher);
+      AcquireLauncher jketAcquireLauncher(jkets_lr_list[index], jkets_lr_list[index], jkets_pr_list[index]);
+      vector<FieldID> fl = field_list;
+      for(vector<FieldID>::iterator it = fl.begin();
+          it != fl.end(); ++it) {
+          jketAcquireLauncher.add_field(*it);
+      }
+      runtime->issue_acquire(ctx, jketAcquireLauncher);
     }
   }
 
@@ -181,12 +215,38 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
   launcher.add_argument_threshold(threshold);
   launcher.add_argument_parallelism(parallelism);
   launcher.add_argument_largest_momentum(jdata_list.get_largest_momentum());
+__TRACE
   Future future = launcher.execute(runtime, ctx);
+__TRACE
   future.wait();
+__TRACE
+
+  ReleaseLauncher gammaReleaseLauncher(gamma_table_lr, gamma_table_lr, gamma_table_pr);
+  gammaReleaseLauncher.add_field(GAMMA_TABLE_FIELD_ID);
+  runtime->issue_release(ctx, gammaReleaseLauncher);
+
 
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = L1; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_UPPER_TRIANGLE(L1, L2);
+      ReleaseLauncher jbraReleaseLauncher(jbras_lr_list[index], jbras_lr_list[index], jbras_pr_list[index]);
+      const vector<FieldID> jbra_list(
+          jbra_fields_list[index], jbra_fields_list[index] + NUM_JBRA_FIELDS);
+      vector<FieldID> bfl = jbra_list;
+      for(vector<FieldID>::iterator it = bfl.begin();
+          it != bfl.end(); ++it) {
+          jbraReleaseLauncher.add_field(*it);
+      }
+      runtime->issue_release(ctx, jbraReleaseLauncher);
+      ReleaseLauncher jketReleaseLauncher(jkets_lr_list[index], jkets_lr_list[index], jkets_pr_list[index]);
+      const vector<FieldID> jket_list(
+          jket_fields_list[index], jket_fields_list[index] + NUM_JKET_FIELDS);
+      vector<FieldID> kfl = jket_list;
+      for(vector<FieldID>::iterator it = kfl.begin();
+          it != kfl.end(); ++it) {
+          jketReleaseLauncher.add_field(*it);
+      }
+      runtime->issue_release(ctx, jketReleaseLauncher);
       runtime->detach_external_resource(ctx, jbras_pr_list[index]);
       runtime->destroy_logical_region(ctx, jbras_lr_list[index]);
       runtime->destroy_index_space(ctx, jbras_ispace_list[index]);

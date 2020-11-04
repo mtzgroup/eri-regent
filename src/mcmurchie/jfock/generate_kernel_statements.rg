@@ -2,6 +2,7 @@ import "regent"
 
 require "helper"
 
+
 -- Returns a list of regent statements that implements the McMurchie algorithm
 function generateJFockKernelStatements(R, L12, L34, density, accumulator)
   local H12, H34 = tetrahedral_number(L12 + 1), tetrahedral_number(L34 + 1)
