@@ -10,11 +10,16 @@ local assert = regentlib.assert
 local c = regentlib.c
 
 -- Iterate over the full square
-local r_pairs_list = {}
+local r_pairs_list, r_prevals_list = {}, {}
 for L1 = 0, getCompiledMaxMomentum() do -- inclusive
   r_pairs_list[L1] = {}
+  r_prevals_list[L1] = {}
   for L2 = 0, getCompiledMaxMomentum() do -- inclusive
     r_pairs_list[L1][L2] = regentlib.newsymbol("r_kfock_pairs"..L1..L2)
+    r_prevals_list[L1][L2] = {
+      regentlib.newsymbol("r_kfock_bra_prevals"..L1..L2),
+      regentlib.newsymbol("r_kfock_ket_prevals"..L1..L2)
+    }
   end
 end
 
@@ -40,7 +45,7 @@ task toplevel()
   c.sprintf([&int8](kfock_filename), "%s/kfock.dat", config.input_directory)
   c.sprintf([&int8](kfock_density_filename), "%s/kfock_density.dat", config.input_directory)
 
-  ;[writeKFockToRegions(rexpr kfock_filename end, r_pairs_list)]
+  ;[writeKFockToRegions(rexpr kfock_filename end, r_pairs_list, r_prevals_list)]
   ;[writeKFockDensityToRegions(rexpr kfock_density_filename end,
                                r_density_list, r_output_list)]
 
@@ -76,7 +81,7 @@ task toplevel()
   var threshold = parameters.thredp
   var parallelism = config.parallelism;
   var largest_momentum = [getCompiledMaxMomentum()]
-  ;[kfock(r_pairs_list, r_density_list, r_output_list,
+  ;[kfock(r_pairs_list, r_prevals_list, r_density_list, r_output_list,
           r_gamma_table, threshold, parallelism, largest_momentum)]
   ---------------------
 

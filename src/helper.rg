@@ -72,6 +72,72 @@ end
 
 -- Returns a list of lists where `pattern[i] = {N, L, M}`.
 --
+-- sorted by increasing value of N+L+M
+--
+-- Remember that indices of lua lists start with one.
+function generateJFockSpinPatternSorted(level)
+  local pvec = {}
+  for M = 0, level do -- inclusive
+    for L = 0, level - M do -- inclusive
+      for N = 0, level - M - L do -- inclusive
+        table.insert(pvec, {N, L, M})
+      end
+    end
+  end
+
+  local pattern = {}
+  for k = 0, level * level do -- inclusive
+    for _, v in pairs(pvec) do
+      if v[1] * v[1] + v[2] * v[2] + v[3] * v[3] == k then
+        table.insert(pattern, v)
+      end
+    end
+  end
+  
+  local pattern2 = {}
+  for k = 0, level do -- inclusive
+    for _, v in pairs(pattern) do
+      if v[1] + v[2] + v[3] == k then
+        table.insert(pattern2, v)
+      end
+    end
+  end
+  return pattern2
+end
+
+-- Returns a list of lists where `pattern[i] = {N, L, M}`.
+--
+-- For example, `generateJFockSpinPatternRestricted(2)` returns the table
+-- 1 1 0
+-- 1 0 1
+-- 0 1 1
+-- 2 0 0
+-- 0 2 0
+-- 0 0 2
+-- Remember that indices of lua lists start with one.
+function generateJFockSpinPatternRestricted(level)
+  local pvec = {}
+  for M = 0, level do -- inclusive
+    for L = 0, level - M do -- inclusive
+      for N = 0, level - M - L do -- inclusive
+        table.insert(pvec, {N, L, M})
+      end
+    end
+  end
+
+  local pattern = {}
+  for k = 0, level * level do -- inclusive
+    for _, v in pairs(pvec) do
+      if v[1] * v[1] + v[2] * v[2] + v[3] * v[3] == k and v[1]+v[2]+v[3] == level then
+        table.insert(pattern, v)
+      end
+    end
+  end
+  return pattern
+end
+
+-- Returns a list of lists where `pattern[i] = {N, L, M}`.
+--
 -- For example, `generateKFockSpinPattern(2)` returns the table
 -- 2 0 0
 -- 1 1 0

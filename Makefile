@@ -22,6 +22,7 @@ RGFLAGS :=
 endif
 
 RGFLAGS += -fflow 0
+RGFLAGS += -flog task_id=1
 
 # to view the metaprogrammed result use -fpretty 1
 #RGFLAGS += -fpretty 1

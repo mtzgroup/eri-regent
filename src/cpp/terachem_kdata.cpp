@@ -23,6 +23,8 @@ EriRegent::TeraChemKDataList::TeraChemKDataList() {
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
       num_kpairs[INDEX_SQUARE(L1, L2)] = 0;
+      num_kbra_prevals[INDEX_SQUARE(L1, L2)] = 0; //KGJ
+      num_kket_prevals[INDEX_SQUARE(L1, L2)] = 0; //KGJ
     }
   }
   for (int L = 0; L <= MAX_MOMENTUM; L++) {
@@ -31,11 +33,24 @@ EriRegent::TeraChemKDataList::TeraChemKDataList() {
 }
 
 EriRegent::TeraChemKDataList::~TeraChemKDataList() {
+  //printf("\nKGJ: Entering kdata destructor....\n"); 
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_SQUARE(L1, L2);
+      //printf("KGJ: num_kpairs[%d] = %d \n", index, num_kpairs[index]);
       if (num_kpairs[index] > 0) {
+        //printf("  freeing kpairs[index]...\n");
         free(kpairs[index]);
+      }
+      //printf("KGJ: num_kbra_prevals[%d] = %d \n", index, num_kbra_prevals[index]);
+      if (num_kbra_prevals[index] > 0) {
+        //printf("  freeing kbra_prevals[index]...\n");
+        free(kbra_prevals[index]);
+      }
+      //printf("KGJ: num_kket_prevals[%d] = %d \n", index, num_kket_prevals[index]);
+      if (num_kket_prevals[index] > 0) {
+        //printf("  freeing kket_prevals[index]...\n");
+        free(kket_prevals[index]);
       }
     }
   }
@@ -57,12 +72,28 @@ int EriRegent::TeraChemKDataList::get_num_kpairs(int L1, int L2) {
   return num_kpairs[index];
 }
 
+int EriRegent::TeraChemKDataList::get_num_kbra_prevals(int L1, int L2) {
+  assert(0 <= L1 && L1 <= MAX_MOMENTUM);
+  assert(0 <= L2 && L2 <= MAX_MOMENTUM);
+  const int index = INDEX_SQUARE(L1, L2);
+  return num_kbra_prevals[index];
+}
+
+int EriRegent::TeraChemKDataList::get_num_kket_prevals(int L1, int L2) {
+  assert(0 <= L1 && L1 <= MAX_MOMENTUM);
+  assert(0 <= L2 && L2 <= MAX_MOMENTUM);
+  const int index = INDEX_SQUARE(L1, L2);
+  return num_kket_prevals[index];
+}
+
 int EriRegent::TeraChemKDataList::get_num_shells(int L) {
   assert(0 <= L && L <= MAX_MOMENTUM);
   return num_shells[L];
 }
 
-void EriRegent::TeraChemKDataList::allocate_kpairs(int L1, int L2, int n) {
+void EriRegent::TeraChemKDataList::allocate_kpairs(int L1, int L2, int n,
+                                                   int _num_kbra_prevals,
+                                                   int _num_kket_prevals) {
   assert(0 <= L1 && L1 <= MAX_MOMENTUM);
   assert(0 <= L2 && L2 <= MAX_MOMENTUM);
   const int index = INDEX_SQUARE(L1, L2);
@@ -71,6 +102,18 @@ void EriRegent::TeraChemKDataList::allocate_kpairs(int L1, int L2, int n) {
     num_kpairs[index] = n;
     kpairs[index] = calloc(n, sizeof_kpairs());
     assert(kpairs[index]);
+  }
+  if (_num_kbra_prevals > 0) {  //KGJ
+  //if (_num_kbra_prevals >= 0) {
+    num_kbra_prevals[index] = _num_kbra_prevals;
+    kbra_prevals[index] = calloc(n, sizeof(double) * _num_kbra_prevals);
+    assert(kbra_prevals[index]);
+  }
+  if (_num_kket_prevals > 0) {  //KGJ
+  //if (_num_kket_prevals >= 0) {
+    num_kket_prevals[index] = _num_kket_prevals;
+    kket_prevals[index] = calloc(n, sizeof(double) * _num_kket_prevals);
+    assert(kket_prevals[index]);
   }
 }
 
@@ -141,6 +184,32 @@ void EriRegent::TeraChemKDataList::set_kpair(
   }
 }
 
+void EriRegent::TeraChemKDataList::set_kbra_preval(int L1, int L2, int i, int k,
+                                                   double value) {
+  assert(0 <= i && i < get_num_kpairs(L1, L2));
+  assert(0 <= k && k < get_num_kbra_prevals(L1, L2));
+  char *dest = (char *)kbra_prevals[INDEX_SQUARE(L1, L2)] +
+               i * sizeof(double) * get_num_kbra_prevals(L1, L2) +
+               k * sizeof(double);
+  {
+    double *ptr = (double *)dest;
+    ptr[0] = value;
+  }
+}
+
+void EriRegent::TeraChemKDataList::set_kket_preval(int L1, int L2, int i, int k,
+                                                   double value) {
+  assert(0 <= i && i < get_num_kpairs(L1, L2));
+  assert(0 <= k && k < get_num_kket_prevals(L1, L2));
+  char *dest = (char *)kket_prevals[INDEX_SQUARE(L1, L2)] +
+               i * sizeof(double) * get_num_kket_prevals(L1, L2) +
+               k * sizeof(double);
+  {
+    double *ptr = (double *)dest;
+    ptr[0] = value;
+  }
+}
+
 void EriRegent::TeraChemKDataList::set_kdensity(int L2, int L4,
                                                 int bra_jshell_index,
                                                 int ket_jshell_index,
@@ -171,6 +240,7 @@ const double *EriRegent::TeraChemKDataList::get_koutput(int L1, int L2, int L3,
   const char *koutput1234 = (char *)koutput[INDEX_UPPER_TRIANGLE(L1, L3)] +
                             (L2 + L4 * (get_largest_momentum() + 1)) *
                                 sizeof_koutput(L1, L3) * n1 * n3;
+  //printf("  koutput1234 : %d    address : %d\n", koutput1234, &koutput);
   const char *src = koutput1234 + (bra_ishell_index * n3 + ket_ishell_index) *
                                       sizeof_koutput(L1, L3);
   return (const double *)src;
@@ -180,6 +250,20 @@ void *EriRegent::TeraChemKDataList::get_kpair_data(int L1, int L2) {
   assert(0 <= L1 && L1 <= MAX_MOMENTUM);
   assert(0 <= L2 && L2 <= MAX_MOMENTUM);
   return kpairs[INDEX_SQUARE(L1, L2)];
+}
+
+void *EriRegent::TeraChemKDataList::get_kbra_preval_data(int L1, int L2) {
+
+  assert(0 <= L1 && L1 <= MAX_MOMENTUM);
+  assert(0 <= L2 && L2 <= MAX_MOMENTUM);
+  return kbra_prevals[INDEX_SQUARE(L1, L2)];
+}
+
+void *EriRegent::TeraChemKDataList::get_kket_preval_data(int L1, int L2) {
+
+  assert(0 <= L1 && L1 <= MAX_MOMENTUM);
+  assert(0 <= L2 && L2 <= MAX_MOMENTUM);
+  return kket_prevals[INDEX_SQUARE(L1, L2)];
 }
 
 void *EriRegent::TeraChemKDataList::get_kdensity_data(int L2, int L4) {
