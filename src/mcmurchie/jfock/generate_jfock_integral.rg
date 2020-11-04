@@ -79,6 +79,7 @@ function generateTaskMcMurchieJFockIntegral(L12, L34)
 
       r_jbras[jbra_idx].output += accumulator
     end
+-- regentlib.c.printf(["exiting JFockMcMurchie" .. L_string .. "\n"])
   end
   jfock_integral:set_name("JFockMcMurchie"..L_string)
   _jfock_integral_cache[L_string] = jfock_integral
