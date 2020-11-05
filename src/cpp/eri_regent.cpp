@@ -271,6 +271,7 @@ __TRACE
 
 void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
                                   float threshold, int parallelism) {
+std::cout<<__FUNCTION__<<" parallelism "<<parallelism<<std::endl;
 
   // Create kpair regions
   LogicalRegion kpair_lr_list[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
@@ -298,6 +299,13 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
       launcher.attach_array_aos(kdata_list.get_kpair_data(L1, L2),
                                 /*column major*/ false, field_list, memory);
       kpair_pr_list[index] = runtime->attach_external_resource(ctx, launcher);
+      AcquireLauncher kpairAcquireLauncher(kpair_lr_list[index], kpair_lr_list[index], kpair_pr_list[index]);
+      vector<FieldID> fl = field_list;
+      for(vector<FieldID>::iterator it = fl.begin();
+          it != fl.end(); ++it) {
+          kpairAcquireLauncher.add_field(*it);
+      }
+      runtime->issue_acquire(ctx, kpairAcquireLauncher);
     }
   }
 
@@ -336,6 +344,13 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
                                 /*column major*/ false, field_list, memory);
       kbra_preval_pr_list[index] =
           runtime->attach_external_resource(ctx, launcher);
+      AcquireLauncher kbraPrevalAcquireLauncher(kbra_preval_lr_list[index], kbra_preval_lr_list[index], kbra_preval_pr_list[index]);
+      vector<FieldID> fl = field_list;
+      for(vector<FieldID>::iterator it = fl.begin();
+          it != fl.end(); ++it) {
+          kbraPrevalAcquireLauncher.add_field(*it);
+      }
+      runtime->issue_acquire(ctx, kbraPrevalAcquireLauncher);
     }
   }
 
@@ -373,6 +388,13 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
                                 /*column major*/ false, field_list, memory);
       kket_preval_pr_list[index] =
           runtime->attach_external_resource(ctx, launcher);
+      AcquireLauncher kketPrevalAcquireLauncher(kket_preval_lr_list[index], kket_preval_lr_list[index], kket_preval_pr_list[index]);
+      vector<FieldID> fl = field_list;
+      for(vector<FieldID>::iterator it = fl.begin();
+          it != fl.end(); ++it) {
+          kketPrevalAcquireLauncher.add_field(*it);
+      }
+      runtime->issue_acquire(ctx, kketPrevalAcquireLauncher);
     }
   }
 
@@ -406,6 +428,13 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
                                 /*column major*/ false, field_list, memory);
       kdensity_pr_list[index] =
           runtime->attach_external_resource(ctx, launcher);
+      AcquireLauncher kdensityAcquireLauncher(kdensity_lr_list[index], kdensity_lr_list[index], kdensity_pr_list[index]);
+      vector<FieldID> fl = field_list;
+      for(vector<FieldID>::iterator it = fl.begin();
+          it != fl.end(); ++it) {
+          kdensityAcquireLauncher.add_field(*it);
+      }
+      runtime->issue_acquire(ctx, kdensityAcquireLauncher);
     }
   }
 
@@ -444,6 +473,13 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
       launcher.attach_array_aos(kdata_list.get_koutput_data(L1, L3),
                                 /*column major*/ false, field_list, memory);
       koutput_pr_list[index] = runtime->attach_external_resource(ctx, launcher);
+      AcquireLauncher koutputAcquireLauncher(koutput_lr_list[index], koutput_lr_list[index], koutput_pr_list[index]);
+      vector<FieldID> fl = field_list;
+      for(vector<FieldID>::iterator it = fl.begin();
+          it != fl.end(); ++it) {
+          koutputAcquireLauncher.add_field(*it);
+      }
+      runtime->issue_acquire(ctx, koutputAcquireLauncher);
     }
   }
 
@@ -564,19 +600,52 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   launcher.add_argument_threshold(threshold);
   launcher.add_argument_parallelism(parallelism);
   launcher.add_argument_largest_momentum(kdata_list.get_largest_momentum());
+__TRACE
   Future future = launcher.execute(runtime, ctx);
+__TRACE
   future.wait();
+__TRACE
 
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
       const int index = INDEX_SQUARE(L1, L2);
+      ReleaseLauncher kpairReleaseLauncher(kpair_lr_list[index], kpair_lr_list[index], kpair_pr_list[index]);
+      const vector<FieldID> kpair_list(
+          kpair_fields_list[index], kpair_fields_list[index] + NUM_KPAIR_FIELDS);
+      vector<FieldID> bfl = kpair_list;
+      for(vector<FieldID>::iterator it = bfl.begin();
+          it != bfl.end(); ++it) {
+          kpairReleaseLauncher.add_field(*it);
+      }
+      runtime->issue_release(ctx, kpairReleaseLauncher);
+
       runtime->detach_external_resource(ctx, kpair_pr_list[index]);
       runtime->destroy_logical_region(ctx, kpair_lr_list[index]);
       runtime->destroy_index_space(ctx, kpair_ispace_list[index]);
 
+      ReleaseLauncher kbraPrevalReleaseLauncher(kbra_preval_lr_list[index], kbra_preval_lr_list[index], kbra_preval_pr_list[index]);
+      const vector<FieldID> kbra_preval_list(
+          kbra_preval_fields_list[index], kbra_preval_fields_list[index] + NUM_KBRA_PREVAL_FIELDS);
+      vector<FieldID> kpfl = kbra_preval_list;
+      for(vector<FieldID>::iterator it = kpfl.begin();
+          it != kpfl.end(); ++it) {
+          kbraPrevalReleaseLauncher.add_field(*it);
+      }
+      runtime->issue_release(ctx, kbraPrevalReleaseLauncher);
+
       runtime->detach_external_resource(ctx, kbra_preval_pr_list[index]);
       runtime->destroy_logical_region(ctx, kbra_preval_lr_list[index]);
       runtime->destroy_index_space(ctx, kbra_preval_ispace_list[index]);
+
+      ReleaseLauncher kketPrevalReleaseLauncher(kket_preval_lr_list[index], kket_preval_lr_list[index], kket_preval_pr_list[index]);
+      const vector<FieldID> kket_preval_list(
+          kket_preval_fields_list[index], kket_preval_fields_list[index] + NUM_KKET_PREVAL_FIELDS);
+      vector<FieldID> kkfl = kket_preval_list;
+      for(vector<FieldID>::iterator it = kkfl.begin();
+          it != kkfl.end(); ++it) {
+          kketPrevalReleaseLauncher.add_field(*it);
+      }
+      runtime->issue_release(ctx, kketPrevalReleaseLauncher);
 
       runtime->detach_external_resource(ctx, kket_preval_pr_list[index]);
       runtime->destroy_logical_region(ctx, kket_preval_lr_list[index]);
@@ -586,6 +655,17 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   for (int L2 = 0; L2 <= MAX_MOMENTUM; L2++) {
     for (int L4 = L2; L4 <= MAX_MOMENTUM; L4++) {
       const int index = INDEX_UPPER_TRIANGLE(L2, L4);
+
+      ReleaseLauncher kdensityReleaseLauncher(kdensity_lr_list[index], kdensity_lr_list[index], kdensity_pr_list[index]);
+      const vector<FieldID> kdensity_list(
+          kdensity_fields_list[index], kdensity_fields_list[index] + NUM_KDENSITY_FIELDS);
+      vector<FieldID> kdfl = kdensity_list;
+      for(vector<FieldID>::iterator it = kdfl.begin();
+          it != kdfl.end(); ++it) {
+          kdensityReleaseLauncher.add_field(*it);
+      }
+      runtime->issue_release(ctx, kdensityReleaseLauncher);
+
       runtime->detach_external_resource(ctx, kdensity_pr_list[index]);
       runtime->destroy_logical_region(ctx, kdensity_lr_list[index]);
       runtime->destroy_index_space(ctx, kdensity_ispace_list[index]);
@@ -594,6 +674,16 @@ void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
   for (int L1 = 0; L1 <= MAX_MOMENTUM; L1++) {
     for (int L3 = L1; L3 <= MAX_MOMENTUM; L3++) {
       const int index = INDEX_UPPER_TRIANGLE(L1, L3);
+      ReleaseLauncher koutputReleaseLauncher(koutput_lr_list[index], koutput_lr_list[index], koutput_pr_list[index]);
+      const vector<FieldID> koutput_list(
+          koutput_fields_list[index], koutput_fields_list[index] + NUM_KOUTPUT_FIELDS);
+      vector<FieldID> kofl = koutput_list;
+      for(vector<FieldID>::iterator it = kofl.begin();
+          it != kofl.end(); ++it) {
+          koutputReleaseLauncher.add_field(*it);
+      }
+      runtime->issue_release(ctx, koutputReleaseLauncher);
+
       runtime->detach_external_resource(ctx, koutput_pr_list[index]);
       runtime->destroy_logical_region(ctx, koutput_lr_list[index]);
       runtime->destroy_index_space(ctx, koutput_ispace_list[index]);
