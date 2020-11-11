@@ -38,9 +38,11 @@ namespace Legion {
                LayoutConstraintSet &constraints, Memory target_memory,
                const RegionRequirement &req);
 */
+/*
       Memory default_policy_select_target_memory(MapperContext ctx,
                           Processor target_proc,
                           const RegionRequirement &req);
+*/
 /*
       void slice_task(const MapperContext      ctx,
                           const Task&              task,

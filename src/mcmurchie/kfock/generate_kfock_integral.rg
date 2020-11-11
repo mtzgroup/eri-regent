@@ -44,7 +44,7 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
                       threshold : float, threshold2 : float, kguard : float, largest_momentum : int)
   where
     reads(r_bras, r_kets, r_bra_prevals, r_ket_prevals, r_density, r_gamma_table),
-    reads writes(r_output)
+    reduces+(r_output)
   do
     var N24 = L2 + L4 * (largest_momentum + 1)
     var ket_idx_bounds_lo : int = r_kets.ispace.bounds.lo

@@ -108,7 +108,7 @@ function getKFockOutput(L1, L3)
     local H1, H3 = triangle_number(L1 + 1), triangle_number(L3 + 1)
     local fspace KFockOutput {
       --values : double[H1][H3]
-      values : double[H3][H1] -- Regent array indexing opposite of C
+      values : double[H3 * H1] -- flatten 2D array
     }
     KFockOutputCache[index] = KFockOutput
   end

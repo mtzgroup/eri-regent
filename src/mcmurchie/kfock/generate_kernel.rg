@@ -513,6 +513,7 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
   --local statements = terralib.newlist()
   for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
     for k = k_min, k_max do -- inclusive
+      local H3  = triangle_number(L3 + 1)
       if L1 == L3 and L2 == L4 then -- Diagonal kernel.
         local factor
         if i < k then -- Upper triangular element.
@@ -524,12 +525,11 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
         else -- Lower triangular element.
           factor = 0
         end
-
         statements:insert(rquote
           if bra.ishell_index < ket.ishell_index then -- Upper triangular element.
-            [output][i][k] += [results[i][k]] * [bra_norms[i+1][k+1]]
+            [output][i*H3+k] += [results[i][k]] * [bra_norms[i+1][k+1]]
           elseif bra.ishell_index == ket.ishell_index then -- Diagonal element
-            [output][i][k] += factor * [results[i][k]] * [bra_norms[i+1][k+1]]
+            [output][i*H3+k] += factor * [results[i][k]] * [bra_norms[i+1][k+1]]
           else -- Lower triangular element.
             -- NOTE: Diagonal kernels skip the lower triangular elements.
             -- no-op
@@ -537,10 +537,10 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
         end)
       else -- Upper triangular kernel.
         statements:insert(rquote
-          [output][i][k] += [results[i][k]] * [bra_norms[i+1][k+1]]
+          [output][i*H3+k] += [results[i][k]] * [bra_norms[i+1][k+1]]
         end)
       end
-      --statements:insert(rquote c.printf("       output(%d,%d).values(%d,%d) = %lf\n", bra.ishell_index, ket.ishell_index, i, k, [output][i][k]) end)
+      --statements:insert(rquote c.printf("       output(%d,%d).values(%d,%d) = %lf\n", bra.ishell_index, ket.ishell_index, i, k, [output][i*L3+k]) end)
     end
   end
 

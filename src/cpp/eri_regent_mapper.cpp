@@ -39,10 +39,12 @@ std::cout << "local_gpus " << local_gpus.size() << std::endl;
     {
     }
 
-#if 0
+#if 1
+
+
 
     //--------------------------------------------------------------------------
-    void EriRegentMapper::default_policy_select_constraints(MapperContext ctx,
+    void DefaultMapper::default_policy_select_constraints(MapperContext ctx,
                      LayoutConstraintSet &constraints, Memory target_memory,
                      const RegionRequirement &req)
     //--------------------------------------------------------------------------
@@ -54,24 +56,11 @@ std::cout << "local_gpus " << local_gpus.size() << std::endl;
         constraints.add_constraint(SpecializedConstraint(
                             LEGION_AFFINE_REDUCTION_SPECIALIZE, req.redop))
           .add_constraint(MemoryConstraint(target_memory.kind()));
-#if 1
-          IndexSpace is = req.region.get_index_space();
-          Domain domain = runtime->get_index_space_domain(ctx, is);
-          int dim = domain.get_dim();
-          std::vector<DimensionKind> dimension_ordering(dim + 1);
-// AOS layout for Terachem
-          dimension_ordering[0] = LEGION_DIM_F;
-          for (int i = 1; i <= dim; ++i)
-            dimension_ordering[i] =
-              static_cast<DimensionKind>(static_cast<int>(LEGION_DIM_X) + i - 1);
-          constraints.add_constraint(OrderingConstraint(dimension_ordering,
-                                                        false/*contigous*/));
-#endif
       }
       else
       {
         // Our base default mapper will try to make instances of containing
-        // all fields (in any order) laid out in SOA format to encourage 
+        // all fields (in any order) laid out in SOA format to encourage
         // maximum re-use by any tasks which use subsets of the fields
         constraints.add_constraint(SpecializedConstraint())
           .add_constraint(MemoryConstraint(target_memory.kind()));
@@ -90,20 +79,20 @@ std::cout << "local_gpus " << local_gpus.size() << std::endl;
           Domain domain = runtime->get_index_space_domain(ctx, is);
           int dim = domain.get_dim();
           std::vector<DimensionKind> dimension_ordering(dim + 1);
-// AOS layout for Terachem
-          dimension_ordering[0] = LEGION_DIM_F;
-          for (int i = 1; i <= dim; ++i)
+          for (int i = 0; i < dim; ++i)
             dimension_ordering[i] =
-              static_cast<DimensionKind>(static_cast<int>(LEGION_DIM_X) + i - 1);
+              static_cast<DimensionKind>(static_cast<int>(LEGION_DIM_X) + i);
+          dimension_ordering[dim] = LEGION_DIM_F;
           constraints.add_constraint(OrderingConstraint(dimension_ordering,
                                                         false/*contigous*/));
         }
       }
     }
 
+
 #endif
 
-#if 1
+#if 0
 
     //--------------------------------------------------------------------------
     Memory EriRegentMapper::default_policy_select_target_memory(MapperContext ctx,
