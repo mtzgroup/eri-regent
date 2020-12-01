@@ -6,7 +6,7 @@ Calculates two-electron repulsion integrals with Regent
 
 ## Setup
 
-Start by cloning Legion
+Start by cloning Legion and Gasnet
 
 ```bash
 git clone https://gitlab.com/StanfordLegion/legion.git -b hijack_registration_hack
@@ -18,6 +18,10 @@ Edit $LEGION_DIR/runtime/realm/cuda/cuda_module.cc at line 2656 to insert the fo
 ```
 if(i<1)continue;
 ```
+
+```
+git clone https://github.com/StanfordLegion/gasnet.git
+````
 
 ### Submodule
 
