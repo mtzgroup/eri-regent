@@ -172,21 +172,26 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
     for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
       for k = 0, triangle_number(L3 + 1) - 1 do -- inclusive
         for n = 0, 2 do -- inclusive
-
           local density_triplet
           if L2 == 0 and L4 == 0 then
-            density_triplet = {rexpr [density][n][0] end, 0, 0}
+            density_triplet = {rexpr [density][0][0] end, 0, 0}   -- KGJ debug: this is correct with both zeros
           elseif L2 > L4 then                                     -- KGJ: special case for SPPS kernel
-            density_triplet = {rexpr [density][0][n] end,
-                               rexpr [density][1][n] end,
-                               rexpr [density][2][n] end}
-          else
+            density_triplet = {rexpr [density][0][n] end,0,0}
+          elseif L2 == 0 then
+            if n == 0 then
+              density_triplet = {rexpr [density][0][0] end,
+                                 rexpr [density][0][1] end,
+                                 rexpr [density][0][2] end}
+            else
+               density_triplet = {0, 0, 0}
+            end
+          else                     
             density_triplet = {rexpr [density][n][0] end,
                                rexpr [density][n][1] end,
                                rexpr [density][n][2] end}
           end
 
-          -- Some helpful auxiliary functions.
+-- Some helpful auxiliary functions.
           local function aux0(n, i)
             local q, r, s = unpack(generateKFockSpinPattern(n)[i+1])
             if L1 == 0 and L3 == 0 then

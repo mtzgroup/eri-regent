@@ -19,6 +19,7 @@
 
 #include "legion.h"
 #include "mappers/logging_wrapper.h"
+#include "mappers/mapping_utilities.h"
 #include "mappers/default_mapper.h"
 
 #include <stdlib.h>
@@ -31,8 +32,35 @@ namespace Legion {
 
     class EriRegentMapper : public DefaultMapper {
     public:
+      typedef TaskSlice DomainSplit;
       EriRegentMapper(MapperRuntime *rt, Machine machine, Processor local); 
       virtual ~EriRegentMapper(void);
+      virtual void slice_task(const MapperContext      ctx,
+                              const Task&              task,
+                              const SliceTaskInput&      input,
+                              SliceTaskOutput&     output);
+
+      void slice_domain(const Task& task,
+                        const Domain &domain,
+                        std::vector<DomainSplit>
+                        &slices,
+                        bool rotation,
+                        unsigned int dir);
+
+      static void decompose_index_space(const Domain &domain, 
+                                        const std::vector<Processor>
+                                        &targets,
+                                        unsigned splitting_factor, 
+                                        std::vector<DomainSplit> &slices,
+                                        bool rotation, unsigned int dir);
+
+      std::map<TaskID,std::vector<TaskSlice> > cached_slices;
+      // utilities for use within the mapper
+      Utilities::MachineQueryInterface machine_interface;
+      static std::atomic<size_t> jdir;
+      static std::atomic<size_t> kdir;
+      std::vector<Processor> cached_procs;
+
 /*
       void default_policy_select_constraints(MapperContext ctx,
                LayoutConstraintSet &constraints, Memory target_memory,

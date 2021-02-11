@@ -23,14 +23,17 @@ namespace Legion {
   namespace Mapping {
 
     Logger log_eri_regent_mapper("eri_regent_mapper");
+    std::atomic<size_t> EriRegentMapper::kdir = 0;
+    std::atomic<size_t> EriRegentMapper::jdir = 0;
 
     //--------------------------------------------------------------------------
     EriRegentMapper::EriRegentMapper(MapperRuntime *rt, Machine m, Processor local)
-      : DefaultMapper(rt, m, local)
+      : DefaultMapper(rt, m, local), machine_interface(Utilities::MachineQueryInterface(m))
     //--------------------------------------------------------------------------
     {
-std::cout << __FUNCTION__ << " constructor" << std::endl;
-std::cout << "local_gpus " << local_gpus.size() << std::endl;
+      std::cout << __FUNCTION__ << " constructor" << std::endl;
+      std::cout << "local_gpus " << local_gpus.size() << std::endl;
+      kdir=jdir=0;
     }
 
     //--------------------------------------------------------------------------
@@ -39,9 +42,167 @@ std::cout << "local_gpus " << local_gpus.size() << std::endl;
     {
     }
 
-#if 1
+    //--------------------------------------------------------------------------
+    void EriRegentMapper::slice_task(const MapperContext      ctx,
+                                     const Task&              task,
+                                     const SliceTaskInput&      input,
+                                     SliceTaskOutput&     output)
+    //--------------------------------------------------------------------------
+    {
+      log_eri_regent_mapper.debug("Slice task in eri regent mapper for task %s "
+                                  "(ID %lld)", task.get_task_name(),
+                                  task.task_id);
+      int kfock_mcmurchie_task = strncmp(task.get_task_name(), "KFock", 5);
+      int jfock_mcmurchie_task = strncmp(task.get_task_name(), "JFock", 5);
+      // 1 - kfock_mc.., jfock_mc.. tasks
+      // 2 - gpu target
+      Processor::Kind target_kind = task.target_proc.kind();
+      bool custom_slice = (kfock_mcmurchie_task == 0) || (jfock_mcmurchie_task == 0);
+      bool rotation=true;
+      unsigned int dir = 0;
 
+      if (kfock_mcmurchie_task == 0)  dir = EriRegentMapper::kdir++;
+      if (jfock_mcmurchie_task == 0)  dir = EriRegentMapper::jdir++;
 
+      if (custom_slice && (target_kind == Processor::TOC_PROC))
+        {
+          slice_domain(task, input.domain, output.slices, rotation /*rotation */, dir);
+          log_eri_regent_mapper.debug() << "custom slice task : " << task.get_task_name()
+                                        << " slices = " <<  output.slices.size() << "\n";
+        }
+      else
+        DefaultMapper::slice_task(ctx, task, input, output);
+
+      log_eri_regent_mapper.debug("num slices for task %s (ID %lld)  = %lld", task.get_task_name(),
+                                  task.task_id, output.slices.size());
+    }
+
+    //--------------------------------------------------------------------------
+    void EriRegentMapper::slice_domain(const Task& task,
+                                       const Domain &domain,
+                                       std::vector<DomainSplit>
+                                       &slices,
+                                       bool rotation,
+                                       unsigned int dir)
+    //--------------------------------------------------------------------------
+    {
+      log_eri_regent_mapper.debug("Slice index space in eri regent mapper for task %s "
+                                  "(ID %lld)", task.get_task_name(),
+                                  task.get_unique_id());
+
+      Processor::Kind target_kind = task.target_proc.kind();
+      std::set<Processor> all_procs;
+      if (cached_procs.size() == 0)
+        {
+          machine.get_all_processors(all_procs);
+          machine_interface.filter_processors(machine, target_kind, all_procs);
+          std::vector<Processor> procs(all_procs.begin(),all_procs.end());
+          for (unsigned i=0; i<all_procs.size(); ++i)
+            cached_procs.push_back(procs[i]);
+        }
+      std::map<TaskID,std::vector<TaskSlice> >::const_iterator finder =
+        cached_slices.find(task.task_id);
+      if (finder != cached_slices.end()) {
+        slices = finder->second;
+        log_eri_regent_mapper.debug("Found cached slice  for task %s "
+                                    "(ID %lld)", task.get_task_name(),
+                                    task.get_unique_id());
+        return;
+      }
+
+      EriRegentMapper::decompose_index_space(domain, cached_procs,
+                                             1 /* splitting factor */,
+                                             slices, rotation, dir);
+      // cache the slices
+      cached_slices[task.task_id] = slices;
+    }
+
+    //--------------------------------------------------------------------------
+    template <unsigned DIM>
+    static void round_robin_point_assign(const Domain &domain, 
+                                         const std::vector<Processor> &targets,
+                                         unsigned splitting_factor, 
+                                         std::vector<EriRegentMapper::DomainSplit>
+                                         &slices)
+    //--------------------------------------------------------------------------
+    {
+      Rect<DIM,coord_t> r = domain;
+
+      std::vector<Processor>::const_iterator target_it = targets.begin();
+      for(PointInRectIterator<DIM> pir(r); pir(); pir++) 
+      {
+        // rect containing a single point
+        Rect<DIM> subrect(*pir, *pir);
+        EriRegentMapper::DomainSplit ds(subrect, 
+            *target_it++, false /* recurse */, false /* stealable */);
+        slices.push_back(ds);
+        if(target_it == targets.end())
+          target_it = targets.begin();
+      }
+    }
+
+    //--------------------------------------------------------------------------
+    template <unsigned DIM>
+    static void round_robin_point_assign_with_rotation(const Domain &domain, 
+                                                       const std::vector<Processor>
+                                                       &targets,
+                                                       unsigned splitting_factor, 
+                                                       std::vector<EriRegentMapper::DomainSplit>
+                                                       &slices,
+                                                       unsigned int dir)
+    //--------------------------------------------------------------------------
+    {
+      bool forward_dir = true;
+      Rect<DIM,coord_t> r = domain;
+      unsigned int i = 0;
+      if ((dir%2) == 0)
+        {
+          forward_dir = false;
+          i = targets.size()-1;
+        }
+      log_eri_regent_mapper.debug() << "slice dir =  " << forward_dir << " i = " << i <<  " EriRegentMapper::dir = " << dir << "\n";
+
+      for(PointInRectIterator<DIM> pir(r); pir(); pir++) 
+        {
+          // rect containing a single point
+          Rect<DIM> subrect(*pir, *pir);
+          EriRegentMapper::DomainSplit ds(subrect, 
+                                          targets[i%targets.size()], 
+                                          false /* recurse */,
+                                          false /* stealable */);
+          log_eri_regent_mapper.debug() << "point = " << *pir << " proc = " << targets[i%targets.size()] << "\n";
+          if (forward_dir) ++i;
+          slices.push_back(ds);
+          if ((i%targets.size()) == 0) {
+            if (forward_dir) {
+              forward_dir=false;
+              i = targets.size()-1;
+            }
+            else 
+              forward_dir=true;
+          }
+          else if (!forward_dir)
+            --i;
+        }
+    }
+    //--------------------------------------------------------------------------
+    /*static*/ void EriRegentMapper::decompose_index_space(const Domain &domain, 
+                                                           const std::vector<Processor> &targets,
+                                                           unsigned splitting_factor, 
+                                                           std::vector<DomainSplit> &slices,
+                                                           bool rotation,
+                                                           unsigned int dir /* backward/forward */)
+    //--------------------------------------------------------------------------
+    {
+      assert(domain.get_dim() == 1);
+      if (!rotation)
+        round_robin_point_assign<1>(domain, targets, splitting_factor, slices);
+      else
+        round_robin_point_assign_with_rotation<1>(domain, targets, splitting_factor, slices, dir);
+    }
+
+    
+#if 0
 
     //--------------------------------------------------------------------------
     void DefaultMapper::default_policy_select_constraints(MapperContext ctx,

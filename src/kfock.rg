@@ -6,14 +6,26 @@ require "mcmurchie.kfock.generate_kfock_integral"
 local c = regentlib.c -- KGJ: delete this
 
 function kfock(r_pairs_list, r_prevals_list, r_density_list, r_output_list,
-               r_gamma_table, threshold, parallelism, largest_momentum)
+               r_gamma_table, threshold, parallelism, largest_momentum, reverse)
   local statements = terralib.newlist()
   -- TODO: Partition output.
   -- TODO: Reverse the launch order so that large kernels launch first
-  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
-    for L2 = 0, getCompiledMaxMomentum() do -- inclusive
-      for L3 = 0, getCompiledMaxMomentum() do -- inclusive
-        for L4 = 0, getCompiledMaxMomentum() do -- inclusive
+  local L_start, L_end, L_stride
+
+  if reverse == 1 then
+    L_start = getCompiledMaxMomentum()
+    L_end = 0
+    L_stride = -1
+  else
+    L_start = 0
+    L_end =  getCompiledMaxMomentum()
+    L_stride = 1
+  end
+  
+  for L1 = L_start, L_end, L_stride do -- inclusive
+    for L2 = L_start, L_end, L_stride do -- inclusive
+      for L3 = L_start, L_end, L_stride do -- inclusive
+        for L4 = L_start, L_end, L_stride do -- inclusive
           if L1 < L3 or (L1 == L3 and L2 <= L4) then
             local r_bras, r_kets = r_pairs_list[L1][L2], r_pairs_list[L3][L4]
             local r_bra_prevals = r_prevals_list[L1][L2][1]
@@ -37,7 +49,14 @@ function kfock(r_pairs_list, r_prevals_list, r_density_list, r_output_list,
             if L1 == 0 and L2 == 0 and L3 == 2 and L4 == 0 then -- SSDS exception
               k_max = 0
             end
-
+            -- support variable number of partitions
+            -- for S/P orbitals
+            -- TODO: extend this to > P orbitals
+            local p = parallelism[15]
+            if L1 <= 1 and L2 <=1 and L3 <=1 and L4 <= 1 then
+              local pindex = L4*1 + L3*2 + L2*4 + L1*8
+              p = parallelism[pindex]
+            end
             --c.printf("kernel = %1.f  %1.f  %1.f  %1.f\n", L1, L2, L3, L4)
             for k = 0, k_max do -- inclusive
               --local k = 0
@@ -46,10 +65,10 @@ function kfock(r_pairs_list, r_prevals_list, r_density_list, r_output_list,
               if r_bras ~= nil and r_kets ~= nil then
                 statements:insert(rquote
                   -- TODO: If region is empty, then don't launch a task
-                  var bra_coloring = ispace(int1d, parallelism)
+                  var bra_coloring = ispace(int1d, p)
                   var p_bras = partition(equal, r_bras, bra_coloring)
                   -- TODO: Partition other regions, too
-                  --__demand(__index_launch)
+                  __demand(__index_launch)
                   --c.printf("Launching kfock_integral task ... \n");c.fflush(c.stdout);
                   for bra_color in bra_coloring do
                     kfock_integral(p_bras[bra_color], r_kets,

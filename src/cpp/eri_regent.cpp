@@ -268,11 +268,23 @@ __TRACE
     }
   }
 }
-
+#define PSPS 10
+#define SSSS 0
 void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
                                   float threshold, int parallelism) {
 std::cout<<__FUNCTION__<<" parallelism "<<parallelism<<std::endl;
 
+   // TODO: read this from a file
+   // optimize PSPS and SSSS
+  int parray[16];
+  int init_val = parallelism*2;
+  for (unsigned int i=0; i<16; ++i)
+    {
+      if ((i==PSPS) || (i==SSSS))
+        parray[i] = init_val;
+      else
+        parray[i] = parallelism;
+    }
   // Create kpair regions
   LogicalRegion kpair_lr_list[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   PhysicalRegion kpair_pr_list[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
@@ -598,7 +610,22 @@ std::cout<<__FUNCTION__<<" parallelism "<<parallelism<<std::endl;
   launcher.add_argument_r_gamma_table(gamma_table_lr, gamma_table_lr,
                                       {GAMMA_TABLE_FIELD_ID});
   launcher.add_argument_threshold(threshold);
-  launcher.add_argument_parallelism(parallelism);
+  launcher.add_argument_parallelism0(parray[0]);
+  launcher.add_argument_parallelism1(parray[1]);
+  launcher.add_argument_parallelism2(parray[2]);
+  launcher.add_argument_parallelism3(parray[3]);
+  launcher.add_argument_parallelism4(parray[4]);
+  launcher.add_argument_parallelism5(parray[5]);
+  launcher.add_argument_parallelism6(parray[6]);
+  launcher.add_argument_parallelism7(parray[7]);
+  launcher.add_argument_parallelism8(parray[8]);
+  launcher.add_argument_parallelism9(parray[9]);
+  launcher.add_argument_parallelism10(parray[10]);
+  launcher.add_argument_parallelism11(parray[11]);
+  launcher.add_argument_parallelism12(parray[12]);
+  launcher.add_argument_parallelism13(parray[13]);
+  launcher.add_argument_parallelism14(parray[14]);
+  launcher.add_argument_parallelism15(parray[15]);
   launcher.add_argument_largest_momentum(kdata_list.get_largest_momentum());
 __TRACE
   Future future = launcher.execute(runtime, ctx);

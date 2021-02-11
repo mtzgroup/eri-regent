@@ -17,6 +17,7 @@ require "kfock"
 -- max_momentum    - A sanity check to make sure eri-regent was compiled with a
 --                   large enough momentum
 --------------------------------------------------------------------------------
+__forbid(__inner)
 task jfock_task(r_jbras00 : region(ispace(int1d), getJBra(0+0)),
                 r_jbras01 : region(ispace(int1d), getJBra(0+1)),
                 r_jbras02 : region(ispace(int1d), getJBra(0+2)),
@@ -87,7 +88,7 @@ do
 end
 
 --------------------------------------------------------------------------------
--- Launch kfock tasks
+-- Launch kfock tasks with varying parallelism for S/P Mcmurchie task launches
 --------------------------------------------------------------------------------
 -- r_pairs[L1][L2]   - Regions of KFock pairs with angular momentum pair L1, L2
 -- r_density[L2][L4] - Regions of density values with angular momentum pair L24
@@ -99,6 +100,7 @@ end
 -- max_momentum      - A sanity check to make sure eri-regent was compiled with
 --                     a large enough momentum
 --------------------------------------------------------------------------------
+__forbid(__inner)
 task kfock_task(r_pairs00     : region(ispace(int1d), getKFockPair(0, 0)),
                 r_pairs01     : region(ispace(int1d), getKFockPair(0, 1)),
                 r_pairs02     : region(ispace(int1d), getKFockPair(0, 2)),
@@ -205,7 +207,24 @@ task kfock_task(r_pairs00     : region(ispace(int1d), getKFockPair(0, 0)),
                 r_output34    : region(ispace(int3d), getKFockOutput(3, 4)),
                 r_output44    : region(ispace(int3d), getKFockOutput(4, 4)),
                 r_gamma_table : region(ispace(int2d, {18, 700}), double[5]),
-                threshold : float, parallelism : int, largest_momentum : int)
+                threshold : float,
+                parallelism0 : int,
+                parallelism1 : int,
+		parallelism2 : int,
+		parallelism3 : int,
+		parallelism4 : int,
+		parallelism5 : int,
+		parallelism6 : int,
+		parallelism7 : int,
+		parallelism8 : int,
+		parallelism9 : int,
+		parallelism10 : int,
+		parallelism11 : int,
+		parallelism12 : int,
+		parallelism13 : int,
+		parallelism14 : int,
+		parallelism15 : int,
+                largest_momentum : int)
 where
   reads (
     r_pairs00, r_pairs01, r_pairs02, r_pairs03, r_pairs04,
@@ -279,7 +298,17 @@ do
       [3]={[3]=r_output33, [4]=r_output34},
       [4]={[4]=r_output44}
     },
-    r_gamma_table, threshold, parallelism, largest_momentum)]
+    r_gamma_table, threshold,
+    {[0]=parallelism0, [1]=parallelism1,
+     [2]=parallelism2, [3]=parallelism3,
+     [4]=parallelism4, [5]=parallelism5,
+     [6]=parallelism6, [7]=parallelism7, 
+     [8]=parallelism8, [9]=parallelism9,
+     [10]=parallelism10,[11]=parallelism11,
+     [12]=parallelism12, [13]=parallelism13,
+     [14]=parallelism14, [15]=parallelism15
+    },
+    largest_momentum, 1)]
 end
 
 local header, lib = nil, nil
