@@ -31,8 +31,8 @@ namespace Legion {
       : DefaultMapper(rt, m, local), machine_interface(Utilities::MachineQueryInterface(m))
     //--------------------------------------------------------------------------
     {
-      std::cout << __FUNCTION__ << " constructor" << std::endl;
-      std::cout << "local_gpus " << local_gpus.size() << std::endl;
+      //      std::cout << __FUNCTION__ << " constructor" << std::endl;
+      //      std::cout << "local_gpus " << local_gpus.size() << std::endl;
       kdir=jdir=0;
     }
 
@@ -348,7 +348,7 @@ namespace Legion {
                                    const Task&              task,
                                    const SliceTaskInput&    input,
                                          SliceTaskOutput&   output) {
-std::cout << "remote gpus " << remote_gpus.size() << " local_gpus " << local_gpus.size() << " remote_procsets " << remote_procsets.size() << std::endl;
+      // std::cout << "remote gpus " << remote_gpus.size() << " local_gpus " << local_gpus.size() << " remote_procsets " << remote_procsets.size() << std::endl;
       std::vector<VariantID> variants;
       runtime->find_valid_variants(ctx, task.task_id, variants);
 
@@ -390,7 +390,7 @@ std::cout << "remote gpus " << remote_gpus.size() << " local_gpus " << local_gpu
        for (Legion::Processor proc : local_procs) {
          Legion::Mapping::EriRegentMapper* mapper = 
            new Legion::Mapping::EriRegentMapper(mrt, machine, proc);
-#if 1
+#if 0
          Legion::Mapping::LoggingWrapper* wrapper =
            new Legion::Mapping::LoggingWrapper(mapper);
          rt->replace_default_mapper(wrapper, proc);

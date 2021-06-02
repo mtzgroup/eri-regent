@@ -272,7 +272,7 @@ __TRACE
 #define SSSS 0
 void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
                                   float threshold, int parallelism) {
-std::cout<<__FUNCTION__<<" parallelism "<<parallelism<<std::endl;
+  //std::cout<<__FUNCTION__<<" parallelism "<<parallelism<<std::endl;
 
    // TODO: read this from a file
    // optimize PSPS and SSSS

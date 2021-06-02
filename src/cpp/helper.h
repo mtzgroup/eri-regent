@@ -1,5 +1,6 @@
 #pragma once
-
+#ifndef ERI_HELPER
+#define ERI_HELPER
 /**
  * The compiled maximum angular momentum.
  */
@@ -21,6 +22,13 @@
  * Assumes Y <= X.
  */
 #define INDEX_UPPER_TRIANGLE(Y, X) (INDEX_SQUARE(Y, X) - TRIANGLE_NUMBER(Y))
+/**
+ * binary to decimal
+ */
+#define BINARY_TO_DECIMAL(L1, L2, L3, L4) (L1*8 + L2*4 + L3*2 + L4*1)
+
+//! Determine number of AO functions in a shell of momentum L.
+#define ANGL_FUNCS(L) ((L+1)*(L+2)/2)
 
 #include <stddef.h>
 
@@ -30,6 +38,8 @@ size_t stride(int L1, int L2);
 
 #include <unistd.h>
 
-#define __TRACE {\
-char h[80]; gethostname(h, 80); \
-std::cout << h << " " << __FUNCTION__ << " " << __FILE__ << ":" << __LINE__ << std::endl; }
+#define __TRACE
+  // {									\
+  //char h[80]; gethostname(h, 80);					\
+  //std::cout << h << " " << __FUNCTION__ << " " << __FILE__ << ":" << __LINE__ << std::endl; }
+#endif
