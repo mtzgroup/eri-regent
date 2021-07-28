@@ -49,7 +49,7 @@ task jfock_task(r_jbras00 : region(ispace(int1d), getJBra(0+0)),
                 r_jkets34 : region(ispace(int1d), getJKet(3+4)),
                 r_jkets44 : region(ispace(int1d), getJKet(4+4)),
                 r_gamma_table : region(ispace(int2d, {18, 700}), double[5]),
-                threshold : float, parallelism : int, largest_momentum : int)
+                threshold : float, parallelism : int, cparallelism: int, largest_momentum : int)
 where
   reads writes(
     r_jbras00, r_jbras01, r_jbras02, r_jbras03, r_jbras04,
@@ -84,7 +84,7 @@ do
       [3]={[3]=r_jkets33, [4]=r_jkets34},
       [4]={[4]=r_jkets44},
     },
-    r_gamma_table, threshold, parallelism)]
+    r_gamma_table, threshold, parallelism, cparallelism)]
 end
 
 --------------------------------------------------------------------------------

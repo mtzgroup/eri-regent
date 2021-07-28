@@ -96,7 +96,8 @@ void EriRegent::register_tasks() { eri_regent_tasks_h_register(); }
 
 
 void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
-                                  float threshold, int parallelism) {
+                                  float threshold, int parallelism,
+				  int cparallelism) {
   // Create jbra regions
   LogicalRegion jbras_lr_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
   PhysicalRegion jbras_pr_list[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
@@ -226,6 +227,7 @@ void EriRegent::launch_jfock_task(EriRegent::TeraChemJDataList &jdata_list,
                                       {GAMMA_TABLE_FIELD_ID});
   launcher.add_argument_threshold(threshold);
   launcher.add_argument_parallelism(parallelism);
+  launcher.add_argument_cparallelism(cparallelism);
   launcher.add_argument_largest_momentum(jdata_list.get_largest_momentum());
 __TRACE
   Future future = launcher.execute(runtime, ctx);
@@ -272,7 +274,7 @@ __TRACE
 #define SSSS 0
 void EriRegent::launch_kfock_task(EriRegent::TeraChemKDataList &kdata_list,
                                   float threshold, int parallelism) {
-  //std::cout<<__FUNCTION__<<" parallelism "<<parallelism<<std::endl;
+  //  std::cout<<__FUNCTION__<<" parallelism "<<parallelism<<std::endl;
 
    // TODO: read this from a file
    // optimize PSPS and SSSS

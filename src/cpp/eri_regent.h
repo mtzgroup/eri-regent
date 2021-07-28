@@ -195,7 +195,8 @@ public:
    * Launch the jfock regent tasks and wait for them to finish.
    */
   void launch_jfock_task(TeraChemJDataList &jdata_list, float threshold,
-                         int parallelism);
+                         int parallelism,
+			 int cparallelism);
 
   /**
    * Launch the kfock regent tasks and wait for them to finish.

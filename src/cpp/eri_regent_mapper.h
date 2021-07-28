@@ -35,6 +35,11 @@ namespace Legion {
       typedef TaskSlice DomainSplit;
       EriRegentMapper(MapperRuntime *rt, Machine machine, Processor local); 
       virtual ~EriRegentMapper(void);
+
+      virtual void select_task_options(const MapperContext    ctx,
+				       const Task&            task,
+				       TaskOptions&     output);
+
       virtual void slice_task(const MapperContext      ctx,
                               const Task&              task,
                               const SliceTaskInput&      input,
@@ -59,6 +64,7 @@ namespace Legion {
       Utilities::MachineQueryInterface machine_interface;
       static std::atomic<size_t> jdir;
       static std::atomic<size_t> kdir;
+      bool cpu_mix; // allocate JFockMcmurchie (ex PPPP) to cpu targets?
       std::vector<Processor> cached_procs;
 
 /*

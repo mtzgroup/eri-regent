@@ -32,14 +32,49 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       //      std::cout << __FUNCTION__ << " constructor" << std::endl;
-      //      std::cout << "local_gpus " << local_gpus.size() << std::endl;
       kdir=jdir=0;
+      {
+        int argc = HighLevelRuntime::get_input_args().argc;
+        char **argv = HighLevelRuntime::get_input_args().argv;
+        // Parse the input arguments looking for ones for eri regent
+	// mapper
+	cpu_mix = false;
+        for (int i=1; i < argc; i++)
+	  {
+	    if (!strcmp(argv[i], "-em:cpus")) {
+	      cpu_mix = true;
+	      break;
+	    }
+	  }
+      }
     }
 
     //--------------------------------------------------------------------------
     EriRegentMapper::~EriRegentMapper(void)
     //--------------------------------------------------------------------------
     {
+    }
+
+
+    //--------------------------------------------------------------------------
+    void EriRegentMapper::select_task_options(const MapperContext    ctx,
+					      const Task&            task,
+					      TaskOptions&     output)
+    //--------------------------------------------------------------------------
+    {
+      DefaultMapper::select_task_options(ctx, task, output);
+      if (cpu_mix) {
+	int jfock_mcmurchie_task = strncmp(task.get_task_name(), "JFockMcMurchiePPPP", 18);
+	if (jfock_mcmurchie_task == 0) {
+	  if (have_proc_kind_variant(ctx, task.task_id, Processor::LOC_PROC))
+	    {
+	      output.initial_proc = default_get_next_local_cpu();
+	      log_eri_regent_mapper.debug(" select_task_options to LOC_PROC for task %s "
+					  "(ID %lld)", task.get_task_name(),
+					  task.task_id);
+	    }
+	}
+      }
     }
 
     //--------------------------------------------------------------------------
@@ -52,6 +87,7 @@ namespace Legion {
       log_eri_regent_mapper.debug("Slice task in eri regent mapper for task %s "
                                   "(ID %lld)", task.get_task_name(),
                                   task.task_id);
+
       int kfock_mcmurchie_task = strncmp(task.get_task_name(), "KFock", 5);
       int jfock_mcmurchie_task = strncmp(task.get_task_name(), "JFock", 5);
       // 1 - kfock_mc.., jfock_mc.. tasks
