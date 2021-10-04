@@ -64,6 +64,7 @@ namespace Legion {
       Utilities::MachineQueryInterface machine_interface;
       static std::atomic<size_t> jdir;
       static std::atomic<size_t> kdir;
+      static std::atomic<size_t> kgrad_dir;
       bool cpu_mix; // allocate JFockMcmurchie (ex PPPP) to cpu targets?
       std::vector<Processor> cached_procs;
 

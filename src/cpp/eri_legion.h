@@ -59,6 +59,18 @@ typedef FieldAccessor<READ_WRITE,double,1,coord_t,Realm::AffineAccessor<double,1
 #define LEGION_KFOCK_INIT_KBRA_KET_TASK_ID(L1, L2, L3, L4) LEGION_KFOCK_INIT_KBRA_KET_TASK_##L1##L2##L3##L4##_ID
 #define LEGION_KFOCK_INIT_KBRA_KET_TASK_IDS(L1, L2) LEGION_KFOCK_INIT_KBRA_KET_TASK_ID(L1,L2,0,0), LEGION_KFOCK_INIT_KBRA_KET_TASK_ID(L1,L2,0,1), LEGION_KFOCK_INIT_KBRA_KET_TASK_ID(L1,L2,1,0), LEGION_KFOCK_INIT_KBRA_KET_TASK_ID(L1,L2,1,1)
 
+//-------TaskID for KGRAD Kbra initialization Tasks
+#define  LEGION_KGRAD_INIT_KBRA_TASK_ID(L1, L2) LEGION_KGRAD_INIT_KBRA_TASK_##L1##L2##_ID
+
+//-------TaskID for KGRAD Tasks
+#define  LEGION_KGRAD_TASK_ID(L1,L2,L3,L4) LEGION_KGRAD_TASK_##L1##L2##L3##L4##_ID
+
+//-------TaskID for KGRAD Output Tasks
+#define  LEGION_KGRAD_OUTPUT_TASK_ID(L1,L2) LEGION_KGRAD_OUTPUT_TASK_##L1##L2##_ID
+
+//-------TaskID for KGRAD Label Tasks
+#define LEGION_KGRAD_INIT_LABEL_TASK_ID(L1,L2) LEGION_KGRAD_INIT_LABEL_TASK_##L1##L2##_ID
+
 //------ Enum for all Legion TaskIDs
 enum KFockTaskIDs {
   // top level task
@@ -92,19 +104,46 @@ enum KFockTaskIDs {
   // Kfock Density Initialization Tasks
   LEGION_KFOCK_INIT_DENSITY_TASK_ID(0,0),
   LEGION_KFOCK_INIT_DENSITY_TASK_ID(0,1),
+  LEGION_KFOCK_INIT_DENSITY_TASK_ID(1,0),
   LEGION_KFOCK_INIT_DENSITY_TASK_ID(1,1),
   // Kfock Kbra/Kket Initialization Tasks
   LEGION_KFOCK_INIT_KBRA_KET_TASK_IDS(0,0),
   LEGION_KFOCK_INIT_KBRA_KET_TASK_IDS(0,1),
   LEGION_KFOCK_INIT_KBRA_KET_TASK_IDS(1,0),
   LEGION_KFOCK_INIT_KBRA_KET_TASK_IDS(1,1),
+  LEGION_KGRAD_INIT_KBRA_TASK_ID(0,0),
+  LEGION_KGRAD_INIT_KBRA_TASK_ID(0,1),
+  LEGION_KGRAD_INIT_KBRA_TASK_ID(1,1),
+  LEGION_KGRAD_TASK_ID(0,0,0,0),
+  LEGION_KGRAD_TASK_ID(0,0,0,1),
+  LEGION_KGRAD_TASK_ID(0,0,1,0),
+  LEGION_KGRAD_TASK_ID(0,0,1,1),
+  LEGION_KGRAD_TASK_ID(0,1,0,0),
+  LEGION_KGRAD_TASK_ID(0,1,0,1),
+  LEGION_KGRAD_TASK_ID(0,1,1,0),
+  LEGION_KGRAD_TASK_ID(0,1,1,1),
+  LEGION_KGRAD_TASK_ID(1,1,0,0),
+  LEGION_KGRAD_TASK_ID(1,1,0,1),
+  LEGION_KGRAD_TASK_ID(1,1,1,0),
+  LEGION_KGRAD_TASK_ID(1,1,1,1),
+  LEGION_KGRAD_INIT_LABEL_TASK_ID(0,0),
+  LEGION_KGRAD_INIT_LABEL_TASK_ID(0,1),
+  LEGION_KGRAD_INIT_LABEL_TASK_ID(1,0),
+  LEGION_KGRAD_INIT_LABEL_TASK_ID(1,1),
+  LEGION_KGRAD_OUTPUT_TASK_ID(0,0),
+  LEGION_KGRAD_OUTPUT_TASK_ID(0,1),
+  LEGION_KGRAD_OUTPUT_TASK_ID(1,0),
+  LEGION_KGRAD_OUTPUT_TASK_ID(1,1)
 };
-
-#undef LEGION_KOCK_MC_TASK_IDS
 
 #define KFOCK_PHI 0 //!< Use un-transposed P elements
 #define KFOCK_PLO 1 //!< Use transposed P elements, write to trans F
 #define KFOCK_PSYM 2  //!< Use untranposed P, write to F and trans(F)
+
+// KGRAD related
+#define EGP_NONE 0
+#define EGP_POST 1
+#define EGP_COEFF 2 // D kernels
 
 // Legion Kfock Mcmurchie Task Arguments
 struct EriLegionTaskArgs {
@@ -114,6 +153,17 @@ struct EriLegionTaskArgs {
   int gridX;
   int gridY;
   int pivot;
+  int mode;
+  int nGrids;
+};
+
+// Legion KGrad Task Arguments
+struct EriLegionKGradTaskArgs {
+  R12Opts param;
+  int nShells_ik;
+  int nShells_jl;
+  int nShells_k;
+  int gridY;
   int mode;
   int nGrids;
 };
@@ -128,11 +178,28 @@ struct EriLegionKfockTopTaskArgs {
   double* fock;
 };
 
+// Legion Kgrad Output Task Arguments
+struct EriLegionKgradTopTaskArgs {
+  EriLegion *ei;
+  int I,J,K,L;
+  double* fock;
+  int gridY, nGrids;
+};
+
 // Legion Kfock Density/Label/Kbra/Kket Initialization Task Arguments
 struct EriLegionKfockInitTaskArgs {
   EriLegion *ei;
   int I,J,K,L;
-  int mode;
+  bool mode; // xpose mode?
+  const double* P; // density
+};
+
+// Legion Kgrad Kbra Initialization Task Arguments
+struct EriLegionKGradInitTaskArgs {
+  EriLegion *ei;
+  int I,J,K,L;
+  int egp_type;
+  int gridY, nGrids;
 };
 
 // Main class for all Legion Kfock Mcmurchie Tasks
@@ -143,9 +210,8 @@ class EriLegion {
     ctx = _ctx; runtime = _runtime;
     for (int i=0; i<(MAX_MOMENTUM+1)*(MAX_MOMENTUM+1); ++i)
       {
-	//	kfock_label[i] = NULL;
 	kfock_lr_label_size[i] = 0;
-	//	kfock_lr_density_size[i] = 0;
+	kgrad_lr_label_size[i] = 0;
 	density_pmax[i] = 0.0;
       }
 
@@ -156,10 +222,18 @@ class EriLegion {
     mode = 0;     // TeraChem input mode [KFOCK_PLO,PHI,PSYM]
     fvec = 0;     // TeraChem input vector pool
     num_clrs=0;   // Number of colors to partition regions
+    kgrad_num_clrs=0;   // Number of colors to partition regions for kgrad
     fock = 0;     // TeraChem output
+    kgrad_src = NULL; // kgrad kbra src
+    kgrad_P1 = NULL;  // kgrad density P1
+    kgrad_P2 = NULL;; // kgrad density P1
+    kgrad_pxpose = 0; // kgrad pxpose
+    kgrad_pmax = 0.0; // kgrad pmax
+    is_kgrad=false;  // initially kgradient is false
   };
 
   ~EriLegion() {
+    pthread_mutex_destroy(&m);
     destroy(); // cleanup all the legion structures
   };
 
@@ -182,6 +256,7 @@ class EriLegion {
   Runtime *runtime;
   VecPool *fvec;
   int num_clrs;
+  int kgrad_num_clrs; // kgrad num clrs
   const IBoundSorter *src;
   const Basis *basis;
   const double *P;
@@ -189,7 +264,15 @@ class EriLegion {
   R12Opts param; // TeraChem options parameter
   float thre;
   int mode;
-  //  Memory memory;
+  bool is_kgrad;
+  //------ KGRAD KBra related -------
+  const BoundSorter *kgrad_src;
+  // KGRAD density
+  const double *kgrad_P1, *kgrad_P2;
+  int kgrad_pxpose;
+  float kgrad_pmax;
+  float brathre;
+  float ketthre;
 
   // Mutex used for final reduction into fock output
   pthread_mutex_t m;
@@ -218,12 +301,15 @@ class EriLegion {
   FieldSpace kpair_fspaces_CA[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   FieldSpace kpair_fspaces_CB[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   FieldSpace kpair_fspaces_C2[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
-
+  // Legion Field Spaces for kbra kgrad
+  FieldSpace kpair_fspaces_Coeff[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   // Legion Field Spaces for klabel
   FieldSpace klabel_fspaces[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  FieldSpace kgrad_klabel_fspaces[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
 
   // Legion Field Spaces for kdensity
-  FieldSpace kdensity_fspaces[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+  //  FieldSpace kdensity_fspaces[TRIANGLE_NUMBER(MAX_MOMENTUM + 1)];
+  FieldSpace kdensity_fspaces[(MAX_MOMENTUM + 1)*(MAX_MOMENTUM + 1)];
 
   // Legion Field Spaces for koutput
   FieldSpace koutput_fspaces[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM+1)];
@@ -236,15 +322,18 @@ class EriLegion {
   LogicalRegion kfock_lr_CA[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   LogicalRegion kfock_lr_CB[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   LogicalRegion kfock_lr_C2[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  // Legion Logical Region for KGRAD/KBra
+  LogicalRegion kfock_lr_Coeff[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
 
-  // TODO: check TRIANGLE_NUMBER below
   // Legion Logical Regions for kdensity
-  LogicalRegion kfock_lr_density[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  LogicalRegion kfock_lr_density[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)*2/*for kgrad*/];
 
   // Legion Logical Regions for koutput
   LogicalRegion kfock_lr_output[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   // Legion Logical Regions for klabel
   LogicalRegion kfock_lr_label[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  
+  LogicalRegion kgrad_lr_label[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
 
   // Legion Index Partitions for koutput
   IndexPartition kfock_ip_2d[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
@@ -252,12 +341,21 @@ class EriLegion {
   // Legion Index Spaces for koutput partition colors
   IndexSpace kfock_color_is[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
 
-  // Legion Index Spaces for label
+  // Legion Index Spaces for kfock label
   IndexSpace kfock_label_is[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+
+  // Legion Index Spaces for kgrad label
+  IndexSpace kgrad_label_is[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
 
   // Legion Field Spaces for kdensity [00,01,11]
   FieldSpace kdensity_fspace_PSP1;
   FieldSpace kdensity_fspace_PSP2;
+
+  // Kgrad related
+  FieldSpace kdensity_fspace_PSP1_10;
+  FieldSpace kdensity_fspace_PSP2_10;
+  FieldSpace kgrad_output_fspaces[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM+1)];
+
   FieldSpace kdensity_fspace_1A;
   FieldSpace kdensity_fspace_1B;
   FieldSpace kdensity_fspace_2A;
@@ -266,17 +364,47 @@ class EriLegion {
   FieldSpace kdensity_fspace_3B;
 
   // Legion Logical Regions for kdensity [00,01,11]
-  LogicalRegion kdensity_lr_PSP1;
-  LogicalRegion kdensity_lr_PSP2;
-  LogicalRegion kdensity_lr_1A;
-  LogicalRegion kdensity_lr_1B;
-  LogicalRegion kdensity_lr_2A;
-  LogicalRegion kdensity_lr_2B;
-  LogicalRegion kdensity_lr_3A;
-  LogicalRegion kdensity_lr_3B;
+  LogicalRegion kdensity_lr_PSP1[2];
+  LogicalRegion kdensity_lr_PSP2[2];
+  //----- KGRAD related
+  LogicalRegion kdensity_lr_PSP1_10[2];
+  LogicalRegion kdensity_lr_PSP2_10[2];
+  //------
+  LogicalRegion kdensity_lr_1A[2];
+  LogicalRegion kdensity_lr_1B[2];
+  LogicalRegion kdensity_lr_2A[2];
+  LogicalRegion kdensity_lr_2B[2];
+  LogicalRegion kdensity_lr_3A[2];
+  LogicalRegion kdensity_lr_3B[2];
 
+  // KGRAD Kbra Legion Logical Regions
+  LogicalRegion kgrad_lr_2A[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  LogicalRegion kgrad_lr_2B[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  LogicalRegion kgrad_lr_4A[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  LogicalRegion kgrad_lr_4B[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  LogicalRegion kgrad_lr_Coeff[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+
+  // Legion Logical Regions for kgrad koutput
+  LogicalRegion kgrad_lr_output[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+
+  // Legion Index Space for kgrad (kbra/koutput)
+  IndexSpace kgrad_color_is[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  // Legion Index Space for kgrad kbra
+  IndexSpace kgrad_is[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+
+  // Legion Index Partitions for kgrad (kbra)
+  IndexPartition kgrad_ip[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+
+  // Legion Index Partitions for kgrad (koutput)
+  IndexPartition kgrad_output_ip[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+
+  // count of kgrad bra entries about a particular threshold
+  int bra_count[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  // num partitions/colors for kgrad
+  int num_grids[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
   // Number of keys for each shell stored in label array
   size_t kfock_lr_label_size[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  size_t kgrad_lr_label_size[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
 
   // Density Regions max bounds value
   float density_pmax[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
@@ -292,6 +420,9 @@ class EriLegion {
 
 #define LEGION_KDENSITY_FIELD_IDS_0_1()				\
   LEGION_KDENSITY_FIELD_ID(0, 1, BOUND), LEGION_KDENSITY_FIELD_ID(0, 1, PSP1_X),  LEGION_KDENSITY_FIELD_ID(0, 1, PSP1_Y),  LEGION_KDENSITY_FIELD_ID(0, 1, PSP2)
+
+#define LEGION_KDENSITY_FIELD_IDS_1_0()				\
+  LEGION_KDENSITY_FIELD_ID(1,0, BOUND), LEGION_KDENSITY_FIELD_ID(1, 0, PSP1_X),  LEGION_KDENSITY_FIELD_ID(1,0, PSP1_Y),  LEGION_KDENSITY_FIELD_ID(1,0, PSP2)
 
 #define LEGION_KDENSITY_FIELD_IDS_1_1()				\
   LEGION_KDENSITY_FIELD_ID(1, 1, BOUND), LEGION_KDENSITY_FIELD_ID(1, 1, 1A_X),  LEGION_KDENSITY_FIELD_ID(1, 1, 1A_Y),  LEGION_KDENSITY_FIELD_ID(1, 1, 1B), LEGION_KDENSITY_FIELD_ID(1, 1, 2A_X), LEGION_KDENSITY_FIELD_ID(1, 1, 2A_Y), LEGION_KDENSITY_FIELD_ID(1, 1, 2B), LEGION_KDENSITY_FIELD_ID(1, 1, 3A_X), LEGION_KDENSITY_FIELD_ID(1, 1, 3A_Y), LEGION_KDENSITY_FIELD_ID(1, 1, 3B)
@@ -313,7 +444,17 @@ class EriLegion {
     LEGION_KPAIR_FIELD_ID(L1, L2,  L3, L4, CB_X),			\
     LEGION_KPAIR_FIELD_ID(L1, L2,  L3, L4, CB_Y),			\
     LEGION_KPAIR_FIELD_ID(L1, L2,  L3, L4, C2_X),			\
-    LEGION_KPAIR_FIELD_ID(L1, L2,  L3, L4, C2_Y)
+    LEGION_KPAIR_FIELD_ID(L1, L2,  L3, L4, C2_Y),			\
+    LEGION_KPAIR_FIELD_ID(L1, L2,  L3, L4, TAA),			\
+    LEGION_KPAIR_FIELD_ID(L1, L2,  L3, L4, TAB),			\
+    LEGION_KPAIR_FIELD_ID(L1, L2,  L3, L4, RTAP),			\
+    LEGION_KPAIR_FIELD_ID(L1, L2,  L3, L4, RXT),			\
+    LEGION_KPAIR_FIELD_ID(L1, L2,  L3, L4, RYT),			\
+    LEGION_KPAIR_FIELD_ID(L1, L2,  L3, L4, RZT)
+
+#define LEGION_KGRAD_KOUTPUT_FIELD_ID(L1, L2, L3, L4) KGRAD_KOUTPUT##L1##L2##L3##L4##_FIELD_##LABEL##_ID
+
+#define LEGION_KGRAD_KLABEL_FIELD_ID(L1,L2) KGRAD_KLABEL##L1##L2##_FIELD_##LABEL##_ID
 
   // An enum containing all the tasks and fields so that 
   // we can uniquely identify them
@@ -329,11 +470,19 @@ class EriLegion {
     LEGION_KPAIR_FIELD_IDS(1, 1, 0, 0),
     LEGION_KPAIR_FIELD_IDS(0, 1, 0, 1),
     LEGION_KPAIR_FIELD_IDS(0, 1, 1, 0),
+    LEGION_KPAIR_FIELD_IDS(0, 1, 1, 1),
     LEGION_KPAIR_FIELD_IDS(1, 0, 1, 0),
     LEGION_KPAIR_FIELD_IDS(1, 0, 1, 1),
+    LEGION_KPAIR_FIELD_IDS(0, 0, 1, 0),
+    LEGION_KPAIR_FIELD_IDS(0, 0, 1, 1),
+    LEGION_KPAIR_FIELD_IDS(0, 1, 0, 0),
+    LEGION_KPAIR_FIELD_IDS(1, 0, 0, 0),
+    LEGION_KPAIR_FIELD_IDS(1, 1, 0, 1),
+    LEGION_KPAIR_FIELD_IDS(1, 1, 1, 0),
     LEGION_KPAIR_FIELD_IDS(1, 1, 1, 1),
     LEGION_KDENSITY_FIELD_IDS(0, 0),
     LEGION_KDENSITY_FIELD_IDS_0_1(),
+    LEGION_KDENSITY_FIELD_IDS_1_0(),
     LEGION_KDENSITY_FIELD_IDS_1_1(),
     LEGION_KOUTPUT_FIELD_IDS(0, 0, 0, 0), // 0
     LEGION_KOUTPUT_FIELD_IDS(0, 0, 0, 1), // 1
@@ -345,14 +494,37 @@ class EriLegion {
     LEGION_KOUTPUT_FIELD_IDS(1, 0, 1, 0), // 10
     LEGION_KOUTPUT_FIELD_IDS(1, 0, 1, 1), // 11
     LEGION_KOUTPUT_FIELD_IDS(1, 1, 1, 1), // 15
-    LEGION_KLABEL_FIELD_IDS(0, 0, 0, 0),
-    LEGION_KLABEL_FIELD_IDS(0, 0, 0, 1),
-    LEGION_KLABEL_FIELD_IDS(1, 1, 0, 0),
-    LEGION_KLABEL_FIELD_IDS(0, 1, 0, 1),
-    LEGION_KLABEL_FIELD_IDS(0, 1, 1, 0),
-    LEGION_KLABEL_FIELD_IDS(1, 0, 1, 0),
-    LEGION_KLABEL_FIELD_IDS(1, 0, 1, 1),
-    LEGION_KLABEL_FIELD_IDS(1, 1, 1, 1)
+    LEGION_KGRAD_KOUTPUT_FIELD_ID(0,0,0,0),
+    LEGION_KGRAD_KOUTPUT_FIELD_ID(0,0,0,1),
+    LEGION_KGRAD_KOUTPUT_FIELD_ID(0,0,1,0),
+    LEGION_KGRAD_KOUTPUT_FIELD_ID(0,0,1,1),
+    LEGION_KGRAD_KOUTPUT_FIELD_ID(0,1,0,0),
+    LEGION_KGRAD_KOUTPUT_FIELD_ID(0,1,0,1),
+    LEGION_KGRAD_KOUTPUT_FIELD_ID(0,1,1,0),
+    LEGION_KGRAD_KOUTPUT_FIELD_ID(0,1,1,1),
+    LEGION_KGRAD_KOUTPUT_FIELD_ID(1,1,0,0),
+    LEGION_KGRAD_KOUTPUT_FIELD_ID(1,1,0,1),
+    LEGION_KGRAD_KOUTPUT_FIELD_ID(1,1,1,0),
+    LEGION_KGRAD_KOUTPUT_FIELD_ID(1,1,1,1),
+    LEGION_KLABEL_FIELD_IDS(0, 0, 0, 0), // 0
+    LEGION_KLABEL_FIELD_IDS(0, 0, 0, 1), // 1
+    LEGION_KLABEL_FIELD_IDS(0, 0, 1, 0), // 2
+    LEGION_KLABEL_FIELD_IDS(0, 0, 1, 1), // 3
+    LEGION_KLABEL_FIELD_IDS(0, 1, 0, 0), // 4
+    LEGION_KLABEL_FIELD_IDS(0, 1, 0, 1), // 5
+    LEGION_KLABEL_FIELD_IDS(0, 1, 1, 0), // 6
+    LEGION_KLABEL_FIELD_IDS(0, 1, 1, 1), // 7
+    LEGION_KLABEL_FIELD_IDS(1, 0, 0, 0), // 8
+    LEGION_KLABEL_FIELD_IDS(1, 0, 1, 0), // 10
+    LEGION_KLABEL_FIELD_IDS(1, 0, 1, 1), // 11
+    LEGION_KLABEL_FIELD_IDS(1, 1, 0, 0), // 12
+    LEGION_KLABEL_FIELD_IDS(1, 1, 0, 1), // 13
+    LEGION_KLABEL_FIELD_IDS(1, 1, 1, 0), // 14
+    LEGION_KLABEL_FIELD_IDS(1, 1, 1, 1), // 15
+    LEGION_KGRAD_KLABEL_FIELD_ID(0,0),
+    LEGION_KGRAD_KLABEL_FIELD_ID(0,1),
+    LEGION_KGRAD_KLABEL_FIELD_ID(1,0),
+    LEGION_KGRAD_KLABEL_FIELD_ID(1,1)
   };
 
 #undef LEGION_KPAIR_FIELD_IDS
@@ -374,10 +546,10 @@ class EriLegion {
 
 
   //----------------------------------------------
-  // Create Kfock Mcmurchie field spaces
+  // Create Kfock Mcmurchie + Kgrad field spaces
   //----------------------------------------------
   void create_kfock_field_spaces_klabel_koutput();
-  void create_kfock_field_spaces_kbra_kket_kdensity();
+  void create_field_spaces_kbra_kket_kdensity(bool is_kgrad);
 
   //-----------------------------------------------
   // Create Gamma Table logical regions and field
@@ -425,7 +597,7 @@ class EriLegion {
   };
 
   //-----------------------------------------------
-  // Kfock label region size
+  // Kfock/Kgrad label region size
   //-----------------------------------------------
   size_t label_lr_size(int I)
   {
@@ -514,6 +686,74 @@ class EriLegion {
     t.nGrids = num_colors;
   }
 
+  //-----------------------------------------------------------------
+  // KGRAD task arguments
+  //-----------------------------------------------------------------
+  void init_kgrad_args(struct EriLegionKGradTaskArgs& t, int I, int J,
+		       int K, int L, int num_colors)
+  {
+    t.param = param;
+    int dJ = (J<L ? J:L); /* kdensity dJ */
+    int dL = (J<L ? L:J); /* kdensity dL */
+
+    int dI  = (I<K ? I:K); /* kdensity dI */
+    int dK =  (I<K ? K:I); /* kdensity dK */
+
+    if ((dJ == 0) && (dL==0))
+      t.nShells_jl = nShells(0);
+    else
+      t.nShells_jl = nShells(1);
+
+    if ((dI == 0) && (dK==0))
+      t.nShells_ik = nShells(0);
+    else
+      t.nShells_ik = nShells(1);
+
+    t.nShells_k = nShells(K);
+
+    t.mode = egp_type(I,J);
+  t.nGrids = num_grids[ANGL_PINDEX(I,J)];
+  const int BSIZEY=8;
+  t.gridY = (bra_count[ANGL_PINDEX(I,J)] + BSIZEY-1) / BSIZEY;
+  }
+
+  void init_kgrad_output_args(
+			      struct EriLegionKgradTopTaskArgs& t,
+			      int I, int J,
+			      int K, int L, int num_colors)
+  {
+    const int BSIZEY=8;
+    t.ei = this;
+    t.nGrids = num_grids[ANGL_PINDEX(I,J)];
+    t.gridY = (bra_count[ANGL_PINDEX(I,J)] + BSIZEY-1) / BSIZEY;
+    t.I = I;
+    t.J = J;
+    t.K = K;
+    t.L = L;
+    t.fock = fock;
+  }
+
+
+  //-----------------------------------------------
+  // Kgrad Label Handle and Size
+  //-----------------------------------------------
+  void set_kgrad_label_size(const int I, const int J,
+			    size_t size)
+  { 
+    kgrad_lr_label_size[BINARY_TO_DECIMAL(I,J,0,0)] = size;
+  };
+
+  size_t kgrad_label_size(int I)
+  {
+    return kgrad_lr_label_size[I];
+  };
+
+  //-----------------------------------------------
+  // Kgrad label
+  //-----------------------------------------------
+  void create_kgrad_field_spaces_klabel();
+  void create_kgrad_logical_regions_klabel(int I, int J);
+
   //-----------------------------------------------
   // Partition KFock based on ywork
   //-----------------------------------------------
@@ -568,12 +808,12 @@ class EriLegion {
   //-----------------------------------------------
   // Create Density Logical Regions
   //-----------------------------------------------
-  void create_density_logical_regions(int I, int J);
+  void create_density_logical_regions(int I, int J, int max_regions=0, bool is_kgrad=false);
 
   //-----------------------------------------------
   // Create Kbra Kket Logical Regions
   //-----------------------------------------------
-  void create_kbra_kket_logical_regions(int I, int J, int K, int L);
+  void create_kbra_kket_logical_regions(int I, int J, int K, int L, bool is_kgrad=false);
 
   //-----------------------------------------------
   // Create Koutput Logical Regions
@@ -674,6 +914,24 @@ class EriLegion {
     ptrs_kbra_kket[5] = ptr_coorsB;
     ptrs_kbra_kket[6] = ptr_coors2;
   }
+
+  //-----------------------------------------------
+  // pack kbra/kket regions for TeraChem
+  //-----------------------------------------------
+  static void kgrad_kbra_pack(const double** ptrs_kgrad_kbra,
+			      const double* ptr_2A,
+			      const double* ptr_2B,
+			      const double* ptr_4A,
+			      const double* ptr_4B,
+			      const double* ptr_coeff)
+  {
+    ptrs_kgrad_kbra[0] = ptr_2A;
+    ptrs_kgrad_kbra[1] = ptr_2B;
+    ptrs_kgrad_kbra[2] = ptr_4A;
+    ptrs_kgrad_kbra[3] = ptr_4B;
+    ptrs_kgrad_kbra[4] = ptr_coeff;
+  }
+
   //-----------------------------------------------
   // dump kbra/kket regions for TeraChem
   //-----------------------------------------------
@@ -724,7 +982,7 @@ class EriLegion {
   void destroy_kbra_kket_logical_regions(int I, int J, int K,  int L);
   void destroy_label_logical_regions(int I, int J, int K, int L);
   void destroy_field_spaces_kbra_kket_kdensity();
-
+  void kgrad_output_launcher();  
   //---------------------------------------------
   // Task to populate Kdensity[0,0]
   //---------------------------------------------
@@ -751,6 +1009,12 @@ class EriLegion {
     populate_kdensity_1_1_task(const Task* task, 
 			       const std::vector<PhysicalRegion> &regions,
 			       Context cntx, Runtime *runtime);
+
+  static void
+    kdensity_write_output(int D, int I, int J, int K, int L,
+			  const Task* task,
+			  const std::vector<PhysicalRegion> &regions,
+			  Context cntx, Runtime *runtime);
 
   //---------------------------------------------
   // Tasks to populate Kdensity
@@ -788,13 +1052,14 @@ class EriLegion {
   //---------------------------------------------
   // Launcher for Kbra Kket populate tasks
   //---------------------------------------------
-  void kbra_ket_launcher();
+  //  void kbra_ket_launcher(bool is_kgrad=false);
+  void kbra_ket_launcher(bool is_kgrad=false);
 
   //---------------------------------------------
   // Launcher for Klabel populate tasks
   //---------------------------------------------
   void klabel_launcher();
-
+  
   //---------------------------------------------
   // Register init tasks
   //---------------------------------------------
@@ -810,6 +1075,240 @@ class EriLegion {
   // Launch all kfock init tasks
   //---------------------------------------------
   void init_kfock_tasks();
+
+
+  //---------------------------------------------
+  // KGRAD related methods
+  //---------------------------------------------
+  void init_kgrad(BoundSorter *brapairs,
+                  IBoundSorter *ketpairs,
+                  const Basis *basis,
+                  const double* P1_density,
+                  const double* P2_density,
+                  const float Pmax,
+                  const R12Opts &param,
+		  int Pxpose,
+                  double* kgrad,
+                  int parallelism);
+
+
+  //---------------------------------------------
+  // KGRAD field spaces for KBra
+  //---------------------------------------------
+  void
+    create_kgrad_field_spaces_kbra();
+  
+  //---------------------------------------------
+  // KGRAD logical regions for KBra
+  //---------------------------------------------
+  void
+    create_kbra_kgrad_logical_regions(int I, int J,
+                                      int K, int L, bool EGPost);
+
+  //---------------------------------------------
+  // launch KGRAD init tasks
+  //---------------------------------------------
+  void launch_kgrad_init_tasks();
+
+  //---------------------------------------------
+  // KGRAD initialization tasks
+  //---------------------------------------------
+  void init_kgrad_tasks();
+
+  //---------------------------------------------
+  // KGRAD kbra task launcher
+  //---------------------------------------------
+  void kbra_kgrad_launcher();
+
+  //---------------------------------------------
+  // KGRAD output field spaces
+  //---------------------------------------------
+  void create_kgrad_field_spaces_koutput();
+
+
+  //---------------------------------------------
+  // KGRAD output size based on IJ
+  //---------------------------------------------
+  void kgrad_output_size(int I, int J, int& ysize);
+
+  //---------------------------------------------
+  // create KGRAD output logical regions
+  //---------------------------------------------
+  void create_kgrad_koutput_logical_regions(int I, int J, int K,  int L);
+
+  //---------------------------------------------
+  // create KGRAD kgrad partition colors
+  //---------------------------------------------
+  void kgrad_kbra_colors(int I, int J);
+
+  //---------------------------------------------
+  // populate KGRAD output regions
+  //---------------------------------------------
+  void populate_kgrad_koutput_logical_regions();
+
+  //---------------------------------------------
+  // launch KGRAD output tasks (index launch)
+  //---------------------------------------------
+  void kgrad_koutput_launcher();
+
+  //---------------------------------------------
+  // launch KGRAD output tasks without partition
+  //---------------------------------------------
+  void kgrad_koutput_launcher_base();
+
+  //---------------------------------------------
+  // KGRAD koutput launcher without partition
+  //---------------------------------------------
+  void kgrad_kdensity_launcher(const double* P1, int Pxpose, bool IK);
+
+  //---------------------------------------------
+  // write KGRAD kket regions
+  //---------------------------------------------
+  static void kgrad_kket_write_output(int I, int J, const Task* task, 
+				      const std::vector<PhysicalRegion> &regions,
+				      Context cntx, Runtime *runtime);
+
+  //---------------------------------------------
+  // KGRAD klabel task launcher
+  //---------------------------------------------
+  void kgrad_klabel_launcher();
+
+  //---------------------------------------------
+  // KGRAD egp_type for Kbra
+  //---------------------------------------------
+  int egp_type(int I, int J) {
+    if (I==0 && J==0)
+      return EGP_NONE;
+    else
+      return EGP_POST;
+  }
+
+  //------------------------------------------------------------------------
+  // KGRAD KBra index
+  //------------------------------------------------------------------------
+  int 
+    get_kgrad_kbra_region_index(int L1, int L2, int L3, int L4)
+  {
+    return BINARY_TO_DECIMAL(L1,L2,1,1);
+  }
+
+  //------------------------------------------------------------------------
+  // KGRAD Kket Index
+  //------------------------------------------------------------------------
+  int 
+    get_kgrad_kket_region_index(int L1, int L2, int L3, int L4)
+  {
+    return BINARY_TO_DECIMAL(L3,L4,0,0);
+  }
+
+  //-----------------------------------------------------
+  // Create KGRAD index partitions for kbra and koutput
+  //-----------------------------------------------------
+  void kgrad_partition(int I, int J, int K, int L);
+
+  //-----------------------------------------------------
+  // KGRAD launcher
+  //-----------------------------------------------------
+  void kgrad_launcher_partition(bool is_sym);
+
+
+  //-----------------------------------------------
+  // Register KGRAD Init Tasks
+  //-----------------------------------------------
+  static void register_kgrad_init_tasks(
+					LayoutConstraintID aos_layout_1d,
+					LayoutConstraintID aos_layout_2d);
+
+   
+  //-----------------------------------------------
+  // Register KGRAD tasks
+  //-----------------------------------------------
+  static void register_kgrad_tasks(
+				   LayoutConstraintID aos_layout_1d,
+				   LayoutConstraintID aos_layout_2d);
+
+
+  //-----------------------------------------------
+  // KGRAD density pack
+  //-----------------------------------------------
+  static void
+    kgrad_pack_density(const Task* task,
+		       const std::vector<PhysicalRegion> &regions,
+		       Context ctx, Runtime *runtime,
+		       int index,
+		       double** ptrs_kdensity,
+		       const int d0, const int d1);
+
+  //-----------------------------------------------
+  // KGRAD output task
+  //-----------------------------------------------
+  static void register_kgrad_output_tasks();
+  template<int I,int J>
+    static void kgrad_output_task(const Task* task,
+				  const std::vector<PhysicalRegion> &regions,
+				  Context ctx,
+				  Runtime *runtime);
+  
+  //-----------------------------------------------
+  // KGRAD update output
+  //-----------------------------------------------
+  template<int I,int J>
+    static void update_kgrad_output(double *fock, const double* output,
+				    const BoundSorter *brapairs,
+				    const R12Opts *kopts, int fblocks, int blocks,
+				    pthread_mutex_t kgrad_mutex);
+
+  //----------------------------------------------
+  // Destroy KGRAD regions
+  //-----------------------------------------------
+  void destroy_kgrad_regions();
+  void destroy_kgrad_kbra_logical_regions(int I, int J, int K, int L);
+  void destroy_kgrad_koutput_logical_regions(int I, int J, int K, int L);
+  void destroy_kgrad_klabel_logical_regions(int I, int J);
+  void destroy_kgrad_density_logical_regions(int I, int J);
+  void destroy_field_spaces_kgrad();
+
+  //-----------------------------------------------
+  // KGRAD kbra initialization task
+  //-----------------------------------------------
+  template<int I, int J>
+    static void kbra_kgrad_task(const Task* task,
+				const std::vector<PhysicalRegion> &regions,
+				Context ctx, Runtime *runtime);
+
+  //---------------------------------------------
+  // Tasks for KGRAD KKet label
+  //---------------------------------------------
+  template<int I, int J>
+  static void kgrad_label_task(const Task* task,
+			       const std::vector<PhysicalRegion> &regions,
+			       Context ctx, Runtime *runtime);
+  static
+  void dump_kgrad_label(int I, int J, const Task* task,
+			const std::vector<PhysicalRegion> &regions,
+			Context ctx, Runtime *runtime);
+
+  //-----------------------------------------------
+  // KGRAD dump output to a file
+  //-----------------------------------------------
+  static void kgrad_kform_write_output(int I, int J, int K, int L,
+				const double *buff,
+				const BoundSorter *pairs,
+				int fpair, int npairs);
+
+  //-----------------------------------------------
+  // Create a new file
+  //-----------------------------------------------
+  static FILE*
+    create_file(int I, int J, const char* name);
+
+  //-----------------------------------------------
+  // Main KGRAD task
+  //-----------------------------------------------
+  template<int L1, int L2, int L3, int L4>
+    static void kgrad_task(const Task* task,
+			   const std::vector<PhysicalRegion> &regions,
+			   Context ctx, Runtime *runtime);
 
 };
 
@@ -838,4 +1337,29 @@ template <typename T, int I, int J, int K, int L>
 		    int pivot,                         // pivot based on I/J
 		    int frow
 		    );
+//-----------------------------------------------
+// External API into TeraChem Kgrad
+// All Kgrad CUDA Kernels are launched
+//-----------------------------------------------
+template<typename T, int I, int J, int K, int L>
+extern
+void legion_kgrad(
+		  int mode,                     // EGPNone, EGPost, EGPCoeff
+		  const R12Opts& kopts,               // R12 opts
+		  const int* ptr_kket_label,          // kket label
+		  const T** ptrs_kbra,                // kbra regions
+		  const T** ptrs_kket,                // kket regions
+		  const T** ptrs_kdensity_ik,         // kdensity regions IK
+		  const float* ptr_density_bounds_ik, // bounds IK
+		  const T** ptrs_kdensity_jl,         // kdensity regions JL
+		  const float* ptr_density_bounds_jl, // bounds JL
+		  const T* ptr_gamma0,                // gamma0
+		  const T* ptr_gamma1,                // gamma1
+		  const T* ptr_gamma2,                // gamma2
+		  T* ptr_output,                      // output
+		  int nShells_ik,                     // num ik shells
+		  int nShells_jl,                     // num jl shells
+		  int nShells_k,                      // num k shells
+		  int gridY                           // gridY position
+		  );
 #endif

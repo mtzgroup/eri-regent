@@ -30,6 +30,16 @@
 //! Determine number of AO functions in a shell of momentum L.
 #define ANGL_FUNCS(L) ((L+1)*(L+2)/2)
 
+//! Determine pair index from two separate momenta                                                                            //! Number of angular shell classes                                                                                           
+//! Application wide maximum supported angular momentum                                                                                          
+#define ANGL_MAX 2
+
+/*! ANGL_MAX is a zero-based, so we define this for clarity when specifying                                                    *  allocation widths, etc. */
+#define ANGL_TYPES (ANGL_MAX + 1)
+                   
+/*! We assume I<=J! */
+#define ANGL_PINDEX(L1, L2) ((L2) + (L1)*( 2*ANGL_TYPES-1-(L1) )/2)
+
 #include <stddef.h>
 
 size_t sizeof_jdata();

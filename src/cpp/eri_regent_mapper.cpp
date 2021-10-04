@@ -25,6 +25,7 @@ namespace Legion {
     Logger log_eri_regent_mapper("eri_regent_mapper");
     std::atomic<size_t> EriRegentMapper::kdir = 0;
     std::atomic<size_t> EriRegentMapper::jdir = 0;
+    std::atomic<size_t> EriRegentMapper::kgrad_dir = 0;
 
     //--------------------------------------------------------------------------
     EriRegentMapper::EriRegentMapper(MapperRuntime *rt, Machine m, Processor local)
@@ -32,7 +33,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       //      std::cout << __FUNCTION__ << " constructor" << std::endl;
-      kdir=jdir=0;
+      kdir=jdir=kgrad_dir=0;
       {
         int argc = HighLevelRuntime::get_input_args().argc;
         char **argv = HighLevelRuntime::get_input_args().argv;
@@ -63,6 +64,7 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       DefaultMapper::select_task_options(ctx, task, output);
+      return;
       if (cpu_mix) {
 	int jfock_mcmurchie_task = strncmp(task.get_task_name(), "JFockMcMurchiePPPP", 18);
 	if (jfock_mcmurchie_task == 0) {
@@ -90,15 +92,18 @@ namespace Legion {
 
       int kfock_mcmurchie_task = strncmp(task.get_task_name(), "KFock", 5);
       int jfock_mcmurchie_task = strncmp(task.get_task_name(), "JFock", 5);
+      int kgrad_mcmurchie_task = strncmp(task.get_task_name(), "KGRAD", 5);
+
       // 1 - kfock_mc.., jfock_mc.. tasks
       // 2 - gpu target
       Processor::Kind target_kind = task.target_proc.kind();
-      bool custom_slice = (kfock_mcmurchie_task == 0) || (jfock_mcmurchie_task == 0);
+      bool custom_slice = (kfock_mcmurchie_task == 0) || (jfock_mcmurchie_task == 0) || (kgrad_mcmurchie_task == 0);
       bool rotation=true;
       unsigned int dir = 0;
 
       if (kfock_mcmurchie_task == 0)  dir = EriRegentMapper::kdir++;
       if (jfock_mcmurchie_task == 0)  dir = EriRegentMapper::jdir++;
+      if (kgrad_mcmurchie_task == 0)  dir = EriRegentMapper::kgrad_dir++;
 
       if (custom_slice && (target_kind == Processor::TOC_PROC))
         {
