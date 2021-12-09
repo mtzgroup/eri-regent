@@ -1334,6 +1334,98 @@ EriLegion::create_kbra_kket_logical_regions(int I, int J,
 }
 
 
+//------------------------------------------------------------
+// fill all kfock regions that are no longer needed at the
+// end of each iteration. This results in instances being 
+// invalidated
+//------------------------------------------------------------
+void
+EriLegion::fill_all_regions()
+{
+#define FILL_KALL(L1, L2, L3, L4)					\
+  {									\
+    const int oindex = BINARY_TO_DECIMAL(L1,L2,L3,L4);			\
+    int dI = (L2<L4 ? L2:L4);						\
+    int dJ = (L2<L4 ? L4:L2);						\
+    const int index = get_kbra_region_index(L1,L2,L3,L4);		\
+    const int kket_index = get_kket_region_index(L1,L2,L3,L4);		\
+    const int dindex = INDEX_SQUARE(dI, dJ);				\
+    runtime->fill_field<double>(ctx, kfock_lr_2A[index], kfock_lr_2A[index], kbra_kket_field_ids[index][0],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_2A[index], kfock_lr_2A[index], kbra_kket_field_ids[index][1],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_2B[index], kfock_lr_2B[index], kbra_kket_field_ids[index][2],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_2B[index], kfock_lr_2B[index], kbra_kket_field_ids[index][3],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_4A[index], kfock_lr_4A[index], kbra_kket_field_ids[index][4],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_4A[index], kfock_lr_4A[index], kbra_kket_field_ids[index][5],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_4B[index], kfock_lr_4B[index], kbra_kket_field_ids[index][6],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_4B[index], kfock_lr_4B[index], kbra_kket_field_ids[index][7],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_CA[index], kfock_lr_CA[index], kbra_kket_field_ids[index][8],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_CA[index], kfock_lr_CA[index], kbra_kket_field_ids[index][9],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_CB[index], kfock_lr_CB[index], kbra_kket_field_ids[index][10],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_CB[index], kfock_lr_CB[index], kbra_kket_field_ids[index][11],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_C2[index], kfock_lr_C2[index], kbra_kket_field_ids[index][12],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_C2[index], kfock_lr_C2[index], kbra_kket_field_ids[index][13],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_2A[kket_index], kfock_lr_2A[kket_index], kbra_kket_field_ids[kket_index][0],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_2A[kket_index], kfock_lr_2A[kket_index], kbra_kket_field_ids[kket_index][1],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_2B[kket_index], kfock_lr_2B[kket_index], kbra_kket_field_ids[kket_index][2],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_2B[kket_index], kfock_lr_2B[kket_index], kbra_kket_field_ids[kket_index][3],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_4A[kket_index], kfock_lr_4A[kket_index], kbra_kket_field_ids[kket_index][4],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_4A[kket_index], kfock_lr_4A[kket_index], kbra_kket_field_ids[kket_index][5],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_4B[kket_index], kfock_lr_4B[kket_index], kbra_kket_field_ids[kket_index][6],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_4B[kket_index], kfock_lr_4B[kket_index], kbra_kket_field_ids[kket_index][7],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_CA[kket_index], kfock_lr_CA[kket_index], kbra_kket_field_ids[kket_index][8],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_CA[kket_index], kfock_lr_CA[kket_index], kbra_kket_field_ids[kket_index][9],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_CB[kket_index], kfock_lr_CB[kket_index], kbra_kket_field_ids[kket_index][10],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_CB[kket_index], kfock_lr_CB[kket_index], kbra_kket_field_ids[kket_index][11],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_C2[kket_index], kfock_lr_C2[kket_index], kbra_kket_field_ids[kket_index][12],0.0); \
+    runtime->fill_field<double>(ctx, kfock_lr_C2[kket_index], kfock_lr_C2[kket_index], kbra_kket_field_ids[kket_index][13],0.0); \
+    if ((L2==0) && (L4==0))						\
+      runtime->fill_field<double>(ctx, kfock_lr_density[dindex], kfock_lr_density[dindex], LEGION_KDENSITY_FIELD_ID(0,0,P),0.0); \
+    else if ((L2==1) && (L4==1))					\
+      runtime->fill_field<float>(ctx, kfock_lr_density[dindex], kfock_lr_density[dindex], LEGION_KDENSITY_FIELD_ID(1,1,BOUND),0.0); \
+    else								\
+      runtime->fill_field<float>(ctx, kfock_lr_density[dindex], kfock_lr_density[dindex], LEGION_KDENSITY_FIELD_ID(0,1,BOUND),0.0); \
+    if ((dI==0) && (dJ==1))						\
+      {									\
+	runtime->fill_field<double>(ctx, kdensity_lr_PSP1[0], kdensity_lr_PSP1[0], LEGION_KDENSITY_FIELD_ID(0,1,PSP1_X),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_PSP1[0], kdensity_lr_PSP1[0], LEGION_KDENSITY_FIELD_ID(0,1,PSP1_Y),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_PSP2[0], kdensity_lr_PSP2[0], LEGION_KDENSITY_FIELD_ID(0,1,PSP2),0.0); \
+      }									\
+    if ((dI==1) && (dJ==1))						\
+      {									\
+	runtime->fill_field<double>(ctx, kdensity_lr_1A[0], kdensity_lr_1A[0], LEGION_KDENSITY_FIELD_ID(1,1,1A_X),0.0);	\
+	runtime->fill_field<double>(ctx, kdensity_lr_1A[0], kdensity_lr_1A[0], LEGION_KDENSITY_FIELD_ID(1,1,1A_Y),0.0);	\
+	runtime->fill_field<double>(ctx, kdensity_lr_1B[0], kdensity_lr_1B[0], LEGION_KDENSITY_FIELD_ID(1,1,1B),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_2A[0], kdensity_lr_2A[0], LEGION_KDENSITY_FIELD_ID(1,1,2A_X),0.0);	\
+	runtime->fill_field<double>(ctx, kdensity_lr_2A[0], kdensity_lr_2A[0], LEGION_KDENSITY_FIELD_ID(1,1,2A_Y),0.0);	\
+	runtime->fill_field<double>(ctx, kdensity_lr_2B[0], kdensity_lr_2B[0], LEGION_KDENSITY_FIELD_ID(1,1,2B),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_3A[0], kdensity_lr_3A[0], LEGION_KDENSITY_FIELD_ID(1,1,3A_X),0.0);	\
+	runtime->fill_field<double>(ctx, kdensity_lr_3A[0], kdensity_lr_3A[0], LEGION_KDENSITY_FIELD_ID(1,1,3A_Y),0.0);	\
+	runtime->fill_field<double>(ctx, kdensity_lr_3B[0], kdensity_lr_3B[0], LEGION_KDENSITY_FIELD_ID(1,1,3B),0.0);	\
+      }									\
+  }									\
+
+    // 0
+    FILL_KALL(0,0,0,0)
+    // 15
+    FILL_KALL(1,1,1,1)
+    // 11
+    FILL_KALL(1,0,1,1)
+    // 10
+    FILL_KALL(1,0,1,0)
+    // 1    
+    FILL_KALL(0,0,0,1)
+    // 2
+    FILL_KALL(0,0,1,0)
+    // 3
+    FILL_KALL(0,0,1,1)
+    // 5
+    FILL_KALL(0,1,0,1)
+    // 6
+    FILL_KALL(0,1,1,0)
+    // 7
+    FILL_KALL(0,1,1,1)
+#undef FILL_KALL
+}
 
 //---------------------------------------------------------
 // populate koutput
@@ -2141,7 +2233,7 @@ EriLegion::kfock_task(const Task* task,
   // kfock_lr_output
   fid17.insert(fid17.end(), task->regions[17].privilege_fields.begin(), task->regions[17].privilege_fields.end());
 
-  const AccessorRWdouble2 f17(regions[17], fid17[0]);
+  const AccessorWDdouble2 f17(regions[17], fid17[0]);
   assert(f17.accessor.is_dense_arbitrary(recto));
   log_eri_legion.debug() << "kfock_task: output " << "recto.lo " << recto.lo ;
   double* ptr_output = f17.ptr(Point<2>(recto.lo));
@@ -3338,8 +3430,9 @@ EriLegion::init_kfock_tasks()
   // launch update output tasks
   update_output_all_task_launcher(fock);
 
-  destroy_regions();
+  fill_all_regions();
 
+  destroy_regions();
   init_iter++;
 }
 

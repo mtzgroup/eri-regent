@@ -983,6 +983,13 @@ class EriLegion {
   void destroy_label_logical_regions(int I, int J, int K, int L);
   void destroy_field_spaces_kbra_kket_kdensity();
   void kgrad_output_launcher();  
+
+  //-----------------------------------------------
+  // Fill all regions at the end of each iteration
+  // This results in instances being invalidated
+  //-----------------------------------------------
+  void fill_all_regions();
+
   //---------------------------------------------
   // Task to populate Kdensity[0,0]
   //---------------------------------------------

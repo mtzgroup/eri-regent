@@ -64,7 +64,6 @@ namespace Legion {
     //--------------------------------------------------------------------------
     {
       DefaultMapper::select_task_options(ctx, task, output);
-      return;
       if (cpu_mix) {
 	int jfock_mcmurchie_task = strncmp(task.get_task_name(), "JFockMcMurchiePPPP", 18);
 	if (jfock_mcmurchie_task == 0) {
