@@ -80,7 +80,7 @@ task toplevel()
   ---------------------
   var threshold = parameters.thredp
   var parallelism = config.parallelism;
-  [jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism)]
+  [jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism, parallelism)]
   ---------------------
 
   __fence(__execution, __block) -- Make sure we only time the computation

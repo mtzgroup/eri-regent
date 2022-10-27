@@ -380,12 +380,15 @@ function verifyKFockOutput(region_vars, delta, epsilon, filename)
                   assert(num_values == 2, "Could not read line!")
                   assert(int_data[0] == bra_ishell and int_data[1] == ket_ishell,
                          "Index is not correct!")
-                  for i = 0, [triangle_number(L1 + 1)] do -- exclusive
-                    for j = 0, [triangle_number(L3 + 1)] do -- exclusive
+                  var H1 = [triangle_number(L1 + 1)]
+                  var H3 = [triangle_number(L3 + 1)]
+                  for i = 0, H1 do -- exclusive
+                    for j = 0, H3 do -- exclusive
                       num_values = c.fscanf(filep, "%lf,", double_data)
                       assert(num_values == 1, "Did not read kfock value!")
                       var expected = double_data[0]
-                      var result = r_output[{N24, bra_ishell, ket_ishell}].values[i][j]
+                      var result = r_output[{N24, bra_ishell, ket_ishell}].values[i*H3 + j] -- new indexing
+                      --var result = r_output[{N24, bra_ishell, ket_ishell}].values[i][j]
                       --var result = r_output[{N24, bra_ishell, ket_ishell}].values[j][i] -- THIS IS SOME SPOOKY SHIT 
                       var absolute_error = fabs(result - expected)
                       var relative_error = fabs(absolute_error / expected)

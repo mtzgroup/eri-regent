@@ -87,7 +87,7 @@ task toplevel()
 
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_stop = c.legion_get_current_time_in_micros()
-  c.printf("Coulomb operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
+  c.printf("Exchange operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
   __fence(__execution, __block) -- Make sure we only time the computation
 
 
