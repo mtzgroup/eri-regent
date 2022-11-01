@@ -8,6 +8,7 @@ struct Parameters {
   omega  : double;
   thresp : float;
   thredp : float;
+  kguard : float;
 }
 
 struct Point {
@@ -48,10 +49,10 @@ function getJKet(L34)
   return JKetCache[L34]
 end
 
--- TODO: Create different fspaces for SS, SP, and PP.
---       SS should have not Pi or Pj,
---       SP should only have Pj, and
---       PP should have both Pi and Pj.
+-- TODO?: Create different fspaces for SS, SP, and PP.
+--        SS should have not Pi or Pj,
+--        SP should only have Pj, and
+--        PP should have both Pi and Pj.
 local KFockPairCache = {}
 function getKFockPair(L1, L2)
   local index = LToStr[L1]..LToStr[L2]
@@ -69,6 +70,20 @@ function getKFockPair(L1, L2)
     KFockPairCache[index] = KFockPair
   end
   return KFockPairCache[index]
+end
+
+local KFockLabelCache = {}
+function getKFockLabel(L1, L2)
+  local index = LToStr[L1]..LToStr[L2]
+  if KFockLabelCache[index] == nil then
+    local fspace KFockLabel {
+      ishell         : int1d;  -- Which iShell this label belongs to
+      start_index    : int1d;   
+      end_index      : int1d;
+    }
+    KFockLabelCache[index] = KFockLabel
+  end
+  return KFockLabelCache[index]
 end
 
 KFockNumBraPrevals = {
@@ -107,8 +122,9 @@ function getKFockOutput(L1, L3)
   if KFockOutputCache[index] == nil then
     local H1, H3 = triangle_number(L1 + 1), triangle_number(L3 + 1)
     local fspace KFockOutput {
-      --values : double[H1][H3]
-      values : double[H3 * H1] -- flatten 2D array
+      values            : double[H3 * H1]; -- flattened 2D array
+      bra_ishell_index  : int1d; -- iShell index for L1 (for potential partitioning)
+      ket_ishell_index  : int1d; -- iShell index for L3 (for potential partitioning)
     }
     KFockOutputCache[index] = KFockOutput
   end

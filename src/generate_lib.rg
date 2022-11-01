@@ -91,6 +91,9 @@ end
 -- Launch kfock tasks with varying parallelism for S/P Mcmurchie task launches
 --------------------------------------------------------------------------------
 -- r_pairs[L1][L2]   - Regions of KFock pairs with angular momentum pair L1, L2
+-- r_bra_prevals     - Regions of prevals (Hermite->Cartesian conversions) for bra
+-- r_ket_prevals     - Regions of prevals (Cartesian->Hermite conversions) for ket
+-- r_labels[L1][L2]  - Regions of KFock labels with angular momentum pair L1, L2
 -- r_density[L2][L4] - Regions of density values with angular momentum pair L24
 -- r_output[L1][L3]  - Regions of output values with angular momentum pair L13
 -- r_gamma_table     - A region holding a lookup table needed by the kernels
@@ -176,6 +179,31 @@ task kfock_task(r_pairs00     : region(ispace(int1d), getKFockPair(0, 0)),
                 r_ket_prevals42 : region(ispace(int2d), double),
                 r_ket_prevals43 : region(ispace(int2d), double),
                 r_ket_prevals44 : region(ispace(int2d), double),
+                r_labels00     : region(ispace(int1d), getKFockLabel(0, 0)),
+                r_labels01     : region(ispace(int1d), getKFockLabel(0, 1)),
+                r_labels02     : region(ispace(int1d), getKFockLabel(0, 2)),
+                r_labels03     : region(ispace(int1d), getKFockLabel(0, 3)),
+                r_labels04     : region(ispace(int1d), getKFockLabel(0, 4)),
+                r_labels10     : region(ispace(int1d), getKFockLabel(1, 0)),
+                r_labels11     : region(ispace(int1d), getKFockLabel(1, 1)),
+                r_labels12     : region(ispace(int1d), getKFockLabel(1, 2)),
+                r_labels13     : region(ispace(int1d), getKFockLabel(1, 3)),
+                r_labels14     : region(ispace(int1d), getKFockLabel(1, 4)),
+                r_labels20     : region(ispace(int1d), getKFockLabel(2, 0)),
+                r_labels21     : region(ispace(int1d), getKFockLabel(2, 1)),
+                r_labels22     : region(ispace(int1d), getKFockLabel(2, 2)),
+                r_labels23     : region(ispace(int1d), getKFockLabel(2, 3)),
+                r_labels24     : region(ispace(int1d), getKFockLabel(2, 4)),
+                r_labels30     : region(ispace(int1d), getKFockLabel(3, 0)),
+                r_labels31     : region(ispace(int1d), getKFockLabel(3, 1)),
+                r_labels32     : region(ispace(int1d), getKFockLabel(3, 2)),
+                r_labels33     : region(ispace(int1d), getKFockLabel(3, 3)),
+                r_labels34     : region(ispace(int1d), getKFockLabel(3, 4)),
+                r_labels40     : region(ispace(int1d), getKFockLabel(4, 0)),
+                r_labels41     : region(ispace(int1d), getKFockLabel(4, 1)),
+                r_labels42     : region(ispace(int1d), getKFockLabel(4, 2)),
+                r_labels43     : region(ispace(int1d), getKFockLabel(4, 3)),
+                r_labels44     : region(ispace(int1d), getKFockLabel(4, 4)),
                 r_density00   : region(ispace(int2d), getKFockDensity(0, 0)),
                 r_density01   : region(ispace(int2d), getKFockDensity(0, 1)),
                 r_density02   : region(ispace(int2d), getKFockDensity(0, 2)),
@@ -242,6 +270,11 @@ where
     r_ket_prevals20, r_ket_prevals21, r_ket_prevals22, r_ket_prevals23, r_ket_prevals24,
     r_ket_prevals30, r_ket_prevals31, r_ket_prevals32, r_ket_prevals33, r_ket_prevals34,
     r_ket_prevals40, r_ket_prevals41, r_ket_prevals42, r_ket_prevals43, r_ket_prevals44,
+    r_labels00, r_labels01, r_labels02, r_labels03, r_labels04,
+    r_labels10, r_labels11, r_labels12, r_labels13, r_labels14,
+    r_labels20, r_labels21, r_labels22, r_labels23, r_labels24,
+    r_labels30, r_labels31, r_labels32, r_labels33, r_labels34,
+    r_labels40, r_labels41, r_labels42, r_labels43, r_labels44,
     r_density00, r_density01, r_density02, r_density03, r_density04,
     r_density11, r_density12, r_density13, r_density14,
     r_density22, r_density23, r_density24,
@@ -283,6 +316,13 @@ do
       [4]={[0]={r_bra_prevals40, r_ket_prevals40}, [1]={r_bra_prevals41, r_ket_prevals41},
            [2]={r_bra_prevals42, r_ket_prevals42}, [3]={r_bra_prevals43, r_ket_prevals43},
            [4]={r_bra_prevals44, r_ket_prevals44}}
+    },
+    {
+      [0]={[0]=r_labels00, [1]=r_labels01, [2]=r_labels02, [3]=r_labels03, [4]=r_labels04},
+      [1]={[0]=r_labels10, [1]=r_labels11, [2]=r_labels12, [3]=r_labels13, [4]=r_labels14},
+      [2]={[0]=r_labels20, [1]=r_labels21, [2]=r_labels22, [3]=r_labels23, [4]=r_labels24},
+      [3]={[0]=r_labels30, [1]=r_labels31, [2]=r_labels32, [3]=r_labels33, [4]=r_labels34},
+      [4]={[0]=r_labels40, [1]=r_labels41, [2]=r_labels42, [3]=r_labels43, [4]=r_labels44}
     },
     {
       [0]={[0]=r_density00, [1]=r_density01, [2]=r_density02, [3]=r_density03, [4]=r_density04},

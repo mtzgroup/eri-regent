@@ -45,7 +45,7 @@ task toplevel()
 
   ;[writeJBrasToRegions(rexpr bras_filename end, r_jbras_list)]
   ;[writeJKetsToRegions(rexpr kets_filename end, r_jkets_list)]
-  var data : double[5]
+  var data : double[6]
   readParametersFile(config.parameters_filename, data)
   var parameters = [Parameters]{
     scalfr = data[0],
@@ -53,6 +53,7 @@ task toplevel()
     omega = data[2],
     thresp = data[3],
     thredp = data[4],
+    kguard = data[5],
   }
   -------------------------------------------
 

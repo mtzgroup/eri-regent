@@ -82,8 +82,9 @@ cd eri-regent/src
 # To run JFock algorithm
 regent top_jfock.rg -L P -i tests/integ/h2o -v tests/integ/h2o/output.dat
 # To run KFock algorithm
-regent top_kfock.rg -L S -i tests/integ/h2 -v tests/integ/h2/kfock_output.dat
+regent top_kfock.rg -fflow 0 -L S -i tests/integ/h2 -v tests/integ/h2/kfock_output.dat
 # Use option `-fflow 0` to compile eri-regent faster
+# Note: at this time, `-fflow 0` is necessary for compiling kfock
 ```
 
 To test eri-regent with C++, compile the test program inside `src/tests/cpp` after building eri-regent.

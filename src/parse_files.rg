@@ -15,11 +15,18 @@ terra readParametersFile(filename : &int8, data : &double)
   var filep = c.fopen(filename, "r")
   checkFile(filep)
   var num_values = c.fscanf(filep,
-    "scalfr=%lf\nscallr=%lf\nomega=%lf\nthresp=%lf\nthredp=%lf\n",
-    data, data+1, data+2, data+3, data+4)
-  assert(num_values == 5, "Could not read all of parameters file!")
+    "scalfr=%lf\nscallr=%lf\nomega=%lf\nthresp=%lf\nthredp=%lf\nkguard=%lf\n",
+    data, data+1, data+2, data+3, data+4, data+5)
+  assert(num_values >= 5, "Could not read all of parameters file!")
+  if num_values == 5 then -- kguard not in parameters file
+    data[5] = 1.0 
+  end
   c.fclose(filep)
 end
+
+--------------------------------------------------------------------------------------------------------------
+---------------------------------------------- JFock Parsing -------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
 
 -- Writes data found in `filename` to an array of regions given by `region_vars`
 function writeJBrasToRegions(filename, region_vars)
@@ -120,167 +127,7 @@ function writeJKetsToRegions(filename, region_vars)
   return statements
 end
 
--- Writes data found in `filename` to an array of regions given by `region_vars`
-function writeKFockToRegions(filename, region_vars, preval_vars)
-  local filep = regentlib.newsymbol()
-  local statements = terralib.newlist({rquote
-    var [filep] = c.fopen(filename, "r")
-    checkFile(filep)
-  end})
-  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
-    for L2 = 0, getCompiledMaxMomentum() do -- inclusive
-      local field_space = getKFockPair(L1, L2)
-      local r_kpairs = region_vars[L1][L2]
-      local bra_prevals, ket_prevals = unpack(preval_vars[L1][L2])
-      statements:insert(rquote
-        var int_data : int[3]
-        var double_data : double[12]
-        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n",
-                                  int_data, int_data+1, int_data+2)
-        assert(num_values == 3, "Did not read all values in input header!")
-        var N = int_data[2]
-        assert(L1 == int_data[0] and L2 == int_data[1],
-               "Unexpected angular momentum in kfock pairs!")
-        var [r_kpairs] = region(ispace(int1d, N), field_space)
-        var [bra_prevals] = region(ispace(int2d, {N, [KFockNumBraPrevals[L1][L2]]}), double)
-        var [ket_prevals] = region(ispace(int2d, {N, [KFockNumKetPrevals[L1][L2]]}), double)
-        for i = 0, N do -- exclusive
-          num_values = c.fscanf(filep,
-            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,i_shell_idx=%d,j_shell_idx=%d,PIx=%lf,PIy=%lf,PIz=%lf,PJx=%lf,PJy=%lf,PJz=%lf,",
-            double_data+0, double_data+1, double_data+2,
-            double_data+3, double_data+4, double_data+5,
-            int_data+0, int_data+1,
-            double_data+6, double_data+7, double_data+8,
-            double_data+9, double_data+10, double_data+11
-          )
-          assert(num_values == 14, "Did not read all values in line!");
-          r_kpairs[i] = {
-            location={x=double_data[0], y=double_data[1], z=double_data[2]},
-            eta=double_data[3], C=double_data[4], bound=double_data[5],
-            ishell_index=int_data[0], jshell_index=int_data[1],
-            ishell_location={x=double_data[6], y=double_data[7], z=double_data[8]},
-            jshell_location={x=double_data[9], y=double_data[10], z=double_data[11]},
-          }
-
-          num_values = c.fscanf(filep, "bra_prevals=")
-          assert(num_values == 0, "Did not read bra_prevals!")
-          for k = 0, [KFockNumBraPrevals[L1][L2]] do -- exclusive
-            num_values = c.fscanf(filep, "%lf,", double_data)
-            assert(num_values == 1, "Did not read bra_preval value!")
-            bra_prevals[{i, k}] = double_data[0]
-            --c.printf("bra_prevals[%d,%d] = %lf\n", i, k, bra_prevals[{i, k}])  -- KGJ
-          end
-          num_values = c.fscanf(filep, "ket_prevals=")
-          assert(num_values == 0, "Did not read ket_prevals!")
-          for k = 0, [KFockNumKetPrevals[L1][L2]] do -- exclusive
-            num_values = c.fscanf(filep, "%lf,", double_data)
-            assert(num_values == 1, "Did not read ket_preval value!")
-            ket_prevals[{i, k}] = double_data[0]
-          end
-          num_values = c.fscanf(filep, "\n")
-          assert(num_values == 0, "Did not read to end of line!")
-        end
-      end)
-    end
-  end
-  statements:insert(rquote
-    c.fclose(filep)
-  end)
-  return statements
-end
-
--- Writes data found in `filename` to an array of regions given by `region_vars`
-function writeKFockDensityToRegions(filename, region_vars, r_output_list)
-  local filep = regentlib.newsymbol()
-  local statements = terralib.newlist({rquote
-    var [filep] = c.fopen(filename, "r")
-    checkFile(filep)
-  end})
-  for L2 = 0, getCompiledMaxMomentum() do -- inclusive
-    for L4 = L2, getCompiledMaxMomentum() do -- inclusive
-      local field_space = getKFockDensity(L2, L4)
-      local r_density = region_vars[L2][L4]
-      statements:insert(rquote
-        var int_data : int[4]
-        var double_data : double[1]
-        var num_values = c.fscanf(filep, "L2=%d,L4=%d,N2=%d,N4=%d\n",
-                                  int_data, int_data+1, int_data+2, int_data+3)
-        assert(num_values == 4, "Did not read all values in density header!")
-        var N2, N4 = int_data[2], int_data[3]
-        assert(L2 == int_data[0] and L4 == int_data[1],
-               "Unexpected angular momentum in kfock density!")
-        var [r_density] = region(ispace(int2d, {N2, N4}), field_space)
-        for bra_jshell = 0, N2 do -- exclusive
-          for ket_jshell = 0, N4 do -- exclusive
-            num_values = c.fscanf(
-                  filep,
-                  "bra_jshell_idx=%d,ket_jshell_idx=%d,values=",
-                  int_data + 0, int_data + 1)
-            assert(num_values == 2, "Did not read values!")
-            assert(int_data[0] == bra_jshell and int_data[1] == ket_jshell,
-                   "Wrong indices!")
-            for k = 0, [triangle_number(L2 + 1)] do -- exclusive
-              for m = 0, [triangle_number(L4 + 1)] do -- exclusive
-                num_values = c.fscanf(filep, "%lf,", double_data)
-                assert(num_values == 1, "Did not read kfock density value!")
-                r_density[{bra_jshell, ket_jshell}].values[k][m] = double_data[0]
-              end
-            end
-            num_values = c.fscanf(filep, "bound=%lf\n", double_data)
-            assert(num_values == 1, "Did not read bound!")
-            r_density[{bra_jshell, ket_jshell}].bound = double_data[0]
-          end
-        end
-      end)
-    end
-  end
-  statements:insert(rquote
-    c.fclose(filep)
-  end)
-  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
-    for L3 = L1, getCompiledMaxMomentum() do -- inclusive
-      local r_density = region_vars[L1][L3]
-      local r_output = r_output_list[L1][L3]
-      local N = (getCompiledMaxMomentum() + 1) * (getCompiledMaxMomentum() + 1) + 1
-      local N1 = rexpr r_density.bounds.hi.x + 1 end
-      local N3 = rexpr r_density.bounds.hi.y + 1 end
-      statements:insert(rquote
-        var [r_output] = region(ispace(int3d, {N, N1, N3}), getKFockOutput(L1, L3))
-      end)
-    end
-  end
-  return statements
-end
-
--- Writes the output to `filename`
-function writeOutput(r_jbras_list, filename)
-  local filep = regentlib.newsymbol()
-  local statements = terralib.newlist({rquote
-    var [filep] = c.fopen(filename, "w")
-    checkFile(filep)
-  end})
-  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
-    for L2 = L1, getCompiledMaxMomentum() do -- inclusive
-      local H = tetrahedral_number(L1 + L2 + 1)
-      statements:insert(rquote
-        c.fprintf(filep, "L1=%d,L2=%d,N=%d\n",
-                  L1, L2, [r_jbras_list[L1][L2]].volume)
-        for bra in [r_jbras_list[L1][L2]] do
-          for i = 0, H do -- exclusive
-            c.fprintf(filep, "%A\t", bra.output[i])
-          end
-          c.fprintf(filep, "\n")
-        end
-      end)
-    end
-  end
-  statements:insert(rquote
-    c.fclose(filep)
-  end)
-  return statements
-end
-
--- Verify the output is correct
+-- Verify the JFock output is correct
 -- `delta` is the maximum allowed absolute error
 -- `epsilon` is the maximum allowed relative error
 function verifyOutput(r_jbras_list, delta, epsilon, filename)
@@ -340,6 +187,213 @@ function verifyOutput(r_jbras_list, delta, epsilon, filename)
   return statements
 end
 
+-- Writes the output to `filename`
+function writeOutput(r_jbras_list, filename)
+  local filep = regentlib.newsymbol()
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "w")
+    checkFile(filep)
+  end})
+  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L2 = L1, getCompiledMaxMomentum() do -- inclusive
+      local H = tetrahedral_number(L1 + L2 + 1)
+      statements:insert(rquote
+        c.fprintf(filep, "L1=%d,L2=%d,N=%d\n",
+                  L1, L2, [r_jbras_list[L1][L2]].volume)
+        for bra in [r_jbras_list[L1][L2]] do
+          for i = 0, H do -- exclusive
+            c.fprintf(filep, "%A\t", bra.output[i])
+          end
+          c.fprintf(filep, "\n")
+        end
+      end)
+    end
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+  end)
+  return statements
+end
+
+--------------------------------------------------------------------------------------------------------------
+---------------------------------------------- KFock Parsing -------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
+
+-- Writes data found in `filename` to an array of regions given by `region_vars`
+function writeKFockToRegions(filename, region_vars, preval_vars)
+  local filep = regentlib.newsymbol()
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
+  end})
+  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L2 = 0, getCompiledMaxMomentum() do -- inclusive
+      local field_space = getKFockPair(L1, L2)
+      local r_kpairs = region_vars[L1][L2]
+      local bra_prevals, ket_prevals = unpack(preval_vars[L1][L2])
+      statements:insert(rquote
+        var int_data : int[4]
+        var double_data : double[12]
+        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d,Nnopad=%d\n",
+                                  int_data, int_data+1, int_data+2, int_data+3)
+        assert(num_values == 4, "Did not read all values in input header!")
+        var N = int_data[2]
+        var Nnopad = int_data[3]
+        assert(L1 == int_data[0] and L2 == int_data[1],
+               "Unexpected angular momentum in kfock pairs!")
+        var [r_kpairs] = region(ispace(int1d, N), field_space)
+        var [bra_prevals] = region(ispace(int2d, {N, [KFockNumBraPrevals[L1][L2]]}), double)
+        var [ket_prevals] = region(ispace(int2d, {N, [KFockNumKetPrevals[L1][L2]]}), double)
+        for i = 0, N do -- exclusive
+          num_values = c.fscanf(filep,
+            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,i_shell_idx=%d,j_shell_idx=%d,PIx=%lf,PIy=%lf,PIz=%lf,PJx=%lf,PJy=%lf,PJz=%lf,",
+            double_data+0, double_data+1, double_data+2,
+            double_data+3, double_data+4, double_data+5,
+            int_data+0, int_data+1,
+            double_data+6, double_data+7, double_data+8,
+            double_data+9, double_data+10, double_data+11
+          )
+          assert(num_values == 14, "Did not read all values in line!");
+          r_kpairs[i] = {
+            location={x=double_data[0], y=double_data[1], z=double_data[2]},
+            eta=double_data[3], C=double_data[4], bound=double_data[5],
+            ishell_index=int_data[0], jshell_index=int_data[1],
+            ishell_location={x=double_data[6], y=double_data[7], z=double_data[8]},
+            jshell_location={x=double_data[9], y=double_data[10], z=double_data[11]},
+          }
+
+          num_values = c.fscanf(filep, "bra_prevals=")
+          assert(num_values == 0, "Did not read bra_prevals!")
+          for k = 0, [KFockNumBraPrevals[L1][L2]] do -- exclusive
+            num_values = c.fscanf(filep, "%lf,", double_data)
+            assert(num_values == 1, "Did not read bra_preval value!")
+            bra_prevals[{i, k}] = double_data[0]
+            --c.printf("bra_prevals[%d,%d] = %lf\n", i, k, bra_prevals[{i, k}])  -- KGJ
+          end
+          num_values = c.fscanf(filep, "ket_prevals=")
+          assert(num_values == 0, "Did not read ket_prevals!")
+          for k = 0, [KFockNumKetPrevals[L1][L2]] do -- exclusive
+            num_values = c.fscanf(filep, "%lf,", double_data)
+            assert(num_values == 1, "Did not read ket_preval value!")
+            ket_prevals[{i, k}] = double_data[0]
+          end
+          num_values = c.fscanf(filep, "\n")
+          assert(num_values == 0, "Did not read to end of line!")
+        end
+      end)
+    end
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+  end)
+  return statements
+end
+
+-- Writes data found in `filename` to an array of regions given by `region_vars`
+function writeKFockLabelsToRegions(filename, region_vars)
+  local filep = regentlib.newsymbol()
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
+  end})
+  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L2 = 0, getCompiledMaxMomentum() do -- inclusive
+      local field_space = getKFockLabel(L1, L2)
+      local r_klabels = region_vars[L1][L2]
+      statements:insert(rquote
+        var int_data : int[4]
+        var num_values = c.fscanf(filep, "L1=%d,L2=%d,Nshells=%d\n",
+                                  int_data, int_data+1, int_data+2)
+        assert(num_values == 3, "Did not read all values in input header!")
+        var Nshells = int_data[2]
+        assert(L1 == int_data[0] and L2 == int_data[1],
+               "Unexpected angular momentum in kfock pairs!")
+        var [r_klabels] = region(ispace(int1d, Nshells), field_space)
+        for i = 0, Nshells do -- exclusive
+          num_values = c.fscanf(filep, "iShell=%d,label_start=%d,label_end=%d",
+                                int_data+0, int_data+1, int_data+2)
+          assert(num_values == 3, "Did not read all values in line!");
+          r_klabels[i] = {ishell=int_data[0], start_index=int_data[1], end_index=int_data[2]}
+
+          num_values = c.fscanf(filep, "\n")
+          assert(num_values == 0, "Did not read to end of line!")
+        end
+      end)
+    end
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+  end)
+  return statements
+end
+
+-- Writes data found in `filename` to an array of regions given by `region_vars`
+function writeKFockDensityToRegions(filename, region_vars, r_output_list)
+  local filep = regentlib.newsymbol()
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
+  end})
+  for L2 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L4 = L2, getCompiledMaxMomentum() do -- inclusive
+      local field_space = getKFockDensity(L2, L4)
+      local r_density = region_vars[L2][L4]
+      local r_output = r_output_list[L2][L4] -- L1, L3, but just re-use density loop
+      local N = (getCompiledMaxMomentum() + 1) * (getCompiledMaxMomentum() + 1) + 1
+      statements:insert(rquote
+        var int_data : int[4]
+        var double_data : double[1]
+        var num_values = c.fscanf(filep, "L2=%d,L4=%d,N2=%d,N4=%d\n",
+                                  int_data, int_data+1, int_data+2, int_data+3)
+        assert(num_values == 4, "Did not read all values in density header!")
+        var N2, N4 = int_data[2], int_data[3]
+        assert(L2 == int_data[0] and L4 == int_data[1],
+               "Unexpected angular momentum in kfock density!")
+        var [r_density] = region(ispace(int2d, {N2, N4}), field_space)
+        for bra_jshell = 0, N2 do -- exclusive
+          for ket_jshell = 0, N4 do -- exclusive
+            num_values = c.fscanf(
+                  filep,
+                  "bra_jshell_idx=%d,ket_jshell_idx=%d,values=",
+                  int_data + 0, int_data + 1)
+            assert(num_values == 2, "Did not read values!")
+            assert(int_data[0] == bra_jshell and int_data[1] == ket_jshell,
+                   "Wrong indices!")
+            for k = 0, [triangle_number(L2 + 1)] do -- exclusive
+              for m = 0, [triangle_number(L4 + 1)] do -- exclusive
+                num_values = c.fscanf(filep, "%lf,", double_data)
+                assert(num_values == 1, "Did not read kfock density value!")
+                r_density[{bra_jshell, ket_jshell}].values[k][m] = double_data[0]
+              end
+            end
+            num_values = c.fscanf(filep, "bound=%lf\n", double_data)
+            assert(num_values == 1, "Did not read bound!")
+            r_density[{bra_jshell, ket_jshell}].bound = double_data[0]
+          end
+        end
+        -- we can read iShells for output from density also 
+        -- jShells for r_density are iShells for r_output
+        var N1, N3 = int_data[2], int_data[3]
+        var [r_output] = region(ispace(int3d, {N, N1, N3}), getKFockOutput(L2, L4)) -- L1, L3
+        for bra_ishell = 0, N1 do -- exclusive
+          for ket_ishell = 0, N3 do -- exclusive
+            -- set up ishell_index values for r_output (for partitioning) 
+            -- loop over all values N in the first dimension of r_output
+            for N24 = 0, N do -- exclusive
+              r_output[{N24, bra_ishell, ket_ishell}].bra_ishell_index = bra_ishell -- L1 
+              r_output[{N24, bra_ishell, ket_ishell}].ket_ishell_index = ket_ishell -- L3 
+            end
+          end
+        end
+      end)
+    end
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+  end)
+  return statements
+end
+
 -- Verify the output is correct
 -- `delta` is the maximum allowed absolute error
 -- `epsilon` is the maximum allowed relative error
@@ -387,9 +441,7 @@ function verifyKFockOutput(region_vars, delta, epsilon, filename)
                       num_values = c.fscanf(filep, "%lf,", double_data)
                       assert(num_values == 1, "Did not read kfock value!")
                       var expected = double_data[0]
-                      var result = r_output[{N24, bra_ishell, ket_ishell}].values[i*H3 + j] -- new indexing
-                      --var result = r_output[{N24, bra_ishell, ket_ishell}].values[i][j]
-                      --var result = r_output[{N24, bra_ishell, ket_ishell}].values[j][i] -- THIS IS SOME SPOOKY SHIT 
+                      var result = r_output[{N24, bra_ishell, ket_ishell}].values[i*H3 + j] -- flattened indexing
                       var absolute_error = fabs(result - expected)
                       var relative_error = fabs(absolute_error / expected)
                       if absolute_error > max_absolute_error then
