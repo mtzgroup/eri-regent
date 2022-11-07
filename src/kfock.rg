@@ -62,17 +62,31 @@ function kfock(r_pairs_list, r_prevals_list, r_labels_list, r_density_list, r_ou
               local kfock_integral = generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k)
               if r_bras ~= nil and r_kets ~= nil then
                 statements:insert(rquote
+                  --fill(r_output.values, [terralib.constant(`arrayof(double, 0.0))]) -- number of comma-sep 0.0's should be size of values 
+
+                  -- set up block loop for bra/ket iShells in a CUDA-friendly way
+                  -- TODO; play around with BSIZE for performance
+                  var BSIZEX = 8 -- size of GPU thread block in x dim (ket)
+                  var BSIZEY = 8 -- size of GPU thread block in y dim (bra)
+                  var gsizex = r_ket_labels[r_ket_labels.ispace.bounds.hi].ishell + 1 -- size of grid in x dim (number of iShells in ket)
+                  var gsizey = r_bra_labels[r_bra_labels.ispace.bounds.hi].ishell + 1 -- size of grid in y dim (number of iShells in bra)
+                  var gpuparam = region(ispace(int4d, {BSIZEX, BSIZEY, gsizex, gsizey}), int)  -- field type of this region doesn't matter
+
                   -- TODO: If region is empty, then don't launch a task
-                  -- partition output along bra dimension (y dimension)
-                  var output_coloring = ispace(int3d, {1, p, 1})
-                  var p_output = partition(equal, r_output, output_coloring)
+                  -- partition output and gpuparam along bra dimension (y dimension)
+                  var output_coloring   = ispace(int3d, {1, p, 1})
+                  var gpuparam_coloring = ispace(int4d, {1, 1, 1, p})
+                  var p_output   = partition(equal, r_output, output_coloring)
+                  var p_gpuparam = partition(equal, gpuparam, gpuparam_coloring)
                   __demand(__index_launch)
-                  for output_color in output_coloring do
-                    kfock_integral(r_bras, r_kets,
+                  for i = 0, p do -- exclusive
+                    kfock_integral(r_bras,        r_kets,
                                    r_bra_prevals, r_ket_prevals,
-                                   r_bra_labels, r_ket_labels,
-                                   r_density, p_output[output_color],
-                                   r_gamma_table, threshold, 1, kguard, largest_momentum)
+                                   r_bra_labels,  r_ket_labels,
+                                   r_density,     p_output[{0, i, 0}],
+                                   r_gamma_table, p_gpuparam[{0, 0, 0, i}].ispace, 
+                                   threshold, 1, kguard, 
+                                   largest_momentum, BSIZEX, BSIZEY)
                   end
                 end)
               end

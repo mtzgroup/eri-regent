@@ -91,12 +91,9 @@ task toplevel()
   ;[kfock(r_pairs_list, r_prevals_list, r_labels_list, r_density_list, r_output_list,
           r_gamma_table, threshold, kguard, parallelism, largest_momentum)]
   ---------------------
-
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_stop = c.legion_get_current_time_in_micros()
-  c.printf("Exchange operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
   __fence(__execution, __block) -- Make sure we only time the computation
-
 
   -- Write or verify output --
   ----------------------------
@@ -109,6 +106,25 @@ task toplevel()
     [verifyKFockOutput(r_output_list, 1e-7, 1e-8, verify_filename)]
   end
   ----------------------------
+  c.printf("Exchange operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
+
+  -- Timing --
+  ------------
+  if config.num_trials > 1 then
+    c.printf("\nCollecting timing info...\n")
+    __fence(__execution, __block) -- Make sure we only time the computation
+    ts_start = c.legion_get_current_time_in_micros()
+    __fence(__execution, __block) -- Make sure we only time the computation
+    for i = 0, config.num_trials do
+      [kfock(r_pairs_list, r_prevals_list, r_labels_list, r_density_list, r_output_list,
+              r_gamma_table, threshold, kguard, parallelism, largest_momentum)]
+    end
+    __fence(__execution, __block) -- Make sure we only time the computation
+    ts_stop = c.legion_get_current_time_in_micros()
+    c.printf("Exchange operator, avg. time over %d trials: %.4f sec \n", 
+              config.num_trials, (ts_stop - ts_start) * 1e-6/float(config.num_trials))
+    __fence(__execution, __block) -- Make sure we only time the computation
+  end
 end
 
 regentlib.start(toplevel)

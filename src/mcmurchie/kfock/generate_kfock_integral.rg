@@ -9,7 +9,9 @@ local rsqrt = regentlib.rsqrt(double)
 
 local _kfock_integral_cache = {}
 function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
-  local Nout = triangle_number(L1 + 1) * triangle_number(L3 + 1)
+  local NL1 = triangle_number(L1 + 1)
+  local NL3 = triangle_number(L3 + 1)
+  local Nout = NL1 * NL3
   local L_string = LToStr[L1]..LToStr[L2]..LToStr[L3]..LToStr[L4]..k_idx
   if _kfock_integral_cache[L_string] ~= nil then
     return _kfock_integral_cache[L_string]
@@ -34,62 +36,74 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
   local
   __demand(__leaf) 
   __demand(__cuda) -- NOTE: comment out if printing from kernels (debugging)
-  task kfock_integral(r_bras        : region(ispace(int1d), getKFockPair(L1, L2)),
-                      r_kets        : region(ispace(int1d), getKFockPair(L3, L4)),
-                      r_bra_prevals : region(ispace(int2d), double),
-                      r_ket_prevals : region(ispace(int2d), double),
-                      r_bra_labels  : region(ispace(int1d), getKFockLabel(L1, L2)),
-                      r_ket_labels  : region(ispace(int1d), getKFockLabel(L3, L4)),
-                      r_density     : region(ispace(int2d), getKFockDensity(L2, L4)),
-                      r_output      : region(ispace(int3d), getKFockOutput(L1, L3)),
-                      r_gamma_table : region(ispace(int2d), double[5]),
-                      threshold : float, threshold2 : float, kguard : float, largest_momentum : int)
+  task kfock_integral(r_bras           : region(ispace(int1d), getKFockPair(L1, L2)),
+                      r_kets           : region(ispace(int1d), getKFockPair(L3, L4)),
+                      r_bra_prevals    : region(ispace(int2d), double),
+                      r_ket_prevals    : region(ispace(int2d), double),
+                      r_bra_labels     : region(ispace(int1d), getKFockLabel(L1, L2)),
+                      r_ket_labels     : region(ispace(int1d), getKFockLabel(L3, L4)),
+                      r_density        : region(ispace(int2d), getKFockDensity(L2, L4)),
+                      r_output         : region(ispace(int3d), getKFockOutput(L1, L3)),
+                      r_gamma_table    : region(ispace(int2d), double[5]),
+                      gpuparam         : ispace(int4d),
+                      threshold        : float, threshold2 : float, kguard : float, 
+                      largest_momentum : int, BSIZEX : int, BSIZEY : int)
   where
     reads(r_bras, r_kets, r_bra_prevals, r_ket_prevals, r_bra_labels, r_ket_labels, r_density, r_gamma_table),
-    reduces+(r_output.values)
-    --writes(r_output.values)  -- TODO?
+    reads writes(r_output.values)
   do
-    -- for bra label region, bounds determined by output partitioning
-    var bra_label_idx_lo : int = r_output.ispace.bounds.lo.y -- y is second dim of r_output (bra_ishell)
-    var bra_label_idx_hi : int = r_output.ispace.bounds.hi.y -- y is second dim of r_output (bra_ishell)
 
-    -- Loop over iShells for bra and ket using label regions
-    for bra_label_idx = bra_label_idx_lo, bra_label_idx_hi + 1 do -- exclusive
-      for ket_label in r_ket_labels do
-        var bra_label = r_bra_labels[bra_label_idx]
+    -- this loop mimics CUDA threading, looping over iShell blocks (one GPU thread block per iShell block)
+    -- then looping over threads
+    for thread in gpuparam do
+      var thidx = thread.x -- threads in block, 0-7
+      var thidy = thread.y -- threads in block, 0-7
+      var blidx = thread.z -- ket shell index, size is number of iShells for ket
+      var blidy = thread.w -- bra shell index, size is number of iShells for bra
 
-        -- local accumulator for iShell block
-        var accumulator : double[Nout] 
-        for i = 0, Nout do -- exclusive
-          accumulator[i] = 0.0
-        end
+      -- determine bra/ket ranges within iShell block from label regions
+      var sizex = r_ket_labels[blidx].end_index - r_ket_labels[blidx].start_index 
+      var sizey = r_bra_labels[blidy].end_index - r_bra_labels[blidy].start_index 
 
-        -- determine bra/ket ranges within iShell block from label regions
-        var bra_idx_bounds_lo : int = r_bras.ispace.bounds.lo + bra_label.start_index 
-        var bra_idx_bounds_hi : int = r_bras.ispace.bounds.lo + bra_label.end_index
-        var ket_idx_bounds_lo : int = r_kets.ispace.bounds.lo + ket_label.start_index 
-        var ket_idx_bounds_hi : int = r_kets.ispace.bounds.lo + ket_label.end_index
+      var g_thidy = r_bra_labels[blidy].start_index + thidy
+      var s_thidx = r_ket_labels[blidx].start_index + thidx
+      var g_thidx = s_thidx
 
-        for bra_idx = bra_idx_bounds_lo, bra_idx_bounds_hi do -- exclusive
-          for ket_idx = ket_idx_bounds_lo, ket_idx_bounds_hi do -- exclusive
-            var bra = r_bras[bra_idx]
-            var ket = r_kets[ket_idx]
-            var density : getKFockDensity(L2, L4)
-            if L2 <= L4 then
-              density = r_density[{bra.jshell_index, ket.jshell_index}]
-            else
-              density = r_density[{ket.jshell_index, bra.jshell_index}]
-            end
- 
-            -- TODO: remove control flow for optimization?
-            var bound : float = bra.bound * ket.bound
-            if bound * kguard <= threshold then break end -- regular bound
-            if bound * density.bound <= threshold then break end -- density-weighted bound
- 
+      var stopx = r_ket_labels[blidx].start_index + sizex 
+      var stopy = r_bra_labels[blidy].start_index + sizey 
+
+      -- local accumulator for iShell block
+      var accumulator : double[Nout] 
+      for n = 0, Nout do -- exclusive
+        accumulator[n] = 0.0
+      end
+
+      repeat
+        g_thidx = s_thidx
+        var bra_idx = r_bras.ispace.bounds.lo + g_thidy 
+        var bra = r_bras[bra_idx]
+        var ket_idx = r_kets.ispace.bounds.lo + g_thidx 
+        var ket = r_kets[ket_idx]
+        var bound : float = bra.bound * ket.bound
+
+        -- TODO: remove control flow for optimization?
+        while bound * kguard > threshold do -- regular bound (bra loop)
+
+          var density : getKFockDensity(L2, L4)
+          if L2 <= L4 then
+            density = r_density[{bra.jshell_index, ket.jshell_index}]
+          else
+            density = r_density[{ket.jshell_index, bra.jshell_index}]
+          end
+
+          if bound * density.bound > threshold then -- density-weighted bound (ket loop)
+            ket_idx = r_kets.ispace.bounds.lo + g_thidx 
+            ket = r_kets[ket_idx]
+
             var a = bra.location.x - ket.location.x
             var b = bra.location.y - ket.location.y
             var c = bra.location.z - ket.location.z
- 
+          
             var alpha = bra.eta * ket.eta * (1.0 / (bra.eta + ket.eta))
             var lambda = bra.C * ket.C * rsqrt(bra.eta + ket.eta)
             var t = alpha * (a*a + b*b + c*c)
@@ -100,13 +114,28 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
               rexpr density.values end,
               accumulator
             )]
-          end
-        end
-        var N24 = L2 + L4 * (largest_momentum + 1)
-        r_output[{N24, bra_label.ishell, ket_label.ishell}].values += accumulator
 
-      end -- end ket iShell 
-    end -- end bra iShell
+          end
+
+          g_thidx += BSIZEX
+          ket_idx = r_kets.ispace.bounds.lo + g_thidx 
+          ket = r_kets[ket_idx]
+          bound = bra.bound * ket.bound
+        end -- end ket loop
+
+        g_thidy += BSIZEY
+      until (s_thidx == g_thidx) -- end bra loop
+
+      -- Scale diagonal elements out here instead of inside generate_kernel (faster)
+      if blidx == blidy then -- L1 == L3
+        for i = 0, NL1 do -- exclusive
+          accumulator[i*NL1+i] = accumulator[i*NL1+i] * 0.5
+        end
+      end
+      var N24 = L2 + L4 * (largest_momentum + 1)
+      r_output[{N24, blidy, blidx}].values += accumulator
+
+    end -- end gpuparam
 
   end
   kfock_integral:set_name("KFockMcMurchie"..L_string)

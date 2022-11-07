@@ -101,6 +101,24 @@ task toplevel()
     [verifyOutput(r_jbras_list, 1e-7, 1e-8, verify_filename)]
   end
   ----------------------------
+
+  -- Timing --
+  ------------
+  if config.num_trials > 1 then
+    c.printf("\nCollecting timing info...\n")
+    __fence(__execution, __block) -- Make sure we only time the computation
+    ts_start = c.legion_get_current_time_in_micros()
+    __fence(__execution, __block) -- Make sure we only time the computation
+    for i = 0, config.num_trials do
+      [jfock(r_jbras_list, r_jkets_list, r_gamma_table, threshold, parallelism, parallelism)]
+    end
+    __fence(__execution, __block) -- Make sure we only time the computation
+    ts_stop = c.legion_get_current_time_in_micros()
+    c.printf("Coulomb operator, avg. time over %d trials: %.4f sec \n", 
+              config.num_trials, (ts_stop - ts_start) * 1e-6/float(config.num_trials))
+    __fence(__execution, __block) -- Make sure we only time the computation
+  end
+
 end
 
 regentlib.start(toplevel)

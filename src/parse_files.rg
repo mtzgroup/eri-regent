@@ -261,6 +261,9 @@ function writeKFockToRegions(filename, region_vars, preval_vars)
             ishell_location={x=double_data[6], y=double_data[7], z=double_data[8]},
             jshell_location={x=double_data[9], y=double_data[10], z=double_data[11]},
           }
+          if r_kpairs[i].bound == 0.0 then
+            r_kpairs[i].eta = 1.0 -- if this is 0.0, results in nans
+          end
 
           num_values = c.fscanf(filep, "bra_prevals=")
           assert(num_values == 0, "Did not read bra_prevals!")
