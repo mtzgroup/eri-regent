@@ -61,80 +61,93 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
       var blidx = thread.z -- ket shell index, size is number of iShells for ket
       var blidy = thread.w -- bra shell index, size is number of iShells for bra
 
-      -- determine bra/ket ranges within iShell block from label regions
-      var sizex = r_ket_labels[blidx].end_index - r_ket_labels[blidx].start_index 
-      var sizey = r_bra_labels[blidy].end_index - r_bra_labels[blidy].start_index 
+      var continue = true
+      -- diagonal kernels (e.g. DPSP or SPSP) can skip the lower triangle of blocks
+      if (L1 == L3 and L2 == L4 and blidx < blidy) then continue = false end 
+      if continue then
 
-      var g_thidy = r_bra_labels[blidy].start_index + thidy
-      var s_thidx = r_ket_labels[blidx].start_index + thidx
-      var g_thidx = s_thidx
+        -- determine bra/ket ranges within iShell block from label regions
+        var sizex = r_ket_labels[blidx].end_index - r_ket_labels[blidx].start_index 
+        var sizey = r_bra_labels[blidy].end_index - r_bra_labels[blidy].start_index 
 
-      var stopx = r_ket_labels[blidx].start_index + sizex 
-      var stopy = r_bra_labels[blidy].start_index + sizey 
+        var g_thidy = r_bra_labels[blidy].start_index + thidy
+        var s_thidx = r_ket_labels[blidx].start_index + thidx
+        var g_thidx = s_thidx
 
-      -- local accumulator for iShell block
-      var accumulator : double[Nout] 
-      for n = 0, Nout do -- exclusive
-        accumulator[n] = 0.0
-      end
+        var stopx = r_ket_labels[blidx].start_index + sizex 
+        var stopy = r_bra_labels[blidy].start_index + sizey 
 
-      repeat
-        g_thidx = s_thidx
-        var bra_idx = r_bras.ispace.bounds.lo + g_thidy 
-        var bra = r_bras[bra_idx]
-        var ket_idx = r_kets.ispace.bounds.lo + g_thidx 
-        var ket = r_kets[ket_idx]
-        var bound : float = bra.bound * ket.bound
+        -- local accumulator for iShell block
+        var accumulator : double[Nout] 
+        for n = 0, Nout do -- exclusive
+          accumulator[n] = 0.0
+        end
 
-        -- TODO: remove control flow for optimization?
-        while bound * kguard > threshold do -- regular bound (bra loop)
+        repeat
+          g_thidx = s_thidx
+          var bra_idx = r_bras.ispace.bounds.lo + g_thidy 
+          var bra = r_bras[bra_idx]
+          var ket_idx = r_kets.ispace.bounds.lo + g_thidx 
+          var ket = r_kets[ket_idx]
+          var bound : float = bra.bound * ket.bound
 
-          var density : getKFockDensity(L2, L4)
-          if L2 <= L4 then
-            density = r_density[{bra.jshell_index, ket.jshell_index}]
-          else
-            density = r_density[{ket.jshell_index, bra.jshell_index}]
-          end
+          -- TODO: remove control flow for optimization?
+          while bound * kguard > threshold do -- regular bound (bra loop)
 
-          if bound * density.bound > threshold then -- density-weighted bound (ket loop)
+            var density : getKFockDensity(L2, L4)
+            if L2 <= L4 then
+              density = r_density[{bra.jshell_index, ket.jshell_index}]
+            else
+              density = r_density[{ket.jshell_index, bra.jshell_index}]
+            end
+
+            if bound * density.bound > threshold then -- density-weighted bound (ket loop)
+              ket_idx = r_kets.ispace.bounds.lo + g_thidx 
+              ket = r_kets[ket_idx]
+
+              var a = bra.location.x - ket.location.x
+              var b = bra.location.y - ket.location.y
+              var c = bra.location.z - ket.location.z
+            
+              var alpha = bra.eta * ket.eta * (1.0 / (bra.eta + ket.eta))
+              var lambda = bra.C * ket.C * rsqrt(bra.eta + ket.eta)
+              var t = alpha * (a*a + b*b + c*c)
+              ;[generateStatementsComputeRTable(R, L1+L2+L3+L4+1, t, alpha, lambda,
+                                                a, b, c, r_gamma_table)]
+              ;[generateKFockKernelStatements(
+                R, L1, L2, L3, L4, k_idx, bra, ket, r_bra_prevals, r_ket_prevals, bra_idx, ket_idx,
+                rexpr density.values end,
+                accumulator
+              )]
+
+            end
+
+            g_thidx += BSIZEX
             ket_idx = r_kets.ispace.bounds.lo + g_thidx 
             ket = r_kets[ket_idx]
+            bound = bra.bound * ket.bound
+          end -- end ket loop
 
-            var a = bra.location.x - ket.location.x
-            var b = bra.location.y - ket.location.y
-            var c = bra.location.z - ket.location.z
-          
-            var alpha = bra.eta * ket.eta * (1.0 / (bra.eta + ket.eta))
-            var lambda = bra.C * ket.C * rsqrt(bra.eta + ket.eta)
-            var t = alpha * (a*a + b*b + c*c)
-            ;[generateStatementsComputeRTable(R, L1+L2+L3+L4+1, t, alpha, lambda,
-                                              a, b, c, r_gamma_table)]
-            ;[generateKFockKernelStatements(
-              R, L1, L2, L3, L4, k_idx, bra, ket, r_bra_prevals, r_ket_prevals, bra_idx, ket_idx,
-              rexpr density.values end,
-              accumulator
-            )]
+          g_thidy += BSIZEY
+        until (s_thidx == g_thidx) -- end bra loop
 
+        -- Scale elements in diag. kernels out here instead of inside generate_kernel (faster)
+        if (L1 == L3 and L2 == L4 and blidx == blidy) then -- L1 == L3
+          for i = 0, NL1 do -- exclusive
+            for k = 0, NL3 do -- exclusive
+              if i == k then -- diag. elements of diag. kernels scale output by 1/2
+                accumulator[i*NL3+k] = accumulator[i*NL3+k] * 0.5
+              elseif k < i then -- lower triangle elements of diag. kernels are 0
+                accumulator[i*NL3+k] = 0.0
+              end
+            end
           end
-
-          g_thidx += BSIZEX
-          ket_idx = r_kets.ispace.bounds.lo + g_thidx 
-          ket = r_kets[ket_idx]
-          bound = bra.bound * ket.bound
-        end -- end ket loop
-
-        g_thidy += BSIZEY
-      until (s_thidx == g_thidx) -- end bra loop
-
-      -- Scale diagonal elements out here instead of inside generate_kernel (faster)
-      if blidx == blidy then -- L1 == L3
-        for i = 0, NL1 do -- exclusive
-          accumulator[i*NL1+i] = accumulator[i*NL1+i] * 0.5
         end
-      end
-      var N24 = L2 + L4 * (largest_momentum + 1)
-      r_output[{N24, blidy, blidx}].values += accumulator
 
+        var N24 = L2 + L4 * (largest_momentum + 1)
+        r_output[{N24, blidy, blidx}].values += accumulator
+
+      end -- end upper triangle block check for diag. kernels
     end -- end gpuparam
 
   end
