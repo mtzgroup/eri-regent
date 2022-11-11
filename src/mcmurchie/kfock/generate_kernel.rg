@@ -124,7 +124,6 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
   local pattern12 = generateJFockSpinPatternSorted(L1+L2)
   local pattern34 = generateJFockSpinPatternSorted(L3+L4)
 
-  local ket_count = get_ket_count(L3, L4, k_idx) - 1
 
   -- Loop through as follows: [ -2nd- , -3rd- | -1st- , __ ]  Loop index notation: (ij|kl)
   -- NOTE: for large kernels, k loop is handled at the level of task launches (to decrease compile time)
@@ -162,26 +161,46 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
           Dpattern[l+1][3] = Dpattern[l+1][3] + Mk
         end
 
-        -- Write L expressions and ket preprocessing
-        local Larr = {} -- Reset L arrays. More are allocated here than necessary
+        local Larr = {} -- Reset L arrays
         for x = 0, L1+L2 do -- inclusive
           Larr[x] = {}
           for y = 0, L1+L2 do -- inclusive
             Larr[x][y] = {}
             for z = 0, L1+L2 do -- inclusive
               Larr[x][y][z] = regentlib.newsymbol(double, "Larr"..x..y..z)
-              statements:insert(rquote
-                var [Larr[x][y][z]] = 0.0
-              end)
+              if (x + y + z) <= L1+L2 then
+                statements:insert(rquote
+                  var [Larr[x][y][z]] = 0.0
+                end)
+              end
             end
           end
         end
 
+        local D = {} -- Set density arrays (avoid re-declaring variables)
+        for l = 0, triangle_number(L4+1)-1 do -- inclusive
+          D[l] = regentlib.newsymbol(double, "D"..j..l)
+          if L2 > L4 then
+            statements:insert(rquote
+              var [D[l]] = [density][l][j]
+            end)
+          else
+            statements:insert(rquote
+              var [D[l]] = [density][j][l]
+            end)
+          end
+        end
+
+        local coeff = regentlib.newsymbol(double, "Coeff")
+        statements:insert(rquote
+          var [coeff] = 0.0
+        end)
+
+        ------------------- Write L expressions and ket preprocessing  --------------------
         for u = 0, H34-1 do -- inclusive
 
-          local coeff = regentlib.newsymbol(double, "Coeff")
           statements:insert(rquote
-            var [coeff] = 0.0
+            [coeff] = 0.0
           end)
 
           for t = 0, H12-1 do -- inclusive
@@ -209,22 +228,16 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
 
                 if L3 + L4 == 0 then -- No prevals for SS ket
                   statements:insert(rquote
-                    [coeff] += [density][j][idx]
+                    [coeff] += [D[idx]]
                   end)
                 else
-                  if L2 > L4 then
-                    statements:insert(rquote
-                      [coeff] += [density][idx][j] * ket_prevals[{ket_idx, ket_count}]
-                    end)
-                  else
-                    statements:insert(rquote
-                      [coeff] += [density][j][idx] * ket_prevals[{ket_idx, ket_count}]
-                    end)
-                  end
+                  statements:insert(rquote
+                    [coeff] += [D[idx]] * ket_prevals[{ket_idx, ket_count}]
+                  end)
                 end
-
                 --c.printf("\ncoeff += D[%1.f][%1.f] * ket_prevals[ket_idx, %1.f]\n", j, idx, ket_count)
-                --statements:insert(rquote c.printf("     coeff (%lf) += density[%d][%d] (%lf)  *  ket_prevals[%d, %d] (%lf)\n", [coeff], j, idx, [density][j][idx], ket_idx, ket_count, ket_prevals[{ket_idx, ket_count}]) end)
+                --statements:insert(rquote c.printf("     coeff (%lf) += density[%d][%d] (%lf)  *  ket_prevals[%d, %d] (%lf)\n", 
+                --                                    [coeff], j, idx, [D[idx]], ket_idx, ket_count, ket_prevals[{ket_idx, ket_count}]) end)
                 ket_count = ket_count + 1
               end
               -- If you're on last ket level, don't increment ket preprocessing counter
@@ -239,19 +252,21 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
                   [Larr[Nt][Lt][Mt]] += [getR(N, L, M)] * [coeff]
                 end)
                 --c.printf("L%1.f%1.f%1.f += R%1.f%1.f%1.f * coeff\n", Nt, Lt, Mt, N, L, M)
-                --statements:insert(rquote c.printf("           Larr[%d][%d][%d] (%lf) += R[%d][%d][%d] (%lf)  *  coeff (%lf)\n\n", Nt, Lt, Mt, [Larr[Nt][Lt][Mt]], N, L, M, [getR(N, L, M)], [coeff]) end)
+                --statements:insert(rquote c.printf("           Larr[%d][%d][%d] (%lf) += R[%d][%d][%d] (%lf)  *  coeff (%lf)\n\n", 
+                --                                   Nt, Lt, Mt, [Larr[Nt][Lt][Mt]], N, L, M, [getR(N, L, M)], [coeff]) end)
               else
                 statements:insert(rquote
                   [Larr[Nt][Lt][Mt]] -= [getR(N, L, M)] * [coeff]
                 end)
                 --c.printf("L%1.f%1.f%1.f -= R%1.f%1.f%1.f * coeff\n", Nt, Lt, Mt, N, L, M)
-      	  --statements:insert(rquote c.printf("           Larr[%d][%d][%d] (%lf) -= R[%d][%d][%d] (%lf)  *  coeff (%lf)\n\n", Nt, Lt, Mt, [Larr[Nt][Lt][Mt]], N, L, M, [getR(N, L, M)], [coeff]) end)
+      	        --statements:insert(rquote c.printf("           Larr[%d][%d][%d] (%lf) -= R[%d][%d][%d] (%lf)  *  coeff (%lf)\n\n", 
+                --                                   Nt, Lt, Mt, [Larr[Nt][Lt][Mt]], N, L, M, [getR(N, L, M)], [coeff]) end)
               end
             end
-          end
-        end
+          end -- end t loop
+        end -- end u loop
 
-        -- Write bra post-processing and results
+        ----------------------- Write bra post-processing and results ------------------------
         for t = 0, H12-1 do -- inclusive
           local Nt, Lt, Mt = unpack(pattern12[t+1])
           if Nt <= Lfilt[1] and Lt <= Lfilt[2] and Mt <= Lfilt[3] then
@@ -260,23 +275,28 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
               if L1 + L2 == 0 then
                 results[i][k] = rexpr [results[i][k]] + [Larr[Nt][Lt][Mt]] end
                 --c.printf("results[%1.f][%1.f] += L%1.f%1.f%1.f\n", i, k, Nt, Lt, Mt)
-                --statements:insert(rquote c.printf("    results[%d][%d] ( %lf) += Larr[%d][%d][%d] ( %lf)\n", i, k, [results[i][k]], Nt, Lt, Mt, [Larr[Nt][Lt][Mt]]) end)
+                --statements:insert(rquote c.printf("    results[%d][%d] ( %lf) += Larr[%d][%d][%d] ( %lf)\n", 
+                --                                   i, k, [results[i][k]], Nt, Lt, Mt, [Larr[Nt][Lt][Mt]]) end)
               else
                 local tot_bra_preproc = num_bra_preproc(L1,L2)
                 results[i][k] = rexpr [results[i][k]] + [Larr[Nt][Lt][Mt]] * bra_prevals[{bra_idx, tot_bra_preproc - 1}] end
                 --c.printf("results[%1.f][%1.f] += L%1.f%1.f%1.f * bra_prevals[bra_idx, %1.f]\n", i, k, Nt, Lt, Mt, tot_bra_preproc-1)
-                --statements:insert(rquote c.printf("    results[%d][%d] (%lf) += Larr[%d][%d][%d] (%lf)  * bra_prevals[%d, %d] (%lf)\n", i, k, [results[i][k]], Nt, Lt, Mt, [Larr[Nt][Lt][Mt]], bra_idx, tot_bra_preproc-1, bra_prevals[{bra_idx, tot_bra_preproc-1}]) end)
+                --statements:insert(rquote c.printf("    results[%d][%d] (%lf) += Larr[%d][%d][%d] (%lf)  * bra_prevals[%d, %d] (%lf)\n", 
+                --                                   i, k, [results[i][k]], Nt, Lt, Mt, [Larr[Nt][Lt][Mt]], bra_idx, tot_bra_preproc-1, 
+                --                                   bra_prevals[{bra_idx, tot_bra_preproc-1}]) end)
               end
             else
               results[i][k] = rexpr [results[i][k]] + [Larr[Nt][Lt][Mt]] * bra_prevals[{bra_idx, bra_count}] end 
               --c.printf("results[%1.f][%1.f] += L%1.f%1.f%1.f * bra_prevals[bra_idx, %1.f]\n", i, k, Nt, Lt, Mt, bra_count)
-              --statements:insert(rquote c.printf("    results[%d][%d] (%lf) += Larr[%d][%d][%d] (%lf)  * bra_prevals[%d, %d] (%lf)\n", i, k, [results[i][k]], Nt, Lt, Mt, [Larr[Nt][Lt][Mt]], bra_idx, bra_count, bra_prevals[{bra_idx, bra_count}]) end)
+              --statements:insert(rquote c.printf("    results[%d][%d] (%lf) += Larr[%d][%d][%d] (%lf)  * bra_prevals[%d, %d] (%lf)\n", 
+              --                                   i, k, [results[i][k]], Nt, Lt, Mt, [Larr[Nt][Lt][Mt]], bra_idx, bra_count, 
+              --                                   bra_prevals[{bra_idx, bra_count}]) end)
               bra_count = bra_count + 1 
             end
           end
         end
 
-      end
+      end -- j loop
     end -- i loop
   end -- k loop
 
@@ -285,23 +305,12 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
 
   for i = 0, triangle_number(L1+1)-1 do -- inclusive
     for k = k_min, k_max do
-
       local H3  = triangle_number(L3+1)
-      if L1 == L3 and L2 == L4 then -- Diagonal kernel.
-        statements:insert(rquote
-          if bra.ishell_index <= ket.ishell_index then -- Upper triangular element.
-            [output][i*H3+k] += [results[i][k]] * [bra_norms[i+1][k+1]]
-          else -- Lower triangular element.
-            -- NOTE: Diagonal kernels skip the lower triangular elements.
-            -- no-op
-          end
-        end)
-      else -- Upper triangular kernel.
-        statements:insert(rquote
-          [output][i*H3+k] += [results[i][k]] * [bra_norms[i+1][k+1]]
-        end)
-      end
-      --statements:insert(rquote c.printf("       output(%d,%d).values(%d,%d) = %lf\n", bra.ishell_index, ket.ishell_index, i, k, [output][i*L3+k]) end)
+      statements:insert(rquote
+        [output][i*H3+k] += [results[i][k]] * [bra_norms[i+1][k+1]]
+      end)
+      --statements:insert(rquote c.printf("       output(%d,%d).values(%d,%d) = %lf\n", 
+      --                                   bra.ishell_index, ket.ishell_index, i, k, [output][i*L3+k]) end)
     end
   end
 

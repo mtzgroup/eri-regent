@@ -52,7 +52,7 @@ function kfock(r_pairs_list, r_prevals_list, r_labels_list, r_density_list, r_ou
             local k_max = 0
             -- Break up large kernels (e.g. PDPD, DDDD) into separate tasks on 3rd index (k) to decrease compile time
             if (L1 > 0 and L2 > 0 and L3 > 0 and L4 > 0) and (L1 + L2 + L3 + L4 >= 6) then 
-              local k_max = triangle_number(L3 + 1) - 1
+              k_max = triangle_number(L3 + 1) - 1
             end
             for k = 0, k_max do -- inclusive
               local kfock_integral = generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k)
