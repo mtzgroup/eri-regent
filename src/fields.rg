@@ -86,18 +86,6 @@ function getKFockLabel(L1, L2)
   return KFockLabelCache[index]
 end
 
-KFockNumBraPrevals = {
-  [0] = {[0] = 0, [1] = 4, [2] = 16},
-  [1] = {[0] = 4, [1] = 25, [2] = 91},
-  [2] = {[0] = 16, [1] = 91, [2] = 301},
-}
-
-KFockNumKetPrevals = {
-  [0] = {[0] = 0, [1] = 4, [2] = 16},
-  [1] = {[0] = 6, [1] = 27, [2] = 93},
-  [2] = {[0] = 21, [1] = 96, [2] = 306},
-}
-
 local KFockDensityCache = {}
 function getKFockDensity(L2, L4)
   if L2 > L4 then -- original
@@ -130,3 +118,68 @@ function getKFockOutput(L1, L3)
   end
   return KFockOutputCache[index]
 end
+
+local KGradBraCache = {}
+function getKGradBra(L12)
+  if KGradBraCache[L12] == nil then
+    local fspace KGradBra {
+      location : Point;     -- Location of gaussian
+      eta      : double;    -- Exponent of gaussian
+      C        : double;
+      bound    : float;
+    }
+    KGradBraCache[L12] = KGradBra
+  end
+  return KGradBraCache[L12]
+end
+
+local KGradOutputCache = {}
+function getKGradOutput(L1, L2)
+  local index = LToStr[L1]..LToStr[L2]
+  if KGradOutputCache[index] == nil then
+    local fspace KGradOutput {
+      values     : double[6]; -- x,y,z for center A and  x,y,z for center B
+      bra_index  : int1d; -- index for L12 (for potential partitioning)
+    }
+    KGradOutputCache[index] = KGradOutput
+  end
+  return KGradOutputCache[index]
+end
+
+local KGradBraEGPMapCache = {}
+function getKGradBraEGPMap(L1, L2)
+  local index = LToStr[L1]..LToStr[L2]
+  if KGradBraEGPMapCache[index] == nil then
+    local fspace KGradBraEGPMap {
+      sign   : int1d; -- sign (+/-) of next braEGP element
+      stride : int1d; -- braEGP stride
+    }
+    KGradBraEGPMapCache[index] = KGradBraEGPMap
+  end
+  return KGradBraEGPMapCache[index]
+end
+
+KFockNumBraPrevals = {
+  [0] = {[0] = 0,  [1] = 4,  [2] = 16},
+  [1] = {[0] = 4,  [1] = 25, [2] = 91},
+  [2] = {[0] = 16, [1] = 91, [2] = 301},
+}
+
+KFockNumKetPrevals = {
+  [0] = {[0] = 0,  [1] = 4,  [2] = 16},
+  [1] = {[0] = 6,  [1] = 27, [2] = 93},
+  [2] = {[0] = 21, [1] = 96, [2] = 306},
+}
+
+KGradNumBraEGP = { -- upper triangle
+  [0] = {[0] = 4, [1] = 23, [2] = 89},
+  [1] = {[0] = 0, [1] = 88, [2] = 386},
+  [2] = {[0] = 0, [1] = 0,  [2] = 1494},
+}
+
+KGradNumBraEGPMap = { -- upper triangle
+  [0] = {[0] = 12, [1] = 66,  [2] = 216},
+  [1] = {[0] = 0,  [1] = 336, [2] = 1038},
+  [2] = {[0] = 0,  [1] = 0,   [2] = 3072},
+}
+

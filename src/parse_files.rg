@@ -130,7 +130,7 @@ end
 -- Verify the JFock output is correct
 -- `delta` is the maximum allowed absolute error
 -- `epsilon` is the maximum allowed relative error
-function verifyOutput(r_jbras_list, delta, epsilon, filename)
+function verifyJFockOutput(r_jbras_list, delta, epsilon, filename)
   local filep = regentlib.newsymbol()
   local max_absolute_error = regentlib.newsymbol(double)
   local max_relative_error = regentlib.newsymbol(double)
@@ -188,7 +188,7 @@ function verifyOutput(r_jbras_list, delta, epsilon, filename)
 end
 
 -- Writes the output to `filename`
-function writeOutput(r_jbras_list, filename)
+function writeJFockOutput(r_jbras_list, filename)
   local filep = regentlib.newsymbol()
   local statements = terralib.newlist({rquote
     var [filep] = c.fopen(filename, "w")
@@ -404,17 +404,19 @@ function verifyKFockOutput(region_vars, delta, epsilon, filename)
   local filep = regentlib.newsymbol()
   local max_absolute_error = regentlib.newsymbol(double)
   local max_relative_error = regentlib.newsymbol(double)
+  local all_correct = regentlib.newsymbol(bool)
   local statements = terralib.newlist({rquote
     var [filep] = c.fopen(filename, "r")
     checkFile(filep)
     var [max_absolute_error] = -1
     var [max_relative_error] = -1
+    var [all_correct] = true
   end})
   for L1 = 0, getCompiledMaxMomentum() do -- inclusive
     for L2 = 0, getCompiledMaxMomentum() do -- inclusive
       for L3 = 0, getCompiledMaxMomentum() do -- inclusive
         for L4 = 0, getCompiledMaxMomentum() do -- inclusive
-          if L1 < L3 or (L1 == L3 and L2 <= L4) then
+          if L1 < L3 or (L1 == L3 and L2 <= L4) then -- upper triangle
             local N24 = L2 + L4 * (getCompiledMaxMomentum() + 1)
             local field_space = getKFockOutput(L1, L3)
             local r_output = region_vars[L1][L3]
@@ -460,6 +462,7 @@ function verifyKFockOutput(region_vars, delta, epsilon, filename)
                                  L1, L2, L3, L4, bra_ishell, ket_ishell, i, j,
                                  result, expected, absolute_error, relative_error)
                         --assert(false, "Wrong output!")
+                        all_correct = false
                       else
                       -- print all values
                         c.printf(
@@ -480,8 +483,282 @@ function verifyKFockOutput(region_vars, delta, epsilon, filename)
   end
   statements:insert(rquote
     c.fclose(filep)
-    c.printf("Values are correct! max_absolue_error = %.12g, max_relative_error = %.12g\n",
-             max_absolute_error, max_relative_error)
+    if all_correct then
+      c.printf("Values are correct! max_absolue_error = %.12g, max_relative_error = %.12g\n",
+               max_absolute_error, max_relative_error)
+    else
+      c.printf("Values are incorrect! max_absolue_error = %.12g, max_relative_error = %.12g\n",
+               max_absolute_error, max_relative_error)
+    end
   end)
   return statements
 end
+
+
+--------------------------------------------------------------------------------------------------------------
+--------------------------------------------- KGrad Parsing --------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
+
+-- Writes data found in `filename` to an array of regions given by `region_vars`
+function writeKGradBrasToRegions(filename, region_vars, preval_vars, r_output_list)
+  local filep = regentlib.newsymbol()
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
+  end})
+  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L2 = L1, getCompiledMaxMomentum() do -- inclusive
+      local field_space = getKGradBra(L1 + L2)
+      local r_kpairs = region_vars[L1][L2]
+      local bra_EGP  = preval_vars[L1][L2]
+      local r_output = r_output_list[L1][L2]
+      --local N = (getCompiledMaxMomentum() + 1) * (getCompiledMaxMomentum() + 1) + 1
+      statements:insert(rquote
+        var int_data : int[3]
+        var double_data : double[6]
+        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n",
+                                  int_data, int_data+1, int_data+2)
+        assert(num_values == 3, "Did not read all values in header!")
+        var N12 = int_data[2]
+        assert(L1 == int_data[0] and L2 == int_data[1],
+               "Unexpected angular momentum!")
+        var [r_kpairs] = region(ispace(int1d, N12), field_space)
+        var [bra_EGP] = region(ispace(int2d, {N12, [KGradNumBraEGP[L1][L2]]}), double)
+        for i = 0, N12 do -- exclusive
+          num_values = c.fscanf(filep,
+            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,",
+            double_data+0, double_data+1, double_data+2,
+            double_data+3, double_data+4, double_data+5
+          )
+          assert(num_values == 6, "Did not read all values in line!");
+          r_kpairs[i] = {
+            location={x=double_data[0], y=double_data[1], z=double_data[2]},
+            eta=double_data[3], C=double_data[4], bound=double_data[5]
+          }
+          num_values = c.fscanf(filep, "bra_EGP=")
+          assert(num_values == 0, "Did not read bra_EGP!")
+          for k = 0, [KGradNumBraEGP[L1][L2]] do -- exclusive
+            num_values = c.fscanf(filep, "%lf,", double_data) 
+            assert(num_values == 1, "Did not read bra_EGP value!")
+            bra_EGP[{i, k}] = double_data[0]
+          end
+          num_values = c.fscanf(filep, "\n")
+          assert(num_values == 0, "Did not read to end of line!")
+        end
+
+        var zeros : double[6]
+        for i = 0, 6 do -- exclusive
+          zeros[i] = 0
+        end
+        -- we can read output size from bras
+        --var [r_output] = region(ispace(int2d, {N, N12}), getKGradOutput(L1, L2)) 
+        var [r_output] = region(ispace(int1d, N12), getKGradOutput(L1, L2)) 
+        for bra_idx = 0, N12 do -- exclusive
+          -- loop over all values N in the first dimension of r_output
+          --for N34 = 0, N do -- exclusive
+          --  r_output[{N34, bra_idx}].bra_index = bra_idx 
+          --end
+          r_output[bra_idx].bra_index = bra_idx 
+          r_output[bra_idx].values = zeros 
+        end
+
+      end)
+    end
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+  end)
+  return statements
+end
+
+-- Writes data found in `filename` to an array of regions given by `region_vars`
+function writeKGradKetsToRegions(filename, region_vars, preval_vars)
+  local filep = regentlib.newsymbol()
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
+  end})
+  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L2 = 0, getCompiledMaxMomentum() do -- inclusive
+      local field_space = getKFockPair(L1, L2)
+      local r_kpairs = region_vars[L1][L2]
+      local ket_prevals = preval_vars[L1][L2]
+      statements:insert(rquote
+        var int_data : int[4]
+        var double_data : double[12]
+        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d,Nnopad=%d\n",
+                                  int_data, int_data+1, int_data+2, int_data+3)
+        assert(num_values == 4, "Did not read all values in input header!")
+        var N = int_data[2]
+        var Nnopad = int_data[3]
+        assert(L1 == int_data[0] and L2 == int_data[1],
+               "Unexpected angular momentum in kfock pairs!")
+        var [r_kpairs] = region(ispace(int1d, N), field_space)
+        var [ket_prevals] = region(ispace(int2d, {N, [KFockNumKetPrevals[L1][L2]]}), double)
+        for i = 0, N do -- exclusive
+          num_values = c.fscanf(filep,
+            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,i_shell_idx=%d,j_shell_idx=%d,PIx=%lf,PIy=%lf,PIz=%lf,PJx=%lf,PJy=%lf,PJz=%lf,",
+            double_data+0, double_data+1, double_data+2,
+            double_data+3, double_data+4, double_data+5,
+            int_data+0, int_data+1,
+            double_data+6, double_data+7, double_data+8,
+            double_data+9, double_data+10, double_data+11
+          )
+          assert(num_values == 14, "Did not read all values in line!");
+          r_kpairs[i] = {
+            location={x=double_data[0], y=double_data[1], z=double_data[2]},
+            eta=double_data[3], C=double_data[4], bound=double_data[5],
+            ishell_index=int_data[0], jshell_index=int_data[1],
+            ishell_location={x=double_data[6], y=double_data[7], z=double_data[8]},
+            jshell_location={x=double_data[9], y=double_data[10], z=double_data[11]},
+          }
+          if r_kpairs[i].bound == 0.0 then
+            r_kpairs[i].eta = 1.0 -- if this is 0.0, results in nans
+          end
+
+          num_values = c.fscanf(filep, "ket_prevals=")
+          assert(num_values == 0, "Did not read ket_prevals!")
+          for k = 0, [KFockNumKetPrevals[L1][L2]] do -- exclusive
+            num_values = c.fscanf(filep, "%lf,", double_data)
+            assert(num_values == 1, "Did not read ket_preval value!")
+            ket_prevals[{i, k}] = double_data[0]
+          end
+          num_values = c.fscanf(filep, "\n")
+          assert(num_values == 0, "Did not read to end of line!")
+        end
+      end)
+    end
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+  end)
+  return statements
+end
+
+-- Writes data found in `filename` to an array of regions given by `region_vars`
+function writeKGradDensityToRegions(filename, region_vars)
+  local filep = regentlib.newsymbol()
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
+  end})
+  for L2 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L4 = L2, getCompiledMaxMomentum() do -- inclusive
+      local field_space = getKFockDensity(L2, L4)
+      local r_density = region_vars[L2][L4]
+      local N = (getCompiledMaxMomentum() + 1) * (getCompiledMaxMomentum() + 1) + 1
+      statements:insert(rquote
+        var int_data : int[4]
+        var double_data : double[1]
+        var num_values = c.fscanf(filep, "L2=%d,L4=%d,N2=%d,N4=%d\n",
+                                  int_data, int_data+1, int_data+2, int_data+3)
+        assert(num_values == 4, "Did not read all values in density header!")
+        var N2, N4 = int_data[2], int_data[3]
+        assert(L2 == int_data[0] and L4 == int_data[1],
+               "Unexpected angular momentum in kfock density!")
+        var [r_density] = region(ispace(int2d, {N2, N4}), field_space)
+        for bra_jshell = 0, N2 do -- exclusive
+          for ket_jshell = 0, N4 do -- exclusive
+            num_values = c.fscanf(
+                  filep,
+                  "bra_jshell_idx=%d,ket_jshell_idx=%d,values=",
+                  int_data + 0, int_data + 1)
+            assert(num_values == 2, "Did not read values!")
+            assert(int_data[0] == bra_jshell and int_data[1] == ket_jshell,
+                   "Wrong indices!")
+            for k = 0, [triangle_number(L2 + 1)] do -- exclusive
+              for m = 0, [triangle_number(L4 + 1)] do -- exclusive
+                num_values = c.fscanf(filep, "%lf,", double_data)
+                assert(num_values == 1, "Did not read kfock density value!")
+                r_density[{bra_jshell, ket_jshell}].values[k][m] = double_data[0]
+              end
+            end
+            num_values = c.fscanf(filep, "bound=%lf\n", double_data)
+            assert(num_values == 1, "Did not read bound!")
+            r_density[{bra_jshell, ket_jshell}].bound = double_data[0]
+          end
+        end
+      end)
+    end
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+  end)
+  return statements
+end
+
+-- Verify the KGrad output is correct
+-- `delta` is the maximum allowed absolute error
+-- `epsilon` is the maximum allowed relative error
+function verifyKGradOutput(region_vars, delta, epsilon, filename)
+  local filep = regentlib.newsymbol()
+  local max_absolute_error = regentlib.newsymbol(double)
+  local max_relative_error = regentlib.newsymbol(double)
+  local all_correct = regentlib.newsymbol(bool)
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
+    var [max_absolute_error] = -1
+    var [max_relative_error] = -1
+    var [all_correct] = true
+  end})
+  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L2 = L1, getCompiledMaxMomentum() do -- inclusive
+      local field_space = getKGradOutput(L1, L2)
+      local r_output = region_vars[L1][L2]
+      statements:insert(rquote
+        var int_data : int[3]
+        var double_data : double[1]
+        var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n",
+                                  int_data+0, int_data+1, int_data+2)
+        assert(num_values == 3, "Did not read angular momentum!")
+        assert(L1 == int_data[0] and L2 == int_data[1],
+               "Wrong angular momentum!")
+        var N = int_data[2]
+        for bra_idx = 0, N do -- exclusive
+          num_values = c.fscanf(filep, "bra_idx=%d,values=", int_data )
+          assert(num_values == 1, "Could not read line!")
+          assert(int_data[0] == bra_idx, "Index is not correct!")
+          for i = 0, 6 do -- exclusive
+            num_values = c.fscanf(filep, "%lf,", double_data)
+            assert(num_values == 1, "Did not read kgrad value!")
+            var expected = double_data[0]
+            var result = r_output[bra_idx].values[i]
+            var absolute_error = fabs(result - expected)
+            var relative_error = fabs(absolute_error / expected)
+            if absolute_error > max_absolute_error then
+              max_absolute_error = absolute_error
+            end
+            if relative_error > max_relative_error then
+              max_relative_error = relative_error
+            end
+            if [bool](c.isnan(result)) or [bool](c.isinf(result))
+                or (absolute_error > delta and relative_error > epsilon) then
+              c.printf("Value differs at L1 = %d, L2 = %d, output[%d].values[%d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
+                       L1, L2, bra_idx, i, result, expected, absolute_error, relative_error)
+              --assert(false, "Wrong output!")
+              all_correct = false
+            else
+              -- print all values
+              c.printf("                 L1 = %d, L2 = %d, output[%d].values[%d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
+                       L1, L2, bra_idx, i, result, expected, absolute_error, relative_error)
+            end
+          end
+          assert(c.fscanf(filep, "\n") == 0, "Did not read newline")
+        end
+      end)
+    end
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+    if all_correct then
+      c.printf("Values are correct! max_absolue_error = %.12g, max_relative_error = %.12g\n",
+               max_absolute_error, max_relative_error)
+    else
+      c.printf("Values are incorrect! max_absolue_error = %.12g, max_relative_error = %.12g\n",
+               max_absolute_error, max_relative_error)
+    end
+  end)
+  return statements
+end
+

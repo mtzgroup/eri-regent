@@ -80,7 +80,7 @@ Run with Regent using `top_jfock.rg` or `top_kfock.rg` inside `src/` for testing
 ```bash
 cd eri-regent/src
 # To run JFock algorithm
-regent top_jfock.rg -L P -i tests/integ/h2o -v tests/integ/h2o/output.dat
+regent top_jfock.rg -L P -i tests/integ/h2o -v tests/integ/h2o/jfock_output.dat
 # To run KFock algorithm
 regent top_kfock.rg -fflow 0 -L S -i tests/integ/h2 -v tests/integ/h2/kfock_output.dat
 # Use option `-fflow 0` to compile eri-regent faster

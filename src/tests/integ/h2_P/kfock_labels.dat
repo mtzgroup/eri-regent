@@ -1,0 +1,16 @@
+L1=0,L2=0,Nshells=4
+iShell=0,label_start=0,label_end=32
+iShell=1,label_start=32,label_end=48
+iShell=2,label_start=48,label_end=80
+iShell=3,label_start=80,label_end=96
+L1=0,L2=1,Nshells=4
+iShell=0,label_start=0,label_end=16
+iShell=1,label_start=16,label_end=32
+iShell=2,label_start=32,label_end=48
+iShell=3,label_start=48,label_end=64
+L1=1,L2=0,Nshells=2
+iShell=0,label_start=0,label_end=16
+iShell=1,label_start=16,label_end=32
+L1=1,L2=1,Nshells=2
+iShell=0,label_start=0,label_end=16
+iShell=1,label_start=16,label_end=32

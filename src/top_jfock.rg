@@ -40,8 +40,8 @@ task toplevel()
   -------------------------------------------
   var bras_filename : int8[512]
   var kets_filename : int8[512]
-  c.sprintf([&int8](bras_filename), "%s/bras.dat", config.input_directory)
-  c.sprintf([&int8](kets_filename), "%s/kets.dat", config.input_directory)
+  c.sprintf([&int8](bras_filename), "%s/jfock_bras.dat", config.input_directory)
+  c.sprintf([&int8](kets_filename), "%s/jfock_kets.dat", config.input_directory)
 
   ;[writeJBrasToRegions(rexpr bras_filename end, r_jbras_list)]
   ;[writeJKetsToRegions(rexpr kets_filename end, r_jkets_list)]
@@ -94,11 +94,11 @@ task toplevel()
   ----------------------------
   var output_filename = config.output_filename
   if output_filename[0] ~= 0 then
-    [writeOutput(r_jbras_list, output_filename)]
+    [writeJFockOutput(r_jbras_list, output_filename)]
   end
   var verify_filename = config.verify_filename
   if verify_filename[0] ~= 0 then
-    [verifyOutput(r_jbras_list, 1e-7, 1e-8, verify_filename)]
+    [verifyJFockOutput(r_jbras_list, 1e-7, 1e-8, verify_filename)]
   end
   ----------------------------
 
