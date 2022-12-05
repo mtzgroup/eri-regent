@@ -36,18 +36,28 @@ function generateStatementsComputeBoys(boys, length, t, r_gamma_table)
                                        + t_scaled * (coefficients[3]
                                        + t_scaled * coefficients[4])))
   end})
+  local exp_negt = regentlib.newsymbol(double, "ExpNegt")
+  downwardsRecursion:insert(rquote
+    var [exp_negt] = exp(-t)
+  end)
   for j = length-2, 0, -1 do -- inclusive
     downwardsRecursion:insert(rquote
-      [boys[j]] = (2.0 * t * [boys[j+1]] + exp(-t)) * (1.0 / (2 * j + 1))
+      --[boys[j]] = (2.0 * t * [boys[j+1]] + exp(-t)) * (1.0 / (2 * j + 1))
+      [boys[j]] = (2.0 * t * [boys[j+1]] + [exp_negt]) * (1.0 / (2 * j + 1)) -- optimization
     end)
   end
 
   local upwardsRecursionAsymptotic = terralib.newlist({rquote
     [boys[0]] = rsqrt(t) * (SQRT_PI / 2.0)
   end})
+  local one_over_t = regentlib.newsymbol(double, "OneOvert")
+  upwardsRecursionAsymptotic:insert(rquote
+    var [one_over_t] = 1.0 / t
+  end)
   for j = 0, length-2 do -- inclusive
     upwardsRecursionAsymptotic:insert(rquote
-      [boys[j+1]] = ((2 * j + 1) / 2.0) * [boys[j]] * (1.0 / t)
+      --[boys[j+1]] = ((2 * j + 1) / 2.0) * [boys[j]] * (1.0 / t)
+      [boys[j+1]] = ((2 * j + 1) / 2.0) * [boys[j]] * [one_over_t]  -- optimization
     end)
   end
 
