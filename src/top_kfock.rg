@@ -127,4 +127,13 @@ task toplevel()
   end
 end
 
-regentlib.start(toplevel)
+if os.getenv('SAVEOBJ') == '1' then
+  local exe = os.getenv('OBJNAME') or "kfock_regent"
+  local root_dir = arg[0]:match(".*/") or "./"
+  local out_dir = (os.getenv('OBJNAME') and os.getenv('OBJNAME'):match('.*/')) or root_dir
+  local link_flags = {"-L" .. out_dir, "-lm"}
+  regentlib.c.printf("Saving executable to %s ... \n", exe)
+  regentlib.saveobj(toplevel, exe, "executable", nil, link_flags)
+else
+  regentlib.start(toplevel)
+end
