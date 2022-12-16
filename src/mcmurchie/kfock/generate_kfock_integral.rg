@@ -64,44 +64,55 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
     statements:insert(rquote
  
       -- determine bra/ket ranges within iShell block from label regions
-      var sizex = r_ket_labels[blidx].end_index - r_ket_labels[blidx].start_index 
-      var sizey = r_bra_labels[blidy].end_index - r_bra_labels[blidy].start_index 
+      var ket_start_index = r_ket_labels[blidx].start_index
+      var bra_start_index = r_bra_labels[blidy].start_index
+
+      var sizex = r_ket_labels[blidx].end_index - ket_start_index 
+      var sizey = r_bra_labels[blidy].end_index - bra_start_index 
  
-      var g_thidy = r_bra_labels[blidy].start_index + thidy
-      var s_thidx = r_ket_labels[blidx].start_index + thidx
+      var g_thidy = bra_start_index + thidy
+      var s_thidx = ket_start_index + thidx
       var g_thidx = s_thidx
  
-      var stopx = r_ket_labels[blidx].start_index + sizex 
-      var stopy = r_bra_labels[blidy].start_index + sizey 
+      var stopx = ket_start_index + sizex 
+      var stopy = bra_start_index + sizey 
  
       repeat
         g_thidx = s_thidx
         var bra_idx = r_bras.ispace.bounds.lo + g_thidy 
         var bra = r_bras[bra_idx]
-        var ket_idx = r_kets.ispace.bounds.lo + g_thidx 
+
+        var bra_jshell_index = bra.jshell_index
+        var bra_bound = bra.bound
+        var bra_location_x = bra.location.x
+        var bra_location_y = bra.location.y
+        var bra_location_z = bra.location.z
+        var bra_eta = bra.eta
+        var bra_C = bra.C
+
+        var r_kets_lo = r_kets.ispace.bounds.lo
+        var ket_idx = r_kets_lo + g_thidx 
         var ket = r_kets[ket_idx]
         var bound : float = bra.bound * ket.bound
  
-        -- TODO: remove control flow for optimization?
         while bound * kguard > threshold do -- regular bound (bra loop)
  
           var density : getKFockDensity(L2, L4)
-          ;[generateDensityStatements(L2, L4, rexpr bra.jshell_index end, rexpr ket.jshell_index end, 
+          ;[generateDensityStatements(L2, L4, rexpr bra_jshell_index end, rexpr ket.jshell_index end, 
                                       r_density, density)]
  
           if bound * density.bound > threshold then -- density-weighted bound (ket loop)
-            ket_idx = r_kets.ispace.bounds.lo + g_thidx 
+            ket_idx = r_kets_lo + g_thidx 
             ket = r_kets[ket_idx]
  
-            var a = bra.location.x - ket.location.x
-            var b = bra.location.y - ket.location.y
-            var c = bra.location.z - ket.location.z
+            var a = bra_location_x - ket.location.x
+            var b = bra_location_y - ket.location.y
+            var c = bra_location_z - ket.location.z
           
-            var bra_eta = bra.eta
             var ket_eta = ket.eta
  
             var alpha = bra_eta * ket_eta * (1.0 / (bra_eta + ket_eta))
-            var lambda = bra.C * ket.C * rsqrt(bra_eta + ket_eta)
+            var lambda = bra_C * ket.C * rsqrt(bra_eta + ket_eta)
             var t = alpha * (a*a + b*b + c*c)
 
             ;[generateStatementsComputeRTable(R, L1+L2+L3+L4+1, t, alpha, lambda,
@@ -114,9 +125,9 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
           end
  
           g_thidx += BSIZEX
-          ket_idx = r_kets.ispace.bounds.lo + g_thidx 
+          ket_idx = r_kets_lo + g_thidx 
           ket = r_kets[ket_idx]
-          bound = bra.bound * ket.bound
+          bound = bra_bound * ket.bound
         end -- end ket loop
  
         g_thidy += BSIZEY
@@ -138,27 +149,52 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
     -- diagonal kernels (e.g. DPSP or SPSP) can skip the lower triangle of blocks
     if (L1 == L3 and L2 == L4) then
       statements:insert(rquote
-        var continue = true
-        if blidx < blidy then continue = false end 
-        if continue then
-          [generateLoopStatements(r_bras, r_kets, r_bra_prevals, r_ket_prevals, r_bra_labels, r_ket_labels, 
-                                  r_density, r_gamma_table, accumulator,
-                                  thidx, thidy, blidx, blidy, BSIZEX, BSIZEY,
-                                  threshold, kguard)]
-          if blidx == blidy then
-            for i = 0, NL1 do -- exclusive
-              for k = 0, NL3 do -- exclusive
-                if i == k then -- diag. elements of diag. kernels scale output by 1/2
-                  accumulator[i*NL3+k] = accumulator[i*NL3+k] * 0.5
-                elseif k < i then -- lower triangle elements of diag. kernels are 0
-                  accumulator[i*NL3+k] = 0.0
-                end
+
+        var pivot = r_ket_labels[r_ket_labels.ispace.bounds.hi].ishell 
+        --var shift = pivot & 1 -- bitwise and, 1 if nShells is even, 0 if nShells is odd
+        var shift : int
+        if (int(pivot) % 2 == 1) then -- pivot odd
+          shift = 1
+        else -- pivot even
+          shift = 0
+        end
+        blidx -= shift 
+ 
+        -- pivot and shift the lower triangle to upper triangle (x --> x in diagram, 6x6 example)
+        --   |x1|  |  |  |  |  |  |    -- extra (last) column is to make the shift logic work
+        --   |x2|x3|  |  |  |  |  |    -- for cases with even number of columns
+        --   |x4|x5|x6|  |  |  |  |
+        --   ----------------------
+        --   |  |  |  |x6|x5|x4|  |
+        --   |  |  |  |  |x3|x2|  |
+        --   |  |  |  |  |  |x1|  |
+        if blidx < blidy then
+          blidx = pivot - blidx - shift
+          --blidy = pivot - blidy + (shift ~ 1) -- bitwise xor (~)
+          if (int(shift) % 2 == 1) then -- shift odd
+            blidy = pivot - blidy + 0 
+          else -- shift even
+            blidy = pivot - blidy + 1 
+          end
+        end
+
+        [generateLoopStatements(r_bras, r_kets, r_bra_prevals, r_ket_prevals, r_bra_labels, r_ket_labels, 
+                                r_density, r_gamma_table, accumulator,
+                                thidx, thidy, blidx, blidy, BSIZEX, BSIZEY,
+                                threshold, kguard)]
+        if blidx == blidy then
+          for i = 0, NL1 do -- exclusive
+            for k = 0, NL3 do -- exclusive
+              if i == k then -- diag. elements of diag. kernels scale output by 1/2
+                accumulator[i*NL3+k] = accumulator[i*NL3+k] * 0.5
+              elseif k < i then -- lower triangle elements of diag. kernels are 0
+                accumulator[i*NL3+k] = 0.0
               end
             end
           end
-          var N24 = L2 + L4 * (largest_momentum + 1)
-          r_output[{N24, blidy, blidx}].values += accumulator
-        end -- end upper triangle block check for diag. kernels
+        end
+        var N24 = L2 + L4 * (largest_momentum + 1)
+        r_output[{N24, blidy, blidx}].values += accumulator
       end)
 
     -- off-diagonal kernels do not need 'continue' control flow

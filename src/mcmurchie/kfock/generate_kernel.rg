@@ -45,7 +45,7 @@ local function num_bra_preproc(L1, L2)
     { 0,   4,  16,   47}, -- L1 = 0
     { 4,  25,  91,  244}, -- L1 = 1
     {16,  91, 301,  757}, -- L1 = 2
-    {47, 244, 757, 1820}  -- L1 = 3
+    {47, 244, 757, 1820}  -- L1 = 3 -- TODO: Henry got 1821 for 33, maybe change this
   }
   return values[L1+1][L2+1]
 end
@@ -144,6 +144,17 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
 
   local k_min = 0
   local k_max = triangle_number(L3+1)-1
+  -- Replicating TeraChem D kernel break-ups
+--  if (L1 > 0 and L2 > 0 and L3 > 0 and L4 > 0) and (L1 + L2 + L3 + L4 >= 6) then 
+--    k_min = k_idx
+--    k_max = k_idx
+--  end
+  -- Alternate version with more break-ups (for more performant Regent kernels)
+  if (L1 + L2 > 1) and (L1 + L2 + L3 + L4 >= 5) then 
+    k_min = k_idx
+    k_max = k_idx
+  end
+ 
 
   if L1 <= 1 and L2 <= 1 and L3 <= 1 and L4 <= 1 then
   ------------------------------------------------------------------
@@ -231,7 +242,7 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
       end
 
       for i = 0, triangle_number(L1 + 1) - 1 do -- inclusive
-        for k = 0, triangle_number(L3 + 1) - 1 do -- inclusive
+        for k = k_min, k_max do -- inclusive
 
           -- Some helpful auxiliary functions.
           local function aux0(j, i)
@@ -503,11 +514,6 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
  
     -- Loop through as follows: [ -2nd- , -3rd- | -1st- , __ ]  Loop index notation: (ij|kl)
     -- NOTE: for large kernels, k loop is handled at the level of task launches (to decrease compile time)
-    if (L1 > 0 and L2 > 0 and L3 > 0 and L4 > 0) and (L1 + L2 + L3 + L4 >= 6) then 
-      k_min = k_idx
-      k_max = k_idx
-    end
- 
     for k = k_min, k_max do -- inclusive
       local ket_count = get_ket_count(L3, L4, k) - 1
  

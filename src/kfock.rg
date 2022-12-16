@@ -18,7 +18,7 @@ function kfock(r_pairs_list, r_prevals_list, r_labels_list, r_density_list, r_ou
     L_end =  getCompiledMaxMomentum()
     L_stride = 1
   end
-  
+
   for L1 = L_start, L_end, L_stride do -- inclusive
     for L2 = L_start, L_end, L_stride do -- inclusive
       for L3 = L_start, L_end, L_stride do -- inclusive
@@ -49,9 +49,22 @@ function kfock(r_pairs_list, r_prevals_list, r_labels_list, r_density_list, r_ou
             --end
             local p = parallelism -- version for top_kfock.rg
 
+            local bsizex = 8
+            local bsizey = 8
+            -- Regent S and P kernels do slightly better with BLOCKSIZE(4,8)
+            --if (L1 < 2 and L2 < 2 and L3 < 2 and L4 < 2) then
+            --  bsizex = 4
+            --end
+
             local k_max = 0
             -- Break up large kernels (e.g. PDPD, DDDD) into separate tasks on 3rd index (k) to decrease compile time
-            if (L1 > 0 and L2 > 0 and L3 > 0 and L4 > 0) and (L1 + L2 + L3 + L4 >= 6) then 
+            -- in the same manner as TeraChem
+--            if (L1 > 0 and L2 > 0 and L3 > 0 and L4 > 0) and (L1 + L2 + L3 + L4 >= 6) then 
+--              k_max = triangle_number(L3 + 1) - 1
+--            end
+            -- Alternate break up of large D kernels (applies to more kernels than TeraChem, better for Regent perf)
+            -- (note: this might increase compile time)
+            if (L1 + L2 > 1) and (L1 + L2 + L3 + L4 >= 5) then 
               k_max = triangle_number(L3 + 1) - 1
             end
             for k = 0, k_max do -- inclusive
@@ -61,10 +74,23 @@ function kfock(r_pairs_list, r_prevals_list, r_labels_list, r_density_list, r_ou
                   --fill(r_output.values, [terralib.constant(`arrayof(double, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))]) -- number of comma-sep 0.0's should be size of values 
 
                   -- set up block loop for bra/ket iShells in a CUDA-friendly way
-                  var BSIZEX = 8 -- size of GPU thread block in x dim (ket)
-                  var BSIZEY = 8 -- size of GPU thread block in y dim (bra)
-                  var gsizex = r_ket_labels[r_ket_labels.ispace.bounds.hi].ishell + 1 -- size of grid in x dim (number of iShells in ket)
-                  var gsizey = r_bra_labels[r_bra_labels.ispace.bounds.hi].ishell + 1 -- size of grid in y dim (number of iShells in bra)
+                  var BSIZEX = [bsizex] -- size of GPU thread block in x dim (ket)
+                  var BSIZEY = [bsizey] -- size of GPU thread block in y dim (bra)
+                  var gsizex : int
+                  var gsizey : int
+                  if ( L1 == L3 and L2 == L4) then -- diagonal kernel
+                    var IKshells = r_bra_labels[r_bra_labels.ispace.bounds.hi].ishell + 1
+                    --gsizex = int(IKshells) | 1 -- bitwise or (adds 1 if even)
+                    if (int(IKshells) % 2 == 1) then
+                      gsizex = IKshells
+                    else
+                      gsizex = IKshells + 1
+                    end
+                    gsizey = (IKshells+1)/2
+                  else -- off-diagonal kernel
+                    gsizex = r_ket_labels[r_ket_labels.ispace.bounds.hi].ishell + 1 -- size of grid in x dim (number of iShells in ket)
+                    gsizey = r_bra_labels[r_bra_labels.ispace.bounds.hi].ishell + 1 -- size of grid in y dim (number of iShells in bra)
+                  end
                   var gpuparam = region(ispace(int4d, {BSIZEX, BSIZEY, gsizex, gsizey}), int)  -- field type of this region doesn't matter
 
                   -- TODO: If region is empty, then don't launch a task
