@@ -123,10 +123,12 @@ local KGradBraCache = {}
 function getKGradBra(L12)
   if KGradBraCache[L12] == nil then
     local fspace KGradBra {
-      location : Point;     -- Location of gaussian
-      eta      : double;    -- Exponent of gaussian
-      C        : double;
-      bound    : float;
+      location        : Point;     -- Location of gaussian
+      eta             : double;    -- Exponent of gaussian
+      C               : double;
+      bound           : float;
+      ishell_index    : int1d;  -- Index for density fetches
+      jshell_index    : int1d;  -- Index for density fetches
     }
     KGradBraCache[L12] = KGradBra
   end

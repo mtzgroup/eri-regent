@@ -526,14 +526,16 @@ function writeKGradBrasToRegions(filename, region_vars, preval_vars, r_output_li
         var [bra_EGP] = region(ispace(int2d, {N12, [KGradNumBraEGP[L1][L2]]}), double)
         for i = 0, N12 do -- exclusive
           num_values = c.fscanf(filep,
-            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,",
+            "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,i_shell_idx=%d,j_shell_idx=%d,",
             double_data+0, double_data+1, double_data+2,
-            double_data+3, double_data+4, double_data+5
+            double_data+3, double_data+4, double_data+5,
+            int_data+0, int_data+1 
           )
-          assert(num_values == 6, "Did not read all values in line!");
+          assert(num_values == 8, "Did not read all values in line!");
           r_kpairs[i] = {
             location={x=double_data[0], y=double_data[1], z=double_data[2]},
-            eta=double_data[3], C=double_data[4], bound=double_data[5]
+            eta=double_data[3], C=double_data[4], bound=double_data[5],
+            ishell_index=int_data[0], jshell_index=int_data[1]
           }
           num_values = c.fscanf(filep, "bra_EGP=")
           assert(num_values == 0, "Did not read bra_EGP!")
