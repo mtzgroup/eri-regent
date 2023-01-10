@@ -70,7 +70,7 @@ function generateTaskMcMurchieJFockIntegral(L12, L34)
         var alpha : double = jbra_eta * jket.eta * (1.0 / (jbra_eta + jket.eta))
         var lambda : double = jbra_C * jket.C * rsqrt(jbra_eta + jket.eta)
         var t : double = alpha * (a*a + b*b + c*c);
-        [generateStatementsComputeRTable(R, L12+L34+1, t, alpha, lambda,
+        [generateStatementsComputeRTable(R, L12+L34, t, alpha, lambda,
                                          a, b, c, r_gamma_table)];
 
         [generateJFockKernelStatements(R, L12, L34, rexpr jket.density end,

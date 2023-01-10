@@ -115,7 +115,7 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
             var lambda = bra_C * ket.C * rsqrt(bra_eta + ket_eta)
             var t = alpha * (a*a + b*b + c*c)
 
-            ;[generateStatementsComputeRTable(R, L1+L2+L3+L4+1, t, alpha, lambda,
+            ;[generateStatementsComputeRTable(R, L1+L2+L3+L4, t, alpha, lambda,
                                               a, b, c, r_gamma_table)]
 
             ;[generateKFockKernelStatements(
