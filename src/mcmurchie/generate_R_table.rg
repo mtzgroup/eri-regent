@@ -29,40 +29,30 @@ function generateStatementsComputeBoys(boys, length, t, r_gamma_table)
     [17] = 0.0000000000000000E+00,
   }
   local downwardsRecursion = terralib.newlist({rquote
-    var t_scaled : double = [factors[length-1]] * t
-    var coefficients : double[5] = r_gamma_table[{length-1, round(t_scaled)}];
-    [boys[length-1]] = coefficients[0] + t_scaled * (coefficients[1]
+    var t_scaled : double = [factors[length]] * t
+    var coefficients : double[5] = r_gamma_table[{length, round(t_scaled)}];
+    [boys[length]] = coefficients[0] + t_scaled * (coefficients[1]
                                        + t_scaled * (coefficients[2]
                                        + t_scaled * (coefficients[3]
                                        + t_scaled * coefficients[4])))
   end})
-  local exp_negt = regentlib.newsymbol(double, "ExpNegt")
-  downwardsRecursion:insert(rquote
-    var [exp_negt] = exp(-t)
-  end)
-  for j = length-2, 0, -1 do -- inclusive
+  for j = length-1, 0, -1 do -- inclusive
     downwardsRecursion:insert(rquote
-      --[boys[j]] = (2.0 * t * [boys[j+1]] + exp(-t)) * (1.0 / (2 * j + 1))
-      [boys[j]] = (2.0 * t * [boys[j+1]] + [exp_negt]) * (1.0 / (2 * j + 1)) -- optimization
+      [boys[j]] = (2.0 * t * [boys[j+1]] + exp(-t)) * (1.0 / (2 * j + 1))
     end)
   end
 
   local upwardsRecursionAsymptotic = terralib.newlist({rquote
     [boys[0]] = rsqrt(t) * (SQRT_PI / 2.0)
   end})
-  local one_over_t = regentlib.newsymbol(double, "OneOvert")
-  upwardsRecursionAsymptotic:insert(rquote
-    var [one_over_t] = 1.0 / t
-  end)
-  for j = 0, length-2 do -- inclusive
+  for j = 0, length-1 do -- inclusive
     upwardsRecursionAsymptotic:insert(rquote
-      --[boys[j+1]] = ((2 * j + 1) / 2.0) * [boys[j]] * (1.0 / t)
-      [boys[j+1]] = ((2 * j + 1) / 2.0) * [boys[j]] * [one_over_t]  -- optimization
+      [boys[j+1]] = ((2 * j + 1) / 2.0) * [boys[j]] * (1.0 / t)
     end)
   end
 
   local statements = terralib.newlist()
-  for j = 0, length-1 do -- inclusive
+  for j = 0, length do -- inclusive
     statements:insert(rquote var [boys[j]] end)
   end
   statements:insert(rquote
@@ -85,17 +75,17 @@ end
 function generateStatementsComputeRTable(R, length, t, alpha, lambda, a, b, c, r_gamma_table)
   local statements = generateStatementsComputeBoys(R[0][0][0], length, t, r_gamma_table)
 
-  for j = 0, length-1 do -- inclusive
+  for j = 0, length do -- inclusive
     statements:insert(rquote
       [R[0][0][0][j]] *= lambda
       lambda *= -2.0 * alpha;
     end)
   end
 
-  for N = 0, length-1 do -- inclusive
-    for L = 0, length-1-N do -- inclusive
-      for M = 0, length-1-N-L do -- inclusive
-        for j = 0, length-1-N-L-M do -- inclusive
+  for N = 0, length do -- inclusive
+    for L = 0, length-N do -- inclusive
+      for M = 0, length-N-L do -- inclusive
+        for j = 0, length-N-L-M do -- inclusive
           if N == 0 and L == 0 and M == 0 then
             -- Do nothing. R000j has already been computed.
           elseif N == 0 and L == 0 and M == 1 then

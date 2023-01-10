@@ -5,7 +5,7 @@ require "helper"
 require "parse_files"
 require "mcmurchie.populate_gamma_table"
 require "mcmurchie.kgrad.populate_EGP_map"
---require "kgrad" -- TODO: uncomment when kgrad.rg file is complete
+require "kgrad" -- TODO: uncomment when kgrad.rg file is complete
 
 local assert = regentlib.assert
 local c = regentlib.c
@@ -92,7 +92,7 @@ task toplevel()
 
   c.printf("******************************************\n")
   c.printf("*    Two-Electron Repulsion Integrals    *\n")
-  c.printf("*                 KFock                  *\n")
+  c.printf("*                 KGrad                  *\n")
   c.printf("* Parallelism: %25u *\n", config.parallelism)
   c.printf("******************************************\n")
 
@@ -105,11 +105,11 @@ task toplevel()
   var threshold = parameters.thredp
   var parallelism = config.parallelism;
   var largest_momentum = [getCompiledMaxMomentum()]
---  ;[kgrad(r_bras_list, r_braEGP_list, 
---          r_kets_list, r_ketprevals_list, r_ketlabels_list, 
---          r_denik_list, r_denjl_list, r_output_list,
---          r_braEGPmap_list, r_gamma_table, 
---          threshold, parallelism, largest_momentum)]
+  ;[kgrad(r_bras_list, r_braEGP_list, 
+          r_kets_list, r_ketprevals_list, r_ketlabels_list, 
+          r_denik_list, r_denjl_list, r_output_list,
+          r_braEGPmap_list, r_gamma_table, 
+          threshold, parallelism, largest_momentum)]
   ---------------------
   __fence(__execution, __block) -- Make sure we only time the computation
   var ts_stop = c.legion_get_current_time_in_micros()
