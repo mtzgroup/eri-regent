@@ -72,28 +72,34 @@ function generateTaskMcMurchieKGradIntegral(L1,L2,L3,L4,k_idx)
         end
         
         if L1 <= L3 then
-          denik = r_denik[{bra.jshell_index,ket.jshell_index}]
+          denik = r_denik[{bra.ishell_index,ket.ishell_index}]
         else
-          denik = r_denik[{ket.jshell_index,bra.jshell_index}]
+          denik = r_denik[{ket.ishell_index,bra.ishell_index}]
         end
 
-        --if bra.bound * ket.bound <= threshold then break end
+        --if bra.bound * ket.bound > threshold then end
 
         var a = bra.location.x - ket.location.x
         var b = bra.location.y - ket.location.y
         var d = bra.location.z - ket.location.z --change from c for debugging 
 
+        var factor = -1.0
+        if bra.ishell_index == bra.jshell_index then
+          factor = -0.5
+        end
+        var lambda = factor * bra.C * ket.C *rsqrt(bra.eta+ket.eta)
         var alpha = bra.eta * ket.eta * (1.0/(bra.eta+ket.eta))
-        var lambda = bra.C * ket.C *rsqrt(bra.eta+ket.eta)
         var t = alpha * (a*a + b*b + d*d)
-        c.printf("alpha, lambda, t, a, b, c: %lf %lf %lf %lf %lf %lf\n",alpha,lambda,t,a,b,d)
-        c.printf("r_EGPmap[1].sign = %d\n",r_EGPmap[1].sign)
+        --c.printf("alpha, lambda, t, a, b, c: %lf %lf %lf %lf %lf %lf\n",alpha,lambda,t,a,b,d)
+        --c.printf("r_EGPmap[1].sign = %d\n",r_EGPmap[1].sign)
         ;[generateStatementsComputeRTable(R,L1+L2+L3+L4+1,t,alpha,lambda,a,b,d,r_gamma_table)]
-        c.printf("compute R table done\n")
+        --c.printf("compute R table done\n")
         ;[generateKGradKernelStatements(R,L1,L2,L3,L4,k_idx,bra,ket,r_bra_EGP,r_ket_prevals,r_EGPmap,bra_idx,ket_idx, rexpr denik.values end, rexpr denjl.values end, rexpr r_output[bra_idx].values end)]
         --c.printf("somehow clear kernel statmenets\n")
         --;[generateKGradKernelStatements(R,L1,L2,L3,L4,k_idx,bra,ket,r_bra_EGP,r_ket_prevals,r_EGPmap,bra_idx,ket_idx, rexpr denik.values end, rexpr denjl.values end, rexpr r_output[{N24, bra_idx, ket.ishell_index}].values end)] 
-        c.printf("somehow clear kernel statements\n")
+        --c.printf("somehow clear kernel statements\n")
+
+
       end
     end
   end

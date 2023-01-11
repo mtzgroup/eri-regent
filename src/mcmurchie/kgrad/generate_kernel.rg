@@ -35,7 +35,7 @@ function generateKGradKernelStatements(R,L1,L2,L3,L4,k_idx,bra,ket,bra_EGP,ket_p
 
   local H12, H34 = tetrahedral_number(L1+L2+1+1), tetrahedral_number(L3+L4+1)
 
-  statements:insert(rquote c.printf("bra_idx, ket.jshell_index: %d %d\n",bra_idx,ket.jshell_index) end)
+  --statements:insert(rquote c.printf("bra_idx, ket.jshell_index: %d %d\n",bra_idx,ket.jshell_index) end)
 
   local patternL1 = generateJFockSpinPatternRestricted(L1)
   local patternL2 = generateJFockSpinPatternRestricted(L2)
@@ -217,7 +217,7 @@ function generateKGradKernelStatements(R,L1,L2,L3,L4,k_idx,bra,ket,bra_EGP,ket_p
                 var [EGP_sign] = EGPmap[bra_count].sign
               end)
 
-              statements:insert(rquote c.printf("EGPmap[%d].stride: %d EGPmap[%d].sign: %d\n",bra_count,[EGP_idx],bra_count,[EGP_sign]) end)
+              --statements:insert(rquote c.printf("EGPmap[%d].stride: %d EGPmap[%d].sign: %d\n",bra_count,[EGP_idx],bra_count,[EGP_sign]) end)
 
               statements:insert(rquote
                 [output][xi*2+cent] += [EGP_sign] * [Larr[Nt][Lt][Mt]] * bra_EGP[{bra_idx,[EGP_idx]}]

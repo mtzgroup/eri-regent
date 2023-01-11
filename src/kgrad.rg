@@ -13,14 +13,15 @@ function kgrad(r_bras_list, r_braEGP_list, r_kets_list, r_ketprevals_list, r_ket
     for L2 = L_start, L_end, L_stride do
       for L3 = L_start, L_end, L_stride do
         for L4 = L_start, L_end, L_stride do
-          if L1 < L3 or (L1 == L3 and L2 <= L4) then
+          if L2 >= L1 then
             
+            c.printf("L1234 : %1.f %1.f %1.f %1.f\n", L1, L2, L3, L4)
             local r_bras = r_bras_list[L1][L2]
             local r_kets = r_kets_list[L3][L4]
             local r_bra_EGP = r_braEGP_list[L1][L2] --[1]
             local r_ket_prevals = r_ketprevals_list[L3][L4] 
             local r_denik, r_denjl
-            local r_output = r_output_list[L1][L3]
+            local r_output = r_output_list[L1][L2]
             local r_EGPmap = r_braEGPmap_list[L1][L2]
 
             if L1<=L3 then

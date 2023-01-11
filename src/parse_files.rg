@@ -736,8 +736,11 @@ function verifyKGradOutput(region_vars, delta, epsilon, filename)
             end
             if [bool](c.isnan(result)) or [bool](c.isinf(result))
                 or (absolute_error > delta and relative_error > epsilon) then
-              c.printf("Value differs at L1 = %d, L2 = %d, output[%d].values[%d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
-                       L1, L2, bra_idx, i, result, expected, absolute_error, relative_error)
+              --c.printf("Value differs at L1 = %d, L2 = %d, output[%d].values[%d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
+              --         L1, L2, bra_idx, i, result, expected, absolute_error, relative_error)
+              var factor = result / expected
+              c.printf("Value differs at L1 = %d, L2 = %d, output[%d].values[%d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g, factor = %.12f\n",
+                       L1, L2, bra_idx, i, result, expected, absolute_error, relative_error, factor)
               --assert(false, "Wrong output!")
               all_correct = false
             else
