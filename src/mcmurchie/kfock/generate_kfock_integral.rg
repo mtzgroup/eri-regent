@@ -34,6 +34,10 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
     end
   end
 
+  -- NOTE: TeraChem IntBox diagonal kernels skip lower triangle blocks (the pivot/
+  -- shift stuff), we tried this here but it decreases perf ~5%. So for now, turn off
+  local diag_skip = false
+
 
   --------------------- Helper Metaprogramming Functions ----------------------
 
@@ -148,54 +152,83 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
  
     -- diagonal kernels (e.g. DPSP or SPSP) can skip the lower triangle of blocks
     if (L1 == L3 and L2 == L4) then
-      statements:insert(rquote
 
-        var pivot = r_ket_labels[r_ket_labels.ispace.bounds.hi].ishell 
-        --var shift = pivot & 1 -- bitwise and, 1 if nShells is even, 0 if nShells is odd
-        var shift : int
-        if (int(pivot) % 2 == 1) then -- pivot odd
-          shift = 1
-        else -- pivot even
-          shift = 0
-        end
-        blidx -= shift 
+      if (diag_skip) then -- skip lower triangle blocks launch (like TeraChem IntBox)
+        statements:insert(rquote
  
-        -- pivot and shift the lower triangle to upper triangle (x --> x in diagram, 6x6 example)
-        --   |x1|  |  |  |  |  |  |    -- extra (last) column is to make the shift logic work
-        --   |x2|x3|  |  |  |  |  |    -- for cases with even number of columns
-        --   |x4|x5|x6|  |  |  |  |
-        --   ----------------------
-        --   |  |  |  |x6|x5|x4|  |
-        --   |  |  |  |  |x3|x2|  |
-        --   |  |  |  |  |  |x1|  |
-        if blidx < blidy then
-          blidx = pivot - blidx - shift
-          --blidy = pivot - blidy + (shift ~ 1) -- bitwise xor (~)
-          if (int(shift) % 2 == 1) then -- shift odd
-            blidy = pivot - blidy + 0 
-          else -- shift even
-            blidy = pivot - blidy + 1 
+          var pivot = r_ket_labels[r_ket_labels.ispace.bounds.hi].ishell 
+          --var shift = pivot & 1 -- bitwise and, 1 if nShells is even, 0 if nShells is odd
+          var shift : int
+          if (int(pivot) % 2 == 1) then -- pivot odd
+            shift = 1
+          else -- pivot even
+            shift = 0
           end
-        end
-
-        [generateLoopStatements(r_bras, r_kets, r_bra_prevals, r_ket_prevals, r_bra_labels, r_ket_labels, 
-                                r_density, r_gamma_table, accumulator,
-                                thidx, thidy, blidx, blidy, BSIZEX, BSIZEY,
-                                threshold, kguard)]
-        if blidx == blidy then
-          for i = 0, NL1 do -- exclusive
-            for k = 0, NL3 do -- exclusive
-              if i == k then -- diag. elements of diag. kernels scale output by 1/2
-                accumulator[i*NL3+k] = accumulator[i*NL3+k] * 0.5
-              elseif k < i then -- lower triangle elements of diag. kernels are 0
-                accumulator[i*NL3+k] = 0.0
+          blidx -= shift 
+  
+          -- pivot and shift the lower triangle to upper triangle (x --> x in diagram, 6x6 example)
+          --   |x1|  |  |  |  |  |  |    -- extra (last) column is to make the shift logic work
+          --   |x2|x3|  |  |  |  |  |    -- for cases with even number of columns
+          --   |x4|x5|x6|  |  |  |  |
+          --   ----------------------
+          --   |  |  |  |x6|x5|x4|  |
+          --   |  |  |  |  |x3|x2|  |
+          --   |  |  |  |  |  |x1|  |
+          if blidx < blidy then
+            blidx = pivot - blidx - shift
+            --blidy = pivot - blidy + (shift ~ 1) -- bitwise xor (~)
+            if (int(shift) % 2 == 1) then -- shift odd
+              blidy = pivot - blidy + 0 
+            else -- shift even
+              blidy = pivot - blidy + 1 
+            end
+          end
+ 
+          [generateLoopStatements(r_bras, r_kets, r_bra_prevals, r_ket_prevals, r_bra_labels, r_ket_labels, 
+                                  r_density, r_gamma_table, accumulator,
+                                  thidx, thidy, blidx, blidy, BSIZEX, BSIZEY,
+                                  threshold, kguard)]
+          if blidx == blidy then
+            for i = 0, NL1 do -- exclusive
+              for k = 0, NL3 do -- exclusive
+                if i == k then -- diag. elements of diag. kernels scale output by 1/2
+                  accumulator[i*NL3+k] = accumulator[i*NL3+k] * 0.5
+                elseif k < i then -- lower triangle elements of diag. kernels are 0
+                  accumulator[i*NL3+k] = 0.0
+                end
               end
             end
           end
-        end
-        var N24 = L2 + L4 * (largest_momentum + 1)
-        r_output[{N24, blidy, blidx}].values += accumulator
-      end)
+          var N24 = L2 + L4 * (largest_momentum + 1)
+          r_output[{N24, blidy, blidx}].values += accumulator
+        end)
+
+      else -- no diag_skip for blocks
+        statements:insert(rquote
+          var continue = true
+          if blidx < blidy then continue = false end -- only compute upper triangle
+          if continue then
+            [generateLoopStatements(r_bras, r_kets, r_bra_prevals, r_ket_prevals, r_bra_labels, r_ket_labels, 
+                                    r_density, r_gamma_table, accumulator,
+                                    thidx, thidy, blidx, blidy, BSIZEX, BSIZEY,
+                                    threshold, kguard)]
+            if blidx == blidy then
+              for i = 0, NL1 do -- exclusive
+                for k = 0, NL3 do -- exclusive
+                  if i == k then -- diag. elements of diag. kernels scale output by 1/2
+                    accumulator[i*NL3+k] = accumulator[i*NL3+k] * 0.5
+                  elseif k < i then -- lower triangle elements of diag. kernels are 0
+                    accumulator[i*NL3+k] = 0.0
+                  end
+                end
+              end
+            end
+            var N24 = L2 + L4 * (largest_momentum + 1)
+            r_output[{N24, blidy, blidx}].values += accumulator
+          end -- end upper triangle block check for diag. kernels
+        end)
+
+      end -- end if diag_skip
 
     -- off-diagonal kernels do not need 'continue' control flow
     else 

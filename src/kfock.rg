@@ -19,6 +19,10 @@ function kfock(r_pairs_list, r_prevals_list, r_labels_list, r_density_list, r_ou
     L_stride = 1
   end
 
+  -- NOTE: TeraChem IntBox diagonal kernels skip lower triangle blocks, we tried
+  -- this here but it decreases perf ~5%. So for now, turn off
+  local diag_skip = false
+
   for L1 = L_start, L_end, L_stride do -- inclusive
     for L2 = L_start, L_end, L_stride do -- inclusive
       for L3 = L_start, L_end, L_stride do -- inclusive
@@ -78,7 +82,7 @@ function kfock(r_pairs_list, r_prevals_list, r_labels_list, r_density_list, r_ou
                   var BSIZEY = [bsizey] -- size of GPU thread block in y dim (bra)
                   var gsizex : int
                   var gsizey : int
-                  if ( L1 == L3 and L2 == L4) then -- diagonal kernel
+                  if ( L1 == L3 and L2 == L4 and diag_skip) then -- diagonal kernel
                     var IKshells = r_bra_labels[r_bra_labels.ispace.bounds.hi].ishell + 1
                     --gsizex = int(IKshells) | 1 -- bitwise or (adds 1 if even)
                     if (int(IKshells) % 2 == 1) then
