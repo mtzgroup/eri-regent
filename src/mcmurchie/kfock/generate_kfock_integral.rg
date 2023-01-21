@@ -259,7 +259,8 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
                       r_density        : region(ispace(int2d), getKFockDensity(L2, L4)),
                       r_output         : region(ispace(int3d), getKFockOutput(L1, L3)),
                       r_gamma_table    : region(ispace(int2d), double[5]),
-                      gpuparam         : ispace(int4d),
+                      --gpuparam         : ispace(int4d),
+                      gpuparam         : region(ispace(int4d), int),
                       threshold        : float, threshold2 : float, kguard : float, 
                       largest_momentum : int, BSIZEX : int, BSIZEY : int)
   where
@@ -268,7 +269,8 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
   do
     -- this loop mimics CUDA threading, looping over iShell blocks (one GPU thread block per iShell block)
     -- then looping over threads
-    for thread in gpuparam do
+    --for thread in gpuparam do
+    for thread in gpuparam.ispace do
       var thidx = thread.x -- threads in block, 0-7
       var thidy = thread.y -- threads in block, 0-7
       var blidx = thread.z -- ket shell index, size is number of iShells for ket

@@ -202,7 +202,7 @@ public:
    * Launch the kfock regent tasks and wait for them to finish.
    */
   void launch_kfock_task(TeraChemKDataList &kdata_list, float threshold,
-                         int parallelism);
+                         float kguard, int parallelism);
 
 private:
   Legion::Context ctx;

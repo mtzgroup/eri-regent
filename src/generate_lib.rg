@@ -99,6 +99,7 @@ end
 -- r_gamma_table     - A region holding a lookup table needed by the kernels
 -- threshold         - A threshold to determine if a KFock pair needs to
 --                     contribute to output
+-- kguard            - A density-based threshold
 -- parallelism       - How many ways should divide the work of each kernel
 -- max_momentum      - A sanity check to make sure eri-regent was compiled with
 --                     a large enough momentum
@@ -338,7 +339,7 @@ do
       [3]={[3]=r_output33, [4]=r_output34},
       [4]={[4]=r_output44}
     },
-    r_gamma_table, threshold,
+    r_gamma_table, threshold, kguard,
     {[0]=parallelism0, [1]=parallelism1,
      [2]=parallelism2, [3]=parallelism3,
      [4]=parallelism4, [5]=parallelism5,
