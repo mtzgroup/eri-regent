@@ -79,7 +79,6 @@ function getKFockLabel(L1, L2)
     local fspace KFockLabel {
       ishell         : int1d;  -- Which iShell this label belongs to
       start_index    : int1d;   
-      end_index      : int1d;
     }
     KFockLabelCache[index] = KFockLabel
   end

@@ -70,16 +70,10 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
       -- determine bra/ket ranges within iShell block from label regions
       var ket_start_index = r_ket_labels[blidx].start_index
       var bra_start_index = r_bra_labels[blidy].start_index
-
-      var sizex = r_ket_labels[blidx].end_index - ket_start_index 
-      var sizey = r_bra_labels[blidy].end_index - bra_start_index 
  
       var g_thidy = bra_start_index + thidy
       var s_thidx = ket_start_index + thidx
       var g_thidx = s_thidx
- 
-      var stopx = ket_start_index + sizex 
-      var stopy = bra_start_index + sizey 
  
       repeat
         g_thidx = s_thidx
@@ -292,6 +286,62 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
 
   kfock_integral:set_name("KFockMcMurchie"..L_string)
   _kfock_integral_cache[L_string] = kfock_integral
+  local primary_variant = kfock_integral:get_cuda_variant()
+
+  primary_variant:add_layout_constraint(
+    regentlib.layout.ordering_constraint(terralib.newlist {
+    regentlib.layout.field_constraint(
+		 "r_bras",
+                  terralib.newlist {
+                  regentlib.field_path("location", "x"),
+                  regentlib.field_path("location", "y"),
+        }
+      ),
+      regentlib.layout.dimx,
+       })
+     )
+
+  primary_variant:add_layout_constraint(
+    regentlib.layout.ordering_constraint(terralib.newlist {
+    regentlib.layout.field_constraint(
+		 "r_bras",
+                  terralib.newlist {
+                  regentlib.field_path("location", "z"),
+                  regentlib.field_path("eta"),
+
+        }
+      ),
+      regentlib.layout.dimx,
+       })
+     )
+
+     primary_variant:add_layout_constraint(
+        regentlib.layout.ordering_constraint(terralib.newlist {
+        regentlib.layout.field_constraint(
+		 "r_kets",
+                  terralib.newlist {
+                  regentlib.field_path("location", "x"),
+                  regentlib.field_path("location", "y"),
+        }
+      ),
+      regentlib.layout.dimx,
+       })
+     )
+
+    primary_variant:add_layout_constraint(
+       regentlib.layout.ordering_constraint(terralib.newlist {
+       regentlib.layout.field_constraint(
+		 "r_kets",
+                  terralib.newlist {
+                  regentlib.field_path("location", "z"),
+                  regentlib.field_path("eta"),
+
+        }
+      ),
+      regentlib.layout.dimx,
+       })
+     )
+
   return kfock_integral
 
 end -- end function generateTaskMcMurchieKFockIntegral
