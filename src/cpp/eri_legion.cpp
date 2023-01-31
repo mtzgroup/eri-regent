@@ -216,7 +216,31 @@ EriLegion::register_kfock_mcmurchie_tasks(LayoutConstraintID aos_layout_1d,
 
 #undef REGISTER_KFOCK_MC_TASK_VARIANT
 }
-static int init_iter=0;
+
+//----------------------------------------------------------
+// initialize all field spaces
+//----------------------------------------------------------
+void
+EriLegion::init_field_spaces()
+{
+  log_eri_legion.debug() << "Enter create_kfock_field_spaces";
+  create_kfock_field_spaces_klabel_koutput();
+  log_eri_legion.debug() << "Exit create_kfock_field_spaces";
+
+  // cache field ids
+  log_eri_legion.debug() << "Enter fill_kbra_kket_klabel_field_ids";
+  fill_kbra_kket_klabel_field_ids();
+  log_eri_legion.debug() << "Exit fill_kbra_kket_klabel_field_ids";
+
+  log_eri_legion.debug() << "Enter create_kbra_kket_klabel_field_ids";
+  create_kfock_kgrad_field_spaces_kbra_kket_kdensity(false /* iskgrad */);
+  log_eri_legion.debug() << "Exit create_kbra_kket_klabel_field_ids";
+
+  log_eri_legion.debug() << "Enter init_kgrad_field_spaces";
+  init_kgrad_field_spaces();
+  log_eri_legion.debug() << "Exit init_kgrad_field_spaces";
+}
+
 //----------------------------------------------------------
 // Initialize all the index spaces, field spaces, partitions
 //----------------------------------------------------------
@@ -234,7 +258,6 @@ EriLegion::init_kfock(IBoundSorter *pairs, const Basis *basis,
   fvec = _fvec;
   fock = _fock;
   num_clrs = parallelism;
-  pthread_mutex_init(&m, NULL);
   log_eri_legion.debug() << "R12 Opts: " << " thresp = "
 			 <<  param.thresp 
 			 << " thredp = " << param.thredp 
@@ -242,23 +265,56 @@ EriLegion::init_kfock(IBoundSorter *pairs, const Basis *basis,
 			 << " scalfr = " << param.scalfr
 			 << " omega = "  << param.omega
 			 << " mode = " << mode;
-  if (init_iter == 0) {
-    // create the gamma table 
-    // and execute the task to initialize the values
-    log_eri_legion.debug() << "Entered init_gamma_table_aos";
-    init_gamma_table_aos();
-    // create the field spaces: klabel, koutput
-    // These are reused across iterations
-    log_eri_legion.debug() << "Entered create_kfock_field_spaces";
-    create_kfock_field_spaces_klabel_koutput();
-    log_eri_legion.debug() << "Exit create_kfock_field_spaces";
-    log_eri_legion.debug() << " entered fill_kbra_kket_klabel_field_ids";
-    // cache field ids
-    fill_kbra_kket_klabel_field_ids();
-    log_eri_legion.debug() << " exit fill_kbra_kket_klabel_field_ids";
-  }
   init_kfock_tasks();
 }
+
+//----------------------------------------------------------
+// Initialize State
+//----------------------------------------------------------
+void
+EriLegion::initialize()
+{
+  init_iter = 0;
+  for (int i=0; i<(MAX_MOMENTUM+1)*(MAX_MOMENTUM+1); ++i)
+    {
+      kfock_lr_label_size[i] = 0;
+      kgrad_lr_label_size[i] = 0;
+      density_pmax[i] = 0.0;
+    }
+
+  src = NULL;   // TeraChem input bounds sorted results
+  basis = NULL; // TeraChem input basis shells
+  P = NULL;     // TeraChem input
+  thre = 0.0;   // TeraChem input Threshold
+  mode = 0;     // TeraChem input mode [KFOCK_PLO,PHI,PSYM]
+  fvec = 0;     // TeraChem input vector pool
+  num_clrs=0;   // Number of colors to partition regions
+  kgrad_num_clrs=0;   // Number of colors to partition regions for kgrad
+  fock = 0;     // TeraChem output
+  kgrad_src = NULL; // kgrad kbra src
+  kgrad_P1 = NULL;  // kgrad density P1
+  kgrad_P2 = NULL;; // kgrad density P1
+  kgrad_pxpose = 0; // kgrad pxpose
+  kgrad_pmax = 0.0; // kgrad pmax
+  is_kgrad=false;  // initially kgradient is false
+  init_iter = 0;
+  brathre = 0.0;
+  ketthre = 0.0;
+}
+
+//----------------------------------------------------------
+// Reset for next outer iter
+//----------------------------------------------------------
+void
+EriLegion::reset()
+{
+  initialize();
+  first_time = false;
+  // cleanup all kfock output/label regions/instances
+  fill_kfock_outer_regions();
+  destroy_outer_loop_kfock_regions();
+}
+
 
 //----------------------------------------------------------
 // update all the output values via tasks as soon as
@@ -296,6 +352,7 @@ EriLegion::update_output_all_task_launcher(double* fock)
     kfock_launcher_out.region_requirements[0].tag |= Legion::Mapping::DefaultMapper::PREFER_RDMA_MEMORY; \
     FutureMap f = runtime->execute_index_space(ctx, kfock_launcher_out); \
     f_all.push_back(f);							\
+    runtime->destroy_index_space(ctx, color_is);			\
   }
 
   UPDATE_KOUTPUT(0,0,0,0); // 0
@@ -794,7 +851,7 @@ EriLegion::create_label_logical_regions(int I, int J, int K, int L)
   log_eri_legion.debug() << "index = " << index << " I = " << I  << " J = " << J << " K = " << K << " L = " << L  <<  " label_lr_size = " << lsize << "\n";
   {							
     const Rect<1> rect(0, lsize-1);			
-    kfock_label_is[index] =			
+    kfock_label_is[index] =
       runtime->create_index_space(ctx, rect);
     char name_label[20];
     sprintf(name_label, "kfock_lr_label_%d", index);	
@@ -809,7 +866,7 @@ EriLegion::create_label_logical_regions(int I, int J, int K, int L)
 // Create kfock/kgrad field spaces for kbra/kket/density
 //----------------------------------------------------------
 void
-EriLegion::create_field_spaces_kbra_kket_kdensity(bool is_kgrad)
+EriLegion::create_kfock_kgrad_field_spaces_kbra_kket_kdensity(bool is_kgrad)
 {
 #define INIT_LEGION_KPAIR_FSPACES(L1, L2, L3, L4)			\
   {									\
@@ -825,7 +882,7 @@ EriLegion::create_field_spaces_kbra_kket_kdensity(bool is_kgrad)
       falloc.allocate_field(sizeof(double), LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, Y)); \
     }									\
     kpair_fspaces_2B[index] = runtime->create_field_space(ctx);		\
-    sprintf(fspace_name, "kpair_2B_ZC%d%d%d%d", L1,L2,L3,L4);		\
+    sprintf(fspace_name, "kpair_2B_ZC_%d%d%d%d", L1,L2,L3,L4);		\
     runtime->attach_name(kpair_fspaces_2B[index], fspace_name);		\
     {									\
       FieldAllocator falloc =						\
@@ -834,7 +891,7 @@ EriLegion::create_field_spaces_kbra_kket_kdensity(bool is_kgrad)
       falloc.allocate_field(sizeof(double), LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, C)); \
     }									\
     kpair_fspaces_4A[index] = runtime->create_field_space(ctx);		\
-    sprintf(fspace_name, "kpair_4A_ETA_BD%d%d%d%d", L1,L2,L3,L4);	\
+    sprintf(fspace_name, "kpair_4A_ETA_BD_%d%d%d%d", L1,L2,L3,L4);	\
     runtime->attach_name(kpair_fspaces_4A[index], fspace_name);		\
     {									\
       FieldAllocator falloc =						\
@@ -852,7 +909,7 @@ EriLegion::create_field_spaces_kbra_kket_kdensity(bool is_kgrad)
       falloc.allocate_field(sizeof(double), LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, JSHELL)); \
     }									\
     kpair_fspaces_CA[index] = runtime->create_field_space(ctx);		\
-    sprintf(fspace_name, "kpair_CA_XY%d%d%d%d", L1,L2,L3,L4);		\
+    sprintf(fspace_name, "kpair_CA_XY_%d%d%d%d", L1,L2,L3,L4);		\
     runtime->attach_name(kpair_fspaces_CA[index], fspace_name);		\
     {									\
       FieldAllocator falloc =						\
@@ -861,7 +918,7 @@ EriLegion::create_field_spaces_kbra_kket_kdensity(bool is_kgrad)
       falloc.allocate_field(sizeof(double), LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, CA_Y)); \
     }									\
     kpair_fspaces_CB[index] = runtime->create_field_space(ctx);		\
-    sprintf(fspace_name, "kpair_CB_XY%d%d%d%d", L1,L2,L3,L4);		\
+    sprintf(fspace_name, "kpair_CB_XY_%d%d%d%d", L1,L2,L3,L4);		\
     runtime->attach_name(kpair_fspaces_CB[index], fspace_name);		\
     {									\
       FieldAllocator falloc =						\
@@ -879,7 +936,7 @@ EriLegion::create_field_spaces_kbra_kket_kdensity(bool is_kgrad)
       falloc.allocate_field(sizeof(double), LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, C2_Y)); \
     }									\
   }
-  if (!is_kgrad) {
+
     INIT_LEGION_KPAIR_FSPACES(0,0,0,0) 
     INIT_LEGION_KPAIR_FSPACES(0,0,0,1) 
     INIT_LEGION_KPAIR_FSPACES(1,1,0,0) // 0 0 1 1 of kket translates to 1 1 0 0 
@@ -888,16 +945,11 @@ EriLegion::create_field_spaces_kbra_kket_kdensity(bool is_kgrad)
     INIT_LEGION_KPAIR_FSPACES(1,0,1,0)
     INIT_LEGION_KPAIR_FSPACES(1,0,1,1) 
     INIT_LEGION_KPAIR_FSPACES(1,1,1,1)
-      }
-  else
-    {
-      // KKet not partitioned K,L
-      INIT_LEGION_KPAIR_FSPACES(0,0,0,0)
-      INIT_LEGION_KPAIR_FSPACES(0,1,0,0)
-      INIT_LEGION_KPAIR_FSPACES(1,0,0,0)
-      INIT_LEGION_KPAIR_FSPACES(1,1,0,0)
-      // KBra will be partitioned and needs additional fields
-    }
+    // KGRAD
+    INIT_LEGION_KPAIR_FSPACES(0,1,0,0)
+    INIT_LEGION_KPAIR_FSPACES(1,0,0,0)
+    INIT_LEGION_KPAIR_FSPACES(1,1,0,0)
+
 #undef INIT_LEGION_KPAIR_FSPACES
 
 #define INIT_KDENSITY_FSPACES(L2, L4)					\
@@ -921,8 +973,8 @@ EriLegion::create_field_spaces_kbra_kket_kdensity(bool is_kgrad)
   INIT_KDENSITY_FSPACES(0, 0);
   INIT_KDENSITY_FSPACES(0, 1);
   INIT_KDENSITY_FSPACES(1, 1);
-  if (is_kgrad)
-    INIT_KDENSITY_FSPACES(1, 0);
+  INIT_KDENSITY_FSPACES(1, 0);
+
 #undef INIT_KDENSITY_FSPACES
 
   {								
@@ -947,7 +999,7 @@ EriLegion::create_field_spaces_kbra_kket_kdensity(bool is_kgrad)
     falloc.allocate_field(sizeof(double),				
 			  LEGION_KDENSITY_FIELD_ID(0,1, PSP2));	
   }
-  if (is_kgrad) {
+
     {								
       kdensity_fspace_PSP1_10 = runtime->create_field_space(ctx);
       char fspace_name[30];
@@ -970,7 +1022,6 @@ EriLegion::create_field_spaces_kbra_kket_kdensity(bool is_kgrad)
       falloc.allocate_field(sizeof(double),				
 			    LEGION_KDENSITY_FIELD_ID(1,0, PSP2));	
     }
-  }
   {								
     kdensity_fspace_1A= runtime->create_field_space(ctx);
     char fspace_name[30];
@@ -1045,7 +1096,6 @@ EriLegion::create_field_spaces_kbra_kket_kdensity(bool is_kgrad)
 void
 EriLegion::destroy_regions()
 {
-  destroy_field_spaces_kbra_kket_kdensity();
   // density
   destroy_density_logical_regions(0,0);
   destroy_density_logical_regions(0,1);
@@ -1100,7 +1150,9 @@ EriLegion::destroy_koutput_logical_regions(int I, int J, int K,  int L)
 {
   const int index = BINARY_TO_DECIMAL(I, J, K, L);
   log_eri_legion.debug() << "destroy_koutput_logical_regions index = " << index << " output[" << I <<  "," << J << "," << K << "," << L << "]";
+  runtime->destroy_index_space(ctx,kfock_lr_output[index].get_index_space());
   runtime->destroy_logical_region(ctx, kfock_lr_output[index]);
+
   log_eri_legion.debug() << "exit destroy_koutput_logical regions \n";
 }
 
@@ -1333,6 +1385,74 @@ EriLegion::create_kbra_kket_logical_regions(int I, int J,
   }
 }
 
+//-----------------------------------------------------------------
+// Fill KGRAD kbra regions
+//-----------------------------------------------------------------
+void
+EriLegion::fill_kgrad_kbra_regions()
+{
+#define FILL_KGRAD_KBRA(L1, L2, L3, L4)					\
+  {									\
+    const int index = BINARY_TO_DECIMAL(L1,L2,L3,L4);			\
+    runtime->fill_field<double>(ctx, kgrad_lr_2A[index], kgrad_lr_2A[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,X),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_2A[index], kgrad_lr_2A[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,Y),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_2B[index], kgrad_lr_2B[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,Z),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_2B[index], kgrad_lr_2B[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,C),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_4A[index], kgrad_lr_4A[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,ETA),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_4A[index], kgrad_lr_4A[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,BOUND),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_4B[index], kgrad_lr_4B[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,JSHELL),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_4B[index], kgrad_lr_4B[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,ISHELL),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_Coeff[index], kgrad_lr_Coeff[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,TAA),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_Coeff[index], kgrad_lr_Coeff[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,TAB),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_Coeff[index], kgrad_lr_Coeff[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,RTAP),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_Coeff[index], kgrad_lr_Coeff[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,RXT),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_Coeff[index], kgrad_lr_Coeff[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,RYT),0.0); \
+    runtime->fill_field<double>(ctx, kgrad_lr_Coeff[index], kgrad_lr_Coeff[index],LEGION_KPAIR_FIELD_ID(L1,L2,L3,L4,RZT),0.0); \
+}									\
+
+    FILL_KGRAD_KBRA(0,0,1,1)
+    FILL_KGRAD_KBRA(0,1,1,1)
+    FILL_KGRAD_KBRA(1,1,1,1)
+
+}
+
+void
+EriLegion::fill_kbra_kket_regions(int L1, int L2, int L3, int L4)
+{
+    const int index = get_kbra_region_index(L1,L2,L3,L4);
+    const int kket_index = get_kket_region_index(L1,L2,L3,L4);
+    runtime->fill_field<double>(ctx, kfock_lr_2A[index], kfock_lr_2A[index], kbra_kket_field_ids[index][0],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_2A[index], kfock_lr_2A[index], kbra_kket_field_ids[index][1],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_2B[index], kfock_lr_2B[index], kbra_kket_field_ids[index][2],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_2B[index], kfock_lr_2B[index], kbra_kket_field_ids[index][3],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_4A[index], kfock_lr_4A[index], kbra_kket_field_ids[index][4],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_4A[index], kfock_lr_4A[index], kbra_kket_field_ids[index][5],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_4B[index], kfock_lr_4B[index], kbra_kket_field_ids[index][6],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_4B[index], kfock_lr_4B[index], kbra_kket_field_ids[index][7],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_CA[index], kfock_lr_CA[index], kbra_kket_field_ids[index][8],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_CA[index], kfock_lr_CA[index], kbra_kket_field_ids[index][9],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_CB[index], kfock_lr_CB[index], kbra_kket_field_ids[index][10],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_CB[index], kfock_lr_CB[index], kbra_kket_field_ids[index][11],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_C2[index], kfock_lr_C2[index], kbra_kket_field_ids[index][12],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_C2[index], kfock_lr_C2[index], kbra_kket_field_ids[index][13],0.0);
+
+    runtime->fill_field<double>(ctx, kfock_lr_2A[kket_index], kfock_lr_2A[kket_index], kbra_kket_field_ids[kket_index][0],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_2A[kket_index], kfock_lr_2A[kket_index], kbra_kket_field_ids[kket_index][1],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_2B[kket_index], kfock_lr_2B[kket_index], kbra_kket_field_ids[kket_index][2],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_2B[kket_index], kfock_lr_2B[kket_index], kbra_kket_field_ids[kket_index][3],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_4A[kket_index], kfock_lr_4A[kket_index], kbra_kket_field_ids[kket_index][4],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_4A[kket_index], kfock_lr_4A[kket_index], kbra_kket_field_ids[kket_index][5],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_4B[kket_index], kfock_lr_4B[kket_index], kbra_kket_field_ids[kket_index][6],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_4B[kket_index], kfock_lr_4B[kket_index], kbra_kket_field_ids[kket_index][7],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_CA[kket_index], kfock_lr_CA[kket_index], kbra_kket_field_ids[kket_index][8],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_CA[kket_index], kfock_lr_CA[kket_index], kbra_kket_field_ids[kket_index][9],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_CB[kket_index], kfock_lr_CB[kket_index], kbra_kket_field_ids[kket_index][10],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_CB[kket_index], kfock_lr_CB[kket_index], kbra_kket_field_ids[kket_index][11],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_C2[kket_index], kfock_lr_C2[kket_index], kbra_kket_field_ids[kket_index][12],0.0);
+    runtime->fill_field<double>(ctx, kfock_lr_C2[kket_index], kfock_lr_C2[kket_index], kbra_kket_field_ids[kket_index][13],0.0);
+}
+
+
 
 //------------------------------------------------------------
 // fill all kfock regions that are no longer needed at the
@@ -1340,7 +1460,7 @@ EriLegion::create_kbra_kket_logical_regions(int I, int J,
 // invalidated
 //------------------------------------------------------------
 void
-EriLegion::fill_all_regions()
+EriLegion::fill_kfock_inner_regions()
 {
 #define FILL_KALL(L1, L2, L3, L4)					\
   {									\
@@ -1350,34 +1470,7 @@ EriLegion::fill_all_regions()
     const int index = get_kbra_region_index(L1,L2,L3,L4);		\
     const int kket_index = get_kket_region_index(L1,L2,L3,L4);		\
     const int dindex = INDEX_SQUARE(dI, dJ);				\
-    runtime->fill_field<double>(ctx, kfock_lr_2A[index], kfock_lr_2A[index], kbra_kket_field_ids[index][0],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_2A[index], kfock_lr_2A[index], kbra_kket_field_ids[index][1],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_2B[index], kfock_lr_2B[index], kbra_kket_field_ids[index][2],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_2B[index], kfock_lr_2B[index], kbra_kket_field_ids[index][3],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_4A[index], kfock_lr_4A[index], kbra_kket_field_ids[index][4],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_4A[index], kfock_lr_4A[index], kbra_kket_field_ids[index][5],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_4B[index], kfock_lr_4B[index], kbra_kket_field_ids[index][6],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_4B[index], kfock_lr_4B[index], kbra_kket_field_ids[index][7],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_CA[index], kfock_lr_CA[index], kbra_kket_field_ids[index][8],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_CA[index], kfock_lr_CA[index], kbra_kket_field_ids[index][9],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_CB[index], kfock_lr_CB[index], kbra_kket_field_ids[index][10],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_CB[index], kfock_lr_CB[index], kbra_kket_field_ids[index][11],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_C2[index], kfock_lr_C2[index], kbra_kket_field_ids[index][12],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_C2[index], kfock_lr_C2[index], kbra_kket_field_ids[index][13],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_2A[kket_index], kfock_lr_2A[kket_index], kbra_kket_field_ids[kket_index][0],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_2A[kket_index], kfock_lr_2A[kket_index], kbra_kket_field_ids[kket_index][1],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_2B[kket_index], kfock_lr_2B[kket_index], kbra_kket_field_ids[kket_index][2],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_2B[kket_index], kfock_lr_2B[kket_index], kbra_kket_field_ids[kket_index][3],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_4A[kket_index], kfock_lr_4A[kket_index], kbra_kket_field_ids[kket_index][4],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_4A[kket_index], kfock_lr_4A[kket_index], kbra_kket_field_ids[kket_index][5],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_4B[kket_index], kfock_lr_4B[kket_index], kbra_kket_field_ids[kket_index][6],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_4B[kket_index], kfock_lr_4B[kket_index], kbra_kket_field_ids[kket_index][7],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_CA[kket_index], kfock_lr_CA[kket_index], kbra_kket_field_ids[kket_index][8],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_CA[kket_index], kfock_lr_CA[kket_index], kbra_kket_field_ids[kket_index][9],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_CB[kket_index], kfock_lr_CB[kket_index], kbra_kket_field_ids[kket_index][10],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_CB[kket_index], kfock_lr_CB[kket_index], kbra_kket_field_ids[kket_index][11],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_C2[kket_index], kfock_lr_C2[kket_index], kbra_kket_field_ids[kket_index][12],0.0); \
-    runtime->fill_field<double>(ctx, kfock_lr_C2[kket_index], kfock_lr_C2[kket_index], kbra_kket_field_ids[kket_index][13],0.0); \
+    fill_kbra_kket_regions(L1,L2,L3,L4);				\
     if ((L2==0) && (L4==0))						\
       runtime->fill_field<double>(ctx, kfock_lr_density[dindex], kfock_lr_density[dindex], LEGION_KDENSITY_FIELD_ID(0,0,P),0.0); \
     else if ((L2==1) && (L4==1))					\
@@ -1424,7 +1517,180 @@ EriLegion::fill_all_regions()
     FILL_KALL(0,1,1,0)
     // 7
     FILL_KALL(0,1,1,1)
+
 #undef FILL_KALL
+
+}
+
+//------------------------------------------------------------
+// fill kfock label/density regions that are no longer needed
+// at the end of each outer iteration. This results in
+// instances being invalidated
+//------------------------------------------------------------
+void
+EriLegion::fill_kfock_outer_regions()
+{
+#define FILL_KOUTPUT(L1, L2, L3, L4)					\
+  {									\
+  const int index = BINARY_TO_DECIMAL(L1, L2, L3, L4);			\
+  runtime->fill_field<double>(ctx, kfock_lr_output[index], kfock_lr_output[index], LEGION_KOUTPUT_FIELD_ID(L1,L2, L3, L4, VALUES),0.0); \
+  }									\
+
+    // 0
+    FILL_KOUTPUT(0,0,0,0)
+    // 15
+    FILL_KOUTPUT(1,1,1,1)
+    // 11
+    FILL_KOUTPUT(1,0,1,1)
+    // 10
+    FILL_KOUTPUT(1,0,1,0)
+    // 1
+    FILL_KOUTPUT(0,0,0,1)
+    // 2
+    FILL_KOUTPUT(0,0,1,0)
+    // 3
+    FILL_KOUTPUT(0,0,1,1)
+    // 5
+    FILL_KOUTPUT(0,1,0,1)
+    // 6
+    FILL_KOUTPUT(0,1,1,0)
+    // 7
+    FILL_KOUTPUT(0,1,1,1)
+#undef FILL_KOUTUT
+
+#define FILL_KLABEL(L1, L2, L3, L4)					\
+      {									\
+	const int index = BINARY_TO_DECIMAL(L1,L2,L3,L4);		\
+	runtime->fill_field<int>(ctx, kfock_lr_label[index], kfock_lr_label[index], LEGION_KLABEL_FIELD_ID(L1,L2,L3,L4,LABEL),0); \
+      }									\
+
+    FILL_KLABEL(0,0,0,0)
+    FILL_KLABEL(0,0,0,1)
+    FILL_KLABEL(1,1,0,0)
+    FILL_KLABEL(0,1,0,1)
+    FILL_KLABEL(0,1,1,0)
+    FILL_KLABEL(1,0,1,0)
+    FILL_KLABEL(1,0,1,1)
+    FILL_KLABEL(1,1,1,1)
+#undef FILL_KLABEL
+
+}
+
+
+//---------------------------------------------------------
+// Fill all kgrad regions
+//---------------------------------------------------------
+void
+EriLegion::fill_kgrad_regions()
+{
+  // label
+#define FILL_KGRAD_LABEL(I,J)						\
+  {									\
+    const int index = INDEX_SQUARE(I,J);				\
+    runtime->fill_field<int>(ctx, kgrad_lr_label[index], kgrad_lr_label[index], LEGION_KGRAD_KLABEL_FIELD_ID(I,J),0); \
+  }									\
+
+  FILL_KGRAD_LABEL(0,0)
+  FILL_KGRAD_LABEL(0,1)
+  FILL_KGRAD_LABEL(1,0)
+  FILL_KGRAD_LABEL(1,1)
+
+#undef FILL_KGRAD_LABEL
+
+  // density
+#define FILL_KGRAD_DENSITY(L1,L2,IK)					\
+    {									\
+      const int index = IK==0 ? INDEX_SQUARE(L1,L2): INDEX_SQUARE(L1,L2) + INDEX_SQUARE(1,1)+1; \
+      const int ps_index = IK==0 ? 0: 1;				\
+      if ((L1==0) && (L2==0))						\
+	runtime->fill_field<double>(ctx, kfock_lr_density[index], kfock_lr_density[index], LEGION_KDENSITY_FIELD_ID(0,0,P),0.0); \
+    if ((L1==0) && (L2==1))						\
+      {									\
+	runtime->fill_field<float>(ctx, kfock_lr_density[index], kfock_lr_density[index], LEGION_KDENSITY_FIELD_ID(0,1,BOUND),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_PSP1[ps_index], kdensity_lr_PSP1[ps_index], LEGION_KDENSITY_FIELD_ID(0,1,PSP1_X),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_PSP1[ps_index], kdensity_lr_PSP1[ps_index], LEGION_KDENSITY_FIELD_ID(0,1,PSP1_Y),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_PSP2[ps_index], kdensity_lr_PSP2[ps_index], LEGION_KDENSITY_FIELD_ID(0,1,PSP2),0.0); \
+      }									\
+    if ((L1==1) && (L2==0))						\
+      {									\
+	runtime->fill_field<float>(ctx, kfock_lr_density[index], kfock_lr_density[index], LEGION_KDENSITY_FIELD_ID(1,0,BOUND),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_PSP1_10[ps_index], kdensity_lr_PSP1_10[ps_index], LEGION_KDENSITY_FIELD_ID(1,0,PSP1_X),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_PSP1_10[ps_index], kdensity_lr_PSP1_10[ps_index], LEGION_KDENSITY_FIELD_ID(1,0,PSP1_Y),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_PSP2_10[ps_index], kdensity_lr_PSP2_10[ps_index], LEGION_KDENSITY_FIELD_ID(1,0,PSP2),0.0); \
+      }									\
+    if ((L1==1) && (L2==1))						\
+      {									\
+	runtime->fill_field<float>(ctx, kfock_lr_density[index], kfock_lr_density[index], LEGION_KDENSITY_FIELD_ID(1,1,BOUND),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_1A[ps_index], kdensity_lr_1A[ps_index], LEGION_KDENSITY_FIELD_ID(1,1,1A_X),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_1A[ps_index], kdensity_lr_1A[ps_index], LEGION_KDENSITY_FIELD_ID(1,1,1A_Y),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_1B[ps_index], kdensity_lr_1B[ps_index], LEGION_KDENSITY_FIELD_ID(1,1,1B),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_2A[ps_index], kdensity_lr_2A[ps_index], LEGION_KDENSITY_FIELD_ID(1,1,2A_X),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_2A[ps_index], kdensity_lr_2A[ps_index], LEGION_KDENSITY_FIELD_ID(1,1,2A_Y),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_2B[ps_index], kdensity_lr_2B[ps_index], LEGION_KDENSITY_FIELD_ID(1,1,2B),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_3A[ps_index], kdensity_lr_3A[ps_index], LEGION_KDENSITY_FIELD_ID(1,1,3A_X),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_3A[ps_index], kdensity_lr_3A[ps_index], LEGION_KDENSITY_FIELD_ID(1,1,3A_Y),0.0); \
+	runtime->fill_field<double>(ctx, kdensity_lr_3B[ps_index], kdensity_lr_3B[ps_index], LEGION_KDENSITY_FIELD_ID(1,1,3B),0.0); \
+      }									\
+    }									\
+
+    FILL_KGRAD_DENSITY(0,0,0)
+    FILL_KGRAD_DENSITY(0,0,1)
+    FILL_KGRAD_DENSITY(0,1,0)
+    FILL_KGRAD_DENSITY(0,1,1)
+    FILL_KGRAD_DENSITY(1,0,0)
+    FILL_KGRAD_DENSITY(1,0,1)
+    FILL_KGRAD_DENSITY(1,1,0)
+    FILL_KGRAD_DENSITY(1,1,1)
+
+
+#define FILL_KGRAD_OUTPUT(L1,L2,L3,L4)					\
+    {									\
+      const int index = BINARY_TO_DECIMAL(L1, L2, L3, L4);		\
+      runtime->fill_field<double>(ctx, kgrad_lr_output[index], kgrad_lr_output[index], LEGION_KGRAD_KOUTPUT_FIELD_ID(L1,L2,L3,L4),0.0); \
+    }									\
+
+  FILL_KGRAD_OUTPUT(0,0,0,0)
+  FILL_KGRAD_OUTPUT(0,0,0,1)
+  FILL_KGRAD_OUTPUT(0,0,1,0)
+  FILL_KGRAD_OUTPUT(0,0,1,1)
+  FILL_KGRAD_OUTPUT(0,1,0,0)
+  FILL_KGRAD_OUTPUT(0,1,0,1)
+  FILL_KGRAD_OUTPUT(0,1,1,0)
+  FILL_KGRAD_OUTPUT(0,1,1,1)
+  FILL_KGRAD_OUTPUT(1,1,0,0)
+  FILL_KGRAD_OUTPUT(1,1,0,1)
+  FILL_KGRAD_OUTPUT(1,1,1,0)
+  FILL_KGRAD_OUTPUT(1,1,1,1)
+
+#undef FILL_KGRAD_OUTPUT
+
+#define FILL_KGRAD_KKET(L1,L2,L3,L4)					\
+ { \
+   const int kket_index = BINARY_TO_DECIMAL(L1,L2,L3,L4);			\
+   runtime->fill_field<double>(ctx, kfock_lr_2A[kket_index], kfock_lr_2A[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, X),0.0); \
+   runtime->fill_field<double>(ctx, kfock_lr_2A[kket_index], kfock_lr_2A[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, Y),0.0); \
+   runtime->fill_field<double>(ctx, kfock_lr_2B[kket_index], kfock_lr_2B[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, Z),0.0); \
+   runtime->fill_field<double>(ctx, kfock_lr_2B[kket_index], kfock_lr_2B[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, C),0.0); \
+   runtime->fill_field<double>(ctx, kfock_lr_4A[kket_index], kfock_lr_4A[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, ETA),0.0); \
+   runtime->fill_field<double>(ctx, kfock_lr_4A[kket_index], kfock_lr_4A[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, BOUND),0.0); \
+   runtime->fill_field<double>(ctx, kfock_lr_4B[kket_index], kfock_lr_4B[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, JSHELL),0.0); \
+   runtime->fill_field<double>(ctx, kfock_lr_4B[kket_index], kfock_lr_4B[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, ISHELL),0.0); \
+   runtime->fill_field<double>(ctx, kfock_lr_CA[kket_index], kfock_lr_CA[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, CA_X),0.0); \
+   runtime->fill_field<double>(ctx, kfock_lr_CA[kket_index], kfock_lr_CA[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, CA_Y),0.0); \
+   runtime->fill_field<double>(ctx, kfock_lr_CB[kket_index], kfock_lr_CB[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, CB_X),0.0);	\
+   runtime->fill_field<double>(ctx, kfock_lr_CB[kket_index], kfock_lr_CB[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, CB_Y),0.0);	\
+   runtime->fill_field<double>(ctx, kfock_lr_C2[kket_index], kfock_lr_C2[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, C2_X),0.0);	\
+   runtime->fill_field<double>(ctx, kfock_lr_C2[kket_index], kfock_lr_C2[kket_index], LEGION_KPAIR_FIELD_ID(L1, L2, L3, L4, C2_Y),0.0);	\
+   }
+
+    FILL_KGRAD_KKET(0,0,0,0)
+    FILL_KGRAD_KKET(0,1,0,0)
+    FILL_KGRAD_KKET(1,0,0,0)
+    FILL_KGRAD_KKET(1,1,0,0)
+
+#undef FILL_KGRAD_KKET
+  fill_kgrad_kbra_regions();
+
 }
 
 //---------------------------------------------------------
@@ -1459,8 +1725,11 @@ EriLegion::populate_koutput_logical_regions_all()
 
 }
 
+//----------------------------------------------------
+// Destroy outer loop kfock label and koutput regions
+//----------------------------------------------------
 void
-EriLegion::destroy()
+EriLegion::destroy_outer_loop_kfock_regions()
 {
   // labels
   destroy_label_logical_regions(0,0,0,0);
@@ -1483,7 +1752,14 @@ EriLegion::destroy()
   destroy_koutput_logical_regions(1,0,1,0); // 10
   destroy_koutput_logical_regions(1,0,1,1); // 11
   destroy_koutput_logical_regions(1,1,1,1); // 15
+}
 
+//-----------------------------------------------
+// destory all kfock regions
+//-----------------------------------------------
+void
+EriLegion::destroy()
+{
 #define DESTROY_KLABEL_FSPACES(L1, L2, L3, L4)				\
   {									\
     const int index = BINARY_TO_DECIMAL(L1,L2,L3,L4);			\
@@ -2838,7 +3114,7 @@ EriLegion::kfock_kbra_ket_task(const Task* task,
     log_eri_legion.debug() << "kgrad thre  = " << pthres << "\n";
   }
   log_eri_legion.debug() << "pthres  = " << pthres << "\n";
-  PointInRectIterator<1> pir(rect); // FIXME SEEMA:::
+  PointInRectIterator<1> pir(rect); 
   int npairs = eri->src->count(I, J);
   const Key* pkeys = eri->src->begin(I, J);
   log_eri_legion.debug() << "npairs  = " << npairs << "\n";
@@ -3385,7 +3661,6 @@ EriLegion::register_kfock_init_tasks(LayoutConstraintID aos_layout_1d,
 void
 EriLegion::init_kfock_tasks()
 {
-  create_field_spaces_kbra_kket_kdensity(false);
   // create density regions
   log_eri_legion.debug() << " entered init_kfock_tasks: create_density_regions";
   create_density_logical_regions(0,0);
@@ -3416,7 +3691,7 @@ EriLegion::init_kfock_tasks()
   // create kfock kbra/kket/output regions
   log_eri_legion.debug() << " entered init_kfock_tasks: create_kfock_logical_regions_all";
   create_kfock_kbra_kket_output_logical_regions_all();
-  log_eri_legion.debug() << " exit init_kfock: create_kfock_logical_regions_all";
+  log_eri_legion.debug() << " exit init_kfock_tasks: create_kfock_logical_regions_all";
 
   // launch kbra ket init tasks
   kbra_ket_launcher();
@@ -3430,7 +3705,9 @@ EriLegion::init_kfock_tasks()
   // launch update output tasks
   update_output_all_task_launcher(fock);
 
-  fill_all_regions();
+  // fill kfock regions that need to be garbage collected
+  // after the inner loop
+  fill_kfock_inner_regions();
 
   destroy_regions();
   init_iter++;
@@ -3471,6 +3748,7 @@ EriLegion::init_kgrad(BoundSorter *_brapairs,
   ketthre = 0.5f*threshold/(kgrad_pmax*kgrad_src->max());
   is_kgrad = true;
   init_kgrad_tasks();
+
 }
 
 //----------------------------------------------------------
@@ -3931,7 +4209,17 @@ EriLegion::kbra_kgrad_task(const Task* task,
   assert(endv == (rect.hi[0]));
 }
 
-static int kgrad_init_iter = 0;
+//--------------------------------------------------------------
+// Create Field spaces for KGrad. These can be reused across
+// kgrad invocations
+//--------------------------------------------------------------
+void EriLegion::init_kgrad_field_spaces()
+{
+  create_kgrad_field_spaces_kbra();
+  create_kgrad_field_spaces_koutput();
+  create_kgrad_field_spaces_klabel();
+}
+
 //--------------------------------------------------------------
 // Initialize KGrad Regions/Fields/FieldSpaces and
 // Launch Initialization Tasks for Density, Kbra, Kket
@@ -3941,9 +4229,6 @@ void EriLegion::init_kgrad_tasks()
   bool is_kgrad = true;
 
   log_eri_legion.debug() << "=============INIT KGRAD========= \n";
-
-  // output regions
-  create_kgrad_field_spaces_koutput();
 
   // create partitions for kbra
   kgrad_kbra_colors(0,0);
@@ -3963,12 +4248,6 @@ void EriLegion::init_kgrad_tasks()
   create_kgrad_koutput_logical_regions(1,1,1,0);
   create_kgrad_koutput_logical_regions(1,1,1,1);
 
-  // create label field spaces
-  create_kgrad_field_spaces_klabel();
-  
-  // create kbra field space
-  create_kgrad_field_spaces_kbra();
-
   // create label logical regions
   create_kgrad_logical_regions_klabel(0,0);
   create_kgrad_logical_regions_klabel(0,1);
@@ -3977,9 +4256,6 @@ void EriLegion::init_kgrad_tasks()
   
   // launch label tasks for KKet
   kgrad_klabel_launcher();
-
-  // create kket field spaces + kdensity field spaces
-  create_field_spaces_kbra_kket_kdensity(is_kgrad);
 
   // create all the density logical regions
   create_density_logical_regions(0,0,0,/*is_kgrad*/true);
@@ -4026,11 +4302,13 @@ void EriLegion::init_kgrad_tasks()
   // update final values
   kgrad_koutput_launcher_base();
 
+  // fill all kgrad regions for next outer iteration
+  fill_kgrad_regions();
+
   // destroy kgrad regions
   destroy_kgrad_regions();
 
 }
-
 
 void
 EriLegion::destroy_field_spaces_kgrad()
@@ -4231,8 +4509,6 @@ void
 EriLegion::destroy_kgrad_regions()
 {
   // kbra, kket, kdensity
-  destroy_field_spaces_kgrad();
-
   destroy_kgrad_density_logical_regions(0,0);
   destroy_kgrad_density_logical_regions(0,1);
   destroy_kgrad_density_logical_regions(1,0);
@@ -4911,7 +5187,7 @@ EriLegion::kgrad_kbra_colors(int I, int J)
   IndexSpace is1d = runtime->create_index_space(ctx, is_bounds);
   kgrad_ip[IJ] = runtime->create_pending_partition(ctx, is1d, color_is);
   kgrad_color_is[IJ] = color_is;
-  kgrad_is[IJ] = is1d;;
+  kgrad_is[IJ] = is1d;
   log_eri_legion.debug() << "kgrad_is[" << IJ << "] = " << is1d << " bounds = " << is_bounds <<  " stride = " << stride << " count = " << count << "\n";
 
   // partition the yGrid

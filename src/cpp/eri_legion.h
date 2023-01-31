@@ -208,38 +208,25 @@ class EriLegion {
   // Constructor
   EriLegion(Runtime* _runtime, Context _ctx) {
     ctx = _ctx; runtime = _runtime;
-    for (int i=0; i<(MAX_MOMENTUM+1)*(MAX_MOMENTUM+1); ++i)
-      {
-	kfock_lr_label_size[i] = 0;
-	kgrad_lr_label_size[i] = 0;
-	density_pmax[i] = 0.0;
-      }
-
-    src = NULL;   // TeraChem input bounds sorted results
-    basis = NULL; // TeraChem input basis shells
-    P = NULL;     // TeraChem input
-    thre = 0.0;   // TeraChem input Threshold
-    mode = 0;     // TeraChem input mode [KFOCK_PLO,PHI,PSYM]
-    fvec = 0;     // TeraChem input vector pool
-    num_clrs=0;   // Number of colors to partition regions
-    kgrad_num_clrs=0;   // Number of colors to partition regions for kgrad
-    fock = 0;     // TeraChem output
-    kgrad_src = NULL; // kgrad kbra src
-    kgrad_P1 = NULL;  // kgrad density P1
-    kgrad_P2 = NULL;; // kgrad density P1
-    kgrad_pxpose = 0; // kgrad pxpose
-    kgrad_pmax = 0.0; // kgrad pmax
-    is_kgrad=false;  // initially kgradient is false
+    first_time = true;
+    initialize();
+    // setup field ids, gamma table
+    init_field_spaces();
+    init_gamma_table_aos();
+    // setup mutex
+    pthread_mutex_init(&m, NULL);
   };
 
   ~EriLegion() {
     pthread_mutex_destroy(&m);
-    destroy(); // cleanup all the legion structures
   };
 
   // Disable copying.
   EriLegion(EriLegion const &) = delete;
   EriLegion &operator=(EriLegion const &) = delete;
+
+  // initialize values
+  void initialize();
 
   //-------------------------------------------------------
   // Register Legion tasks defined in eri-legion.
@@ -265,6 +252,10 @@ class EriLegion {
   float thre;
   int mode;
   bool is_kgrad;
+  // init_iter -> inner loop
+  int init_iter;
+  bool first_time;
+
   //------ KGRAD KBra related -------
   const BoundSorter *kgrad_src;
   // KGRAD density
@@ -276,9 +267,6 @@ class EriLegion {
 
   // Mutex used for final reduction into fock output
   pthread_mutex_t m;
-
-  //  FieldSpace gamma_table_fspace;
-
   // Legion Index Space for gamma_table
   IndexSpace gamma_table_ispace;
 
@@ -549,7 +537,7 @@ class EriLegion {
   // Create Kfock Mcmurchie + Kgrad field spaces
   //----------------------------------------------
   void create_kfock_field_spaces_klabel_koutput();
-  void create_field_spaces_kbra_kket_kdensity(bool is_kgrad);
+  void create_kfock_kgrad_field_spaces_kbra_kket_kdensity(bool is_kgrad);
 
   //-----------------------------------------------
   // Create Gamma Table logical regions and field
@@ -977,6 +965,7 @@ class EriLegion {
   // Destroy all the logical regions
   //-----------------------------------------------
   void destroy_regions();
+  void destroy_outer_loop_kfock_regions();
   void destroy_density_logical_regions(int I, int J);
   void destroy_koutput_logical_regions(int I, int J, int K,  int L);
   void destroy_kbra_kket_logical_regions(int I, int J, int K,  int L);
@@ -984,11 +973,21 @@ class EriLegion {
   void destroy_field_spaces_kbra_kket_kdensity();
   void kgrad_output_launcher();  
 
+  // reset all outer loop regions/instances/reset init_iter
+  void reset();
   //-----------------------------------------------
   // Fill all regions at the end of each iteration
   // This results in instances being invalidated
   //-----------------------------------------------
-  void fill_all_regions();
+  void fill_kfock_inner_regions();
+
+  //-----------------------------------------------
+  // Fill all outer regions at the end of each
+  // iteration. This results in instances being
+  // invalidated
+  //-----------------------------------------------
+  void fill_kfock_outer_regions();
+
 
   //---------------------------------------------
   // Task to populate Kdensity[0,0]
@@ -1099,6 +1098,15 @@ class EriLegion {
                   int parallelism);
 
 
+  //--------------------------------------------
+  // Init all Field Spaces
+  //---------------------------------------------
+  void init_field_spaces();
+
+  //--------------------------------------------
+  // Init KGRAD FIELD SPACES
+  //--------------------------------------------
+  void init_kgrad_field_spaces();
   //---------------------------------------------
   // KGRAD field spaces for KBra
   //---------------------------------------------
@@ -1246,6 +1254,12 @@ class EriLegion {
 		       double** ptrs_kdensity,
 		       const int d0, const int d1);
 
+  //-----------------------------------------------
+  // fill kgrad regions
+  //-----------------------------------------------
+  void fill_kgrad_regions();
+  void fill_kgrad_kbra_regions();
+  void fill_kbra_kket_regions(int L1, int L2, int L3, int L4);
   //-----------------------------------------------
   // KGRAD output task
   //-----------------------------------------------
