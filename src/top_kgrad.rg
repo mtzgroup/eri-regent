@@ -43,6 +43,23 @@ for L1 = 0, getCompiledMaxMomentum() do -- inclusive
   end
 end
 
+----------------- FOR DEBUGGING KGRAD --------------------
+-- TODO remove all uses of r_outputlong when finished debugging
+local r_outputlong_list = {}
+for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+  r_outputlong_list[L1]    = {}
+  for L2 = L1, getCompiledMaxMomentum() do -- inclusive
+    r_outputlong_list[L1][L2]    = {}
+    for L3 = 0, getCompiledMaxMomentum() do -- inclusive
+      r_outputlong_list[L1][L2][L3]    = {}
+      for L4 = 0, getCompiledMaxMomentum() do -- inclusive
+        r_outputlong_list[L1][L2][L3][L4] = regentlib.newsymbol("r_outputlong"..L1..L2..L3..L4)
+      end
+    end
+  end
+end
+-----------------------------------------------------------
+
 task toplevel()
   var config : Config
   config:initialize_from_command()
@@ -61,7 +78,8 @@ task toplevel()
   c.sprintf([&int8](kgrad_denik_filename), "%s/kgrad_denik.dat", config.input_directory)
   c.sprintf([&int8](kgrad_denjl_filename), "%s/kgrad_denjl.dat", config.input_directory)
 
-  ;[writeKGradBrasToRegions(rexpr kgrad_bras_filename end, r_bras_list, r_braEGP_list, r_output_list)]
+  --;[writeKGradBrasToRegions(rexpr kgrad_bras_filename end, r_bras_list, r_braEGP_list, r_output_list)]
+  ;[writeKGradBrasToRegions(rexpr kgrad_bras_filename end, r_bras_list, r_braEGP_list, r_output_list, r_outputlong_list)]
   ;[writeKGradKetsToRegions(rexpr kgrad_kets_filename end, r_kets_list, r_ketprevals_list)]
   ;[writeKFockLabelsToRegions(rexpr kgrad_labels_filename end, r_ketlabels_list)] -- kgrad labels are the same as kfock
   ;[writeKGradDensityToRegions(rexpr kgrad_denik_filename end, r_denik_list)]
@@ -105,6 +123,9 @@ task toplevel()
   var threshold = parameters.thredp
   var parallelism = config.parallelism;
   var largest_momentum = [getCompiledMaxMomentum()]
+  -- TODO DEBUGGING: add r_outputlong_list as a parameter to kgrad, write to region 
+  --                 in the kernels in addition to writing to r_output (but with added
+  --                 L3 and L4 indices), then remove all r_outputlong when finished debugging
   ;[kgrad(r_bras_list, r_braEGP_list, 
           r_kets_list, r_ketprevals_list, r_ketlabels_list, 
           r_denik_list, r_denjl_list, r_output_list,
@@ -123,7 +144,8 @@ task toplevel()
   end
   var verify_filename = config.verify_filename
   if verify_filename[0] ~= 0 then
-    [verifyKGradOutput(r_output_list, 1e-7, 1e-8, verify_filename)]
+    --[verifyKGradOutput(r_output_list, 1e-7, 1e-8, verify_filename)] -- TODO: change back
+    [verifyKGradOutputLong(r_outputlong_list, 1e-7, 1e-8, verify_filename)]
   end
   ----------------------------
   c.printf("Exchange gradient operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)

@@ -501,7 +501,8 @@ end
 --------------------------------------------------------------------------------------------------------------
 
 -- Writes data found in `filename` to an array of regions given by `region_vars`
-function writeKGradBrasToRegions(filename, region_vars, preval_vars, r_output_list)
+-- TODO: remove r_outputlong when finished debugging
+function writeKGradBrasToRegions(filename, region_vars, preval_vars, r_output_list, r_outputlong_list)
   local filep = regentlib.newsymbol()
   local statements = terralib.newlist({rquote
     var [filep] = c.fopen(filename, "r")
@@ -513,6 +514,7 @@ function writeKGradBrasToRegions(filename, region_vars, preval_vars, r_output_li
       local r_kpairs = region_vars[L1][L2]
       local bra_EGP  = preval_vars[L1][L2]
       local r_output = r_output_list[L1][L2]
+      local N12 = regentlib.newsymbol(int, "n12") 
       --local N = (getCompiledMaxMomentum() + 1) * (getCompiledMaxMomentum() + 1) + 1
       statements:insert(rquote
         var int_data : int[3]
@@ -520,12 +522,12 @@ function writeKGradBrasToRegions(filename, region_vars, preval_vars, r_output_li
         var num_values = c.fscanf(filep, "L1=%d,L2=%d,N=%d\n",
                                   int_data, int_data+1, int_data+2)
         assert(num_values == 3, "Did not read all values in header!")
-        var N12 = int_data[2]
+        var [N12] = int_data[2]
         assert(L1 == int_data[0] and L2 == int_data[1],
                "Unexpected angular momentum!")
-        var [r_kpairs] = region(ispace(int1d, N12), field_space)
-        var [bra_EGP] = region(ispace(int2d, {N12, [KGradNumBraEGP[L1][L2]]}), double)
-        for i = 0, N12 do -- exclusive
+        var [r_kpairs] = region(ispace(int1d, [N12]), field_space)
+        var [bra_EGP] = region(ispace(int2d, {[N12], [KGradNumBraEGP[L1][L2]]}), double)
+        for i = 0, [N12] do -- exclusive
           num_values = c.fscanf(filep,
             "x=%lf,y=%lf,z=%lf,eta=%lf,c=%lf,bound=%lf,i_shell_idx=%d,j_shell_idx=%d,",
             double_data+0, double_data+1, double_data+2,
@@ -555,8 +557,8 @@ function writeKGradBrasToRegions(filename, region_vars, preval_vars, r_output_li
         end
         -- we can read output size from bras
         --var [r_output] = region(ispace(int2d, {N, N12}), getKGradOutput(L1, L2)) 
-        var [r_output] = region(ispace(int1d, N12), getKGradOutput(L1, L2)) 
-        for bra_idx = 0, N12 do -- exclusive
+        var [r_output] = region(ispace(int1d, [N12]), getKGradOutput(L1, L2)) 
+        for bra_idx = 0, [N12] do -- exclusive
           -- loop over all values N in the first dimension of r_output
           --for N34 = 0, N do -- exclusive
           --  r_output[{N34, bra_idx}].bra_index = bra_idx 
@@ -564,10 +566,29 @@ function writeKGradBrasToRegions(filename, region_vars, preval_vars, r_output_li
           r_output[bra_idx].bra_index = bra_idx 
           r_output[bra_idx].values = zeros 
         end
-
       end)
-    end
-  end
+
+      ------------------ FOR DEBUGGING KGRAD -----------------
+      for L3 = 0, getCompiledMaxMomentum() do -- inclusive
+        for L4 = 0, getCompiledMaxMomentum() do -- inclusive
+          local r_outputlong = r_outputlong_list[L1][L2][L3][L4]
+          statements:insert(rquote
+            var zeros : double[6]
+            for i = 0, 6 do -- exclusive
+              zeros[i] = 0
+            end
+            var [r_outputlong] = region(ispace(int1d, [N12]), getKGradOutputLong(L1, L2, L3, L4)) 
+            for bra_idx = 0, [N12] do -- exclusive
+              r_outputlong[bra_idx].bra_index = bra_idx 
+              r_outputlong[bra_idx].values = zeros 
+            end
+          end)
+        end
+      end
+      --------------------------------------------------------
+
+    end -- end L2
+  end -- end L1
   statements:insert(rquote
     c.fclose(filep)
   end)
@@ -753,6 +774,94 @@ function verifyKGradOutput(region_vars, delta, epsilon, filename)
           assert(c.fscanf(filep, "\n") == 0, "Did not read newline")
         end
       end)
+    end
+  end
+  statements:insert(rquote
+    c.fclose(filep)
+    if all_correct then
+      c.printf("Values are correct! max_absolue_error = %.12g, max_relative_error = %.12g\n",
+               max_absolute_error, max_relative_error)
+    else
+      c.printf("Values are incorrect! max_absolue_error = %.12g, max_relative_error = %.12g\n",
+               max_absolute_error, max_relative_error)
+    end
+  end)
+  return statements
+end
+
+-- Verify the KGrad output is correct
+--  Alternate version that checks the output of all kernels (L1, L2, L3, L4)
+-- `delta` is the maximum allowed absolute error
+-- `epsilon` is the maximum allowed relative error
+function verifyKGradOutputLong(region_vars, delta, epsilon, filename)
+  c.printf("\n\n--------------------------------------\n")
+  c.printf("       DEBUGGING MODE FOR KGRAD\n")
+  c.printf("   (printing outputs for all L1234)\n")
+  c.printf("--------------------------------------\n\n\n")
+  local filep = regentlib.newsymbol()
+  local max_absolute_error = regentlib.newsymbol(double)
+  local max_relative_error = regentlib.newsymbol(double)
+  local all_correct = regentlib.newsymbol(bool)
+  local statements = terralib.newlist({rquote
+    var [filep] = c.fopen(filename, "r")
+    checkFile(filep)
+    var [max_absolute_error] = -1
+    var [max_relative_error] = -1
+    var [all_correct] = true
+  end})
+  for L1 = 0, getCompiledMaxMomentum() do -- inclusive
+    for L2 = L1, getCompiledMaxMomentum() do -- inclusive
+      for L3 = 0, getCompiledMaxMomentum() do -- inclusive
+        for L4 = 0, getCompiledMaxMomentum() do -- inclusive
+            local field_space = getKGradOutputLong(L1, L2, L3, L4)
+            local r_output = region_vars[L1][L2][L3][L4]
+            statements:insert(rquote
+              var int_data : int[5]
+              var double_data : double[1]
+              var num_values = c.fscanf(filep, "L1=%d,L2=%d,L3=%d,L4=%d,N=%d\n",
+                                        int_data+0, int_data+1, int_data+2, int_data+3, int_data+4)
+              assert(num_values == 5, "Did not read angular momentum!")
+              assert(L1 == int_data[0] and L2 == int_data[1]
+                     and L3 == int_data[2] and L4 == int_data[3],
+                     "Unexpected angular momentum in kgrad output!")
+              var N = int_data[4]
+              for bra_idx = 0, N do -- exclusive
+                num_values = c.fscanf(filep, "bra_idx=%d,values=", int_data )
+                assert(num_values == 1, "Could not read line!")
+                assert(int_data[0] == bra_idx, "Index is not correct!")
+                for i = 0, 6 do -- exclusive
+                  num_values = c.fscanf(filep, "%lf,", double_data)
+                  assert(num_values == 1, "Did not read kgrad value!")
+                  var expected = double_data[0]
+                  var result = r_output[bra_idx].values[i]
+                  var absolute_error = fabs(result - expected)
+                  var relative_error = fabs(absolute_error / expected)
+                  if absolute_error > max_absolute_error then
+                    max_absolute_error = absolute_error
+                  end
+                  if relative_error > max_relative_error then
+                    max_relative_error = relative_error
+                  end
+                  if [bool](c.isnan(result)) or [bool](c.isinf(result))
+                      or (absolute_error > delta and relative_error > epsilon) then
+                    var factor = result / expected
+                    c.printf("Value differs at L1234 = %d %d %d %d, output[%d].values[%d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g, factor = %.12f\n",
+                             L1, L2, L3, L4, bra_idx, i, result, expected, absolute_error, relative_error, factor)
+                    --assert(false, "Wrong output!")
+                    all_correct = false
+                  else
+                    -- print all values
+                    c.printf("                 L1234 = %d %d %d %d, output[%d].values[%d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
+                             L1, L2, L3, L4, bra_idx, i, result, expected, absolute_error, relative_error)
+                  end
+                end
+                assert(c.fscanf(filep, "\n") == 0, "Did not read newline")
+              end
+              c.printf("\n")
+            end)
+          --end
+        end
+      end
     end
   end
   statements:insert(rquote

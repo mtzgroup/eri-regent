@@ -147,6 +147,19 @@ function getKGradOutput(L1, L2)
   return KGradOutputCache[index]
 end
 
+local KGradOutputLongCache = {}
+function getKGradOutputLong(L1, L2, L3, L4)
+  local index = LToStr[L1]..LToStr[L2]..LToStr[L3]..LToStr[L4]
+  if KGradOutputLongCache[index] == nil then
+    local fspace KGradOutputLong {
+      values     : double[6]; -- x,y,z for center A and  x,y,z for center B
+      bra_index  : int1d; -- index for L12 (for potential partitioning)
+    }
+    KGradOutputLongCache[index] = KGradOutputLong
+  end
+  return KGradOutputLongCache[index]
+end
+
 local KGradBraEGPMapCache = {}
 function getKGradBraEGPMap(L1, L2)
   local index = LToStr[L1]..LToStr[L2]
