@@ -457,10 +457,11 @@ function verifyKFockOutput(region_vars, delta, epsilon, filename)
                       end
                       if [bool](c.isnan(result)) or [bool](c.isinf(result))
                           or (absolute_error > delta and relative_error > epsilon) then
+                        var factor = result / expected
                         c.printf(
-"Value differs at L1234 = %d %d %d %d, output[%d, %d].values[%d, %d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g\n",
+"Value differs at L1234 = %d %d %d %d, output[%d, %d].values[%d, %d]: result = %.12f, expected = %.12f, absolute_error = %.12g, relative_error = %.12g, factor = %.12f\n",
                                  L1, L2, L3, L4, bra_ishell, ket_ishell, i, j,
-                                 result, expected, absolute_error, relative_error)
+                                 result, expected, absolute_error, relative_error, factor)
                         --assert(false, "Wrong output!")
                         all_correct = false
                       else

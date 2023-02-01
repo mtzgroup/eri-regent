@@ -40,39 +40,46 @@ end
 
 -- returns the expeted number of bra preprocessed values
 local function num_bra_preproc(L1, L2)
-  -- Note: beyond L1=L2=2 is not actually implemented in TeraChem
   local values = {
     { 0,   4,  16,   47}, -- L1 = 0
     { 4,  25,  91,  244}, -- L1 = 1
     {16,  91, 301,  757}, -- L1 = 2
-    {47, 244, 757, 1820}  -- L1 = 3 -- TODO: Henry got 1821 for 33, maybe change this
+    {47, 244, 757, 1821}  -- L1 = 3
   }
   return values[L1+1][L2+1]
 end
 
 
--- returns the ket_count for a given k loop (used in D kernels)
+-- returns the ket_count for ket preval indexing for a given k loop (used in D and F kernels)
 local function get_ket_count(L3, L4, k)
   local values = {
     {{  0},            -- SS (not used)
      {  0},            -- SP (not used)
-     {  0}},           -- SD
+     {  0},            -- SD
+     {  0}},           -- SF
 
     {{  0,   2,   4},  -- PS
      {  0,   9,  18},  -- PP
-     {  0,  31,  62}}, -- PD
+     {  0,  31,  62},  -- PD
+     {  0,  82, 164}}, -- PF
 
     {{  0,   4,   8,  12,  15,  18},  -- DS
      {  0,  18,  36,  54,  68,  82},  -- DP
-     {  0,  56, 112, 168, 214, 260}}  -- DD
+     {  0,  56, 112, 168, 214, 260},  -- DD
+     {  0, 137, 274, 411, 528, 645}}, -- DF
+
+    {{  0,   8,  14,  20,  26,  32,  38,  44,  48,  52},  -- FS
+     {  0,  34,  61,  88, 115, 142, 169, 196, 215, 234},  -- FP
+     {  0,  97, 178, 259, 340, 421, 502, 583, 644, 705},  -- FD
+     {  0, 222, 414, 606, 798, 990,1182,1374,1526,1678}}  -- FF
   }
   return values[L3+1][L4+1][k+1]
 end
 
 
+-- Bra normalization constants for L1, L3 = P or D
 -- index by [i+1][k+1] since terra tables are one-indexed
--- TODO: extend this past D
-local bra_norms = {
+local bra_norms_D = {
 
   {1.00000000000000000000,  -- i = 0 
    1.00000000000000000000,
@@ -115,6 +122,127 @@ local bra_norms = {
    0.33333333333333333333,
    0.33333333333333333333,
    0.33333333333333333333} 
+
+}
+
+-- Bra normalization constants for L1 = S,P,D and L3 = F
+--     SQRT_1_OVER_3   0.5773502691896257
+--     SQRT_1_OVER_9   0.3333333333333333
+--     SQRT_1_OVER_15  0.2581988897471611
+--     SQRT_1_OVER_45  0.14907119849998599
+-- index by [i+1][k+1] since terra tables are one-indexed
+local bra_norms_F = {
+
+  {1.0000000000000000,  -- i = 0 
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.2581988897471611,
+   0.2581988897471611,
+   0.2581988897471611}, 
+
+  {1.0000000000000000,  -- i = 1 
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.2581988897471611,
+   0.2581988897471611,
+   0.2581988897471611}, 
+
+  {1.0000000000000000,  -- i = 2 
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.2581988897471611,
+   0.2581988897471611,
+   0.2581988897471611}, 
+
+  {0.5773502691896257,  -- i = 3 
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.14907119849998599,
+   0.14907119849998599,
+   0.14907119849998599}, 
+
+  {0.5773502691896257,  -- i = 4 
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.14907119849998599,
+   0.14907119849998599,
+   0.14907119849998599}, 
+
+  {0.5773502691896257,  -- i = 5 
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.14907119849998599,
+   0.14907119849998599,
+   0.14907119849998599}
+
+}
+
+-- Bra normalization constants for L1 = F and L3 = F
+--     SQRT_1_OVER_3   0.5773502691896257
+--     SQRT_1_OVER_9   0.3333333333333333
+--     SQRT_1_OVER_15  0.2581988897471611
+--     SQRT_1_OVER_45  0.14907119849998599
+--     SQRT_1_OVER_225 0.06666666666666667
+-- index by [i+1][k+1] since terra tables are one-indexed
+-- NOTE: logic in the kernel so this table can be compressed
+local bra_norms_FF = {
+
+  {1.0000000000000000,  -- i = 0 
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.5773502691896257,
+   0.2581988897471611,
+   0.2581988897471611,
+   0.2581988897471611}, 
+
+  {0.5773502691896257,  -- i = 1,2,3,4,5,6 
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.3333333333333333,
+   0.14907119849998599,
+   0.14907119849998599,
+   0.14907119849998599}, 
+
+  {0.2581988897471611,  -- i = 7,8,9 
+   0.14907119849998599,
+   0.14907119849998599,
+   0.14907119849998599,
+   0.14907119849998599,
+   0.14907119849998599,
+   0.14907119849998599,
+   0.06666666666666667,
+   0.06666666666666667,
+   0.06666666666666667}
 
 }
 
@@ -678,13 +806,30 @@ function generateKFockKernelStatements(R, L1, L2, L3, L4, k_idx, bra, ket,
   for i = 0, triangle_number(L1+1)-1 do -- inclusive
     for k = k_min, k_max do
       local H3  = triangle_number(L3+1)
-      if L1 < 2 and L3 < 2 then -- avoid unnecessary multiplication by 1
+      -- avoid unnecessary multiplication by 1 (for S/P)
+      if L1 < 2 and L3 < 2 then
         statements:insert(rquote
           [output][i*H3+k] += [results[i][k]]
         end)
+      -- SD, PD, DD bra norms
+      elseif L3 == 2 then
+        statements:insert(rquote
+          [output][i*H3+k] += [results[i][k]] * [bra_norms_D[i+1][k+1]]
+        end)
+      -- FF bra norms
+      elseif L1 == 3 and L3 == 3 then 
+        -- extra logic on L1 index to avoid storing the whole table of norms
+        local inew 
+        if i == 0 then inew = 0 
+        elseif i < 7 then inew = 1
+        else inew = 2 end
+        statements:insert(rquote
+          [output][i*H3+k] += [results[i][k]] * [bra_norms_FF[inew+1][k+1]]
+        end)
+      -- SF, PF, DF bra norms
       else
         statements:insert(rquote
-          [output][i*H3+k] += [results[i][k]] * [bra_norms[i+1][k+1]]
+          [output][i*H3+k] += [results[i][k]] * [bra_norms_F[i+1][k+1]]
         end)
       end
       --statements:insert(rquote c.printf("       output(%d,%d).values(%d,%d) = %lf\n", 
