@@ -1,5 +1,6 @@
 *~
 *.so
 /src/main
+/src/kfock.make
 /src/topkfock.h
 /src/mcmurchie/kfock/*.h
