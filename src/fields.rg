@@ -147,6 +147,19 @@ function getKGradOutput(L1, L2)
   return KGradOutputCache[index]
 end
 
+local KGradOutputLongCache = {}
+function getKGradOutputLong(L1, L2, L3, L4)
+  local index = LToStr[L1]..LToStr[L2]..LToStr[L3]..LToStr[L4]
+  if KGradOutputLongCache[index] == nil then
+    local fspace KGradOutputLong {
+      values     : double[6]; -- x,y,z for center A and  x,y,z for center B
+      bra_index  : int1d; -- index for L12 (for potential partitioning)
+    }
+    KGradOutputLongCache[index] = KGradOutputLong
+  end
+  return KGradOutputLongCache[index]
+end
+
 local KGradBraEGPMapCache = {}
 function getKGradBraEGPMap(L1, L2)
   local index = LToStr[L1]..LToStr[L2]
@@ -161,17 +174,20 @@ function getKGradBraEGPMap(L1, L2)
 end
 
 KFockNumBraPrevals = {
-  [0] = {[0] = 0,  [1] = 4,  [2] = 16},
-  [1] = {[0] = 4,  [1] = 25, [2] = 91},
-  [2] = {[0] = 16, [1] = 91, [2] = 301},
+  [0] = {[0] = 0,  [1] = 4,   [2] = 16,  [3] = 47},
+  [1] = {[0] = 4,  [1] = 25,  [2] = 91,  [3] = 244},
+  [2] = {[0] = 16, [1] = 91,  [2] = 301, [3] = 757},
+  [3] = {[0] = 47, [1] = 244, [2] = 757, [3] = 1821},
 }
 
 KFockNumKetPrevals = {
-  [0] = {[0] = 0,  [1] = 4,  [2] = 16},
-  [1] = {[0] = 6,  [1] = 27, [2] = 93},
-  [2] = {[0] = 21, [1] = 96, [2] = 306},
+  [0] = {[0] = 0,  [1] = 4,   [2] = 16,  [3] = 47},
+  [1] = {[0] = 6,  [1] = 27,  [2] = 93,  [3] = 246},
+  [2] = {[0] = 21, [1] = 96,  [2] = 306, [3] = 762},
+  [3] = {[0] = 56, [1] = 253, [2] = 766, [3] = 1830},
 }
 
+-- TODO: extend KGradEGP to F
 KGradNumBraEGP = { -- upper triangle
   [0] = {[0] = 5, [1] = 23, [2] = 89},
   [1] = {[0] = 0, [1] = 88, [2] = 386},
