@@ -1,0 +1,5 @@
+*~
+*.so
+/src/main
+/src/topkfock.h
+/src/mcmurchie/kfock/*.h

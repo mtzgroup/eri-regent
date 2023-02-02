@@ -3,10 +3,16 @@ local MAX_KFOCK=0
 
 local registration_thunks = terralib.newlist()
 local link_flags = terralib.newlist()
---link_flags:insert("-LPATH_TO_LEGION") -- FIXME
+link_flags:insert("-L"..os.getenv("LEGION_INSTALL_PATH").."/lib")
 link_flags:insert("-L"..os.getenv("LEGION_INSTALL_PATH").."/lib64")
 link_flags:insert("-L.")
 link_flags:insert("-L./mcmurchie/kfock")
+do
+  local header = terralib.includec("topkfock.h")
+  local thunk = header["topkfock_h_register"]
+  registration_thunks:insert(quote thunk() end)
+  link_flags:insert("-ltopkfock")
+end
 for L1 = 0, MAX_KFOCK do
   for L2 = 0, MAX_KFOCK do
     for L3 = 0, MAX_KFOCK do

@@ -347,19 +347,16 @@ function generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k_idx)
 
 end -- end function generateTaskMcMurchieKFockIntegral
 
-
-
-local args = rawget(_G, "arg")
-
-if #args > 5 then
-  print("Too many arguments, expected L1 L2 L3 L4 k\n")
+local args = regentlib.args
+if #args > 6 then
+  print("Too many arguments, expected L1 L2 L3 L4 k")
   os.exit(1)
 end
-local L1 = tonumber(args[1])
-local L2 = tonumber(args[2])
-local L3 = tonumber(args[3])
-local L4 = tonumber(args[4])
-local k  = tonumber(args[5])
+local L1 = tonumber(args[2])
+local L2 = tonumber(args[3])
+local L3 = tonumber(args[4])
+local L4 = tonumber(args[5])
+local k  = tonumber(args[6])
 print("Generating KFock kernel : ",L1,L2,L3,L4,k)
 local kfock_def = generateTaskMcMurchieKFockIntegral(L1, L2, L3, L4, k)
 
@@ -368,4 +365,3 @@ local kfock_h = root_dir .. "kfock"..L1..L2..L3..L4..k..".h"
 local kfock_so = root_dir .. "libkfock"..L1..L2..L3..L4..k..".so"        
 -- Test with launcher interface disabled, since technically it shouldn't be required.                   
 regentlib.save_tasks(kfock_h, kfock_so, nil, nil, nil, nil, false)
-
