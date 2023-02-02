@@ -46,12 +46,12 @@ function kfock(r_pairs_list, r_prevals_list, r_labels_list, r_density_list, r_ou
             -- support variable number of partitions
             -- for S/P orbitals
             -- TODO: extend this to > P orbitals
-            local p = parallelism[15]
-            if L1 <= 1 and L2 <=1 and L3 <=1 and L4 <= 1 then
-              local pindex = L4*1 + L3*2 + L2*4 + L1*8
-              p = parallelism[pindex]
-            end
-            --local p = parallelism -- version for top_kfock.rg
+            --local p = parallelism[15]
+            --if L1 <= 1 and L2 <=1 and L3 <=1 and L4 <= 1 then
+            --  local pindex = L4*1 + L3*2 + L2*4 + L1*8
+            --  p = parallelism[pindex]
+            --end
+            local p = parallelism -- version for top_kfock.rg
 
             local bsizex = 8
             local bsizey = 8

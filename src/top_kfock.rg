@@ -95,36 +95,36 @@ task toplevel()
   var ts_stop = c.legion_get_current_time_in_micros()
   __fence(__execution, __block) -- Make sure we only time the computation
 
-  -- Write or verify output --
-  ----------------------------
-  var output_filename = config.output_filename
-  if output_filename[0] ~= 0 then
-    assert(false, "Unimplemented")
-  end
-  var verify_filename = config.verify_filename
-  if verify_filename[0] ~= 0 then
-    [verifyKFockOutput(r_output_list, 1e-7, 1e-8, verify_filename)]
-  end
-  ----------------------------
-  c.printf("Exchange operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
-
-  -- Timing --
-  ------------
-  if config.num_trials > 1 then
-    c.printf("\nCollecting timing info...\n")
-    __fence(__execution, __block) -- Make sure we only time the computation
-    ts_start = c.legion_get_current_time_in_micros()
-    __fence(__execution, __block) -- Make sure we only time the computation
-    for i = 0, config.num_trials do
-      [kfock(r_pairs_list, r_prevals_list, r_labels_list, r_density_list, r_output_list,
-              r_gamma_table, threshold, kguard, parallelism, largest_momentum)]
-    end
-    __fence(__execution, __block) -- Make sure we only time the computation
-    ts_stop = c.legion_get_current_time_in_micros()
-    c.printf("Exchange operator, avg. time over %d trials: %.4f sec \n", 
-              config.num_trials, (ts_stop - ts_start) * 1e-6/float(config.num_trials))
-    __fence(__execution, __block) -- Make sure we only time the computation
-  end
+ -- -- Write or verify output --
+ -- ----------------------------
+ -- var output_filename = config.output_filename
+ -- if output_filename[0] ~= 0 then
+ --   assert(false, "Unimplemented")
+ -- end
+ -- var verify_filename = config.verify_filename
+ -- if verify_filename[0] ~= 0 then
+ --   [verifyKFockOutput(r_output_list, 1e-7, 1e-8, verify_filename)]
+ -- end
+ -- ----------------------------
+ -- c.printf("Exchange operator: %.4f sec\n", (ts_stop - ts_start) * 1e-6)
+ --
+ -- -- Timing --
+ -- ------------
+ -- if config.num_trials > 1 then
+ --   c.printf("\nCollecting timing info...\n")
+ --   __fence(__execution, __block) -- Make sure we only time the computation
+ --   ts_start = c.legion_get_current_time_in_micros()
+ --   __fence(__execution, __block) -- Make sure we only time the computation
+ --   for i = 0, config.num_trials do
+ --     [kfock(r_pairs_list, r_prevals_list, r_labels_list, r_density_list, r_output_list,
+ --             r_gamma_table, threshold, kguard, parallelism, largest_momentum)]
+ --   end
+ --   __fence(__execution, __block) -- Make sure we only time the computation
+ --   ts_stop = c.legion_get_current_time_in_micros()
+ --   c.printf("Exchange operator, avg. time over %d trials: %.4f sec \n", 
+ --             config.num_trials, (ts_stop - ts_start) * 1e-6/float(config.num_trials))
+ --   __fence(__execution, __block) -- Make sure we only time the computation
+ -- end
 end
 
 if os.getenv('SAVEOBJ') == '1' then
@@ -134,6 +134,13 @@ if os.getenv('SAVEOBJ') == '1' then
   local link_flags = {"-L" .. out_dir, "-lm"}
   regentlib.c.printf("Saving executable to %s ... \n", exe)
   regentlib.saveobj(toplevel, exe, "executable", nil, link_flags)
+elseif os.getenv('SAVELIB') == '1' then
+  local root_dir = arg[0]:match(".*/") or "./"                           
+  local top_kfock_h = root_dir .. "topkfock.h"             
+  local top_kfock_so = root_dir .. "libtopkfock.so"        
+  -- Test with launcher interface disabled, since technically it shouldn't be required.
+  --regentlib.save_tasks(top_kfock_h, top_kfock_so, nil, nil, nil, nil, false)
+  regentlib.save_tasks(top_kfock_h, top_kfock_so, nil, nil, nil, nil, false, toplevel)
 else
   regentlib.start(toplevel)
 end

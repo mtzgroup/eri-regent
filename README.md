@@ -88,6 +88,9 @@ regent top_kfock.rg -fflow 0 -L S -i tests/integ/h2_S -v tests/integ/h2_S/kfock_
 # Run KGrad algorithm
 regent top_kgrad.rg -fflow 0 -L S -i tests/integ/h2_S -v tests/integ/h2_S/kgrad_output.dat
 
+# NOTE: to force the compile to not do cuda-jit (which takes ages for KFock F), use:
+-fcuda-generate-cubin 1
+
 ```
 
 To test eri-regent with C++, compile the test program inside `src/tests/cpp` after building eri-regent.
