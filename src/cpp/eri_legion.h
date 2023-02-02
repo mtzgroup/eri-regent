@@ -374,6 +374,7 @@ class EriLegion {
 
   // Legion Logical Regions for kgrad koutput
   LogicalRegion kgrad_lr_output[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
+  IndexSpace kgrad_output_is[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
 
   // Legion Index Space for kgrad (kbra/koutput)
   IndexSpace kgrad_color_is[(MAX_MOMENTUM + 1) * (MAX_MOMENTUM + 1)];
@@ -1287,6 +1288,7 @@ class EriLegion {
   void destroy_kgrad_koutput_logical_regions(int I, int J, int K, int L);
   void destroy_kgrad_klabel_logical_regions(int I, int J);
   void destroy_kgrad_density_logical_regions(int I, int J);
+  void destroy_kgrad_colors(int I, int J);
   void destroy_field_spaces_kgrad();
 
   //-----------------------------------------------

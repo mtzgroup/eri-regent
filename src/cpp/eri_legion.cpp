@@ -1307,6 +1307,7 @@ EriLegion::create_kbra_kket_logical_regions(int I, int J,
     // create empty index space for CA/CB/C2:I==0 && J==0
     IndexSpace kfock_index_space_empty =
       runtime->create_index_space(ctx, Rect<1>::make_empty());
+
     char name_2A[20];					
     char name_2B[20];					
     char name_4A[20];					
@@ -2647,6 +2648,7 @@ EriLegion::kfock_partition(int I, int J, int K, int L, int num_colors,
   IndexSpace is = runtime->create_index_space(ctx, elem_rect);
   // num regions is based on a minimum of 8 rows per color
   Rect<1> color_bounds(0,nGrids-1);
+  assert(nGrids > 0);
   IndexSpace color_is = runtime->create_index_space(ctx, color_bounds);
   log_eri_legion.debug() << "partition: koutput = [x=" << xsize  << ",y=" << ysize << "]\n";
   assert(nGrids == num_colors);
@@ -3039,8 +3041,6 @@ EriLegion::kfock_kbra_ket_task(const Task* task,
   // Populate data for each pair
   typedef IBoundSorter::Key Key;
   log_eri_legion.debug() << "-------populate_kfock_regions[" <<  I <<  " ,"  << J << " ," << K << " ," << L << "]-------\n";
-  const int index = BINARY_TO_DECIMAL(I,J,K,L);
-
   assert(task->arglen == sizeof(struct EriLegionKfockInitTaskArgs));
   struct EriLegionKfockInitTaskArgs t = 
     *(struct EriLegionKfockInitTaskArgs*)(task->args);
@@ -3397,14 +3397,14 @@ void EriLegion::kbra_ket_launcher(bool is_kgrad)
     struct EriLegionKfockInitTaskArgs t;				\
     t.ei = this;							\
     t.mode = mode;							\
-    t.I=L1; t.J=L2; t.K=L3; t.L=L4;					\
     int dI = (L2<L4 ? L2:L4);						\
     int dJ = (L2<L4 ? L4:L2);						\
     const int dindex = INDEX_SQUARE(dI, dJ);				\
     int task_id = LEGION_KFOCK_INIT_KBRA_KET_TASK_ID(L1,L2,L3,L4);	\
+    const int index = BINARY_TO_DECIMAL(L1,L2,L3,L4);			\
+    t.I=L1; t.J=L2; t.K=L3; t.L=L4;					\
     TaskLauncher kfock_launcher(task_id, TaskArgument((void*) (&t),	\
 						      sizeof(struct EriLegionKfockInitTaskArgs))); \
-    const int index = BINARY_TO_DECIMAL(L1,L2,L3,L4);			\
     int density_field;							\
     if (!is_kgrad) {							\
       if ((dI==0) && (dJ==0))						\
@@ -3738,8 +3738,7 @@ EriLegion::init_kgrad(BoundSorter *_brapairs,
   param = _param;
   kgrad_pmax = _Pmax; 
   fock = kgrad;
-  num_clrs = _parallelism*2;
-  //num_clrs = 1;
+  num_clrs = _parallelism;
   float threshold = param.thredp;
   //  assert(kgrad_P1 == kgrad_P2);
   // src->kket
@@ -3834,9 +3833,6 @@ EriLegion::create_kbra_kgrad_logical_regions(int I, int J,
   {	
     IndexSpace kgrad_index_space =  kgrad_is[ANGL_PINDEX(I,J)];
     log_eri_legion.debug() << "kbra_kgrad_logical_regions: index = " << index << " I = " << I << " J = " << J << " kbra_index_space = " << kgrad_index_space << "\n";
-    // create empty index space for CA/CB/C2:I==0 && J==0
-    IndexSpace kgrad_index_space_empty =
-      runtime->create_index_space(ctx, Rect<1>::make_empty());
     char name_2A[20];					
     char name_2B[20];					
     char name_4A[20];					
@@ -3867,7 +3863,6 @@ EriLegion::create_kbra_kgrad_logical_regions(int I, int J,
 							   kgrad_index_space, 
 							   kpair_fspaces_Coeff[index]);
     runtime->attach_name(kgrad_lr_Coeff[index], name_Coeff);
-    runtime->destroy_index_space(ctx, kgrad_index_space_empty);
   }
 }
 
@@ -4005,31 +4000,31 @@ void EriLegion::kbra_kgrad_launcher()
     TaskLauncher kgrad_launcher(task_id,				\
 				TaskArgument((void*) (&t),		\
 					     sizeof(struct EriLegionKGradInitTaskArgs))); \
-    kgrad_launcher.add_region_requirement(RegionRequirement(kgrad_lr_2A[index],  \
+    kgrad_launcher.add_region_requirement(RegionRequirement(kgrad_lr_2A[index], \
 							    WRITE_DISCARD, \
 							    EXCLUSIVE,	\
 							    kgrad_lr_2A[index])); \
     kgrad_launcher.region_requirements[0].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1,1, X)); \
     kgrad_launcher.region_requirements[0].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1,1, Y)); \
-    kgrad_launcher.add_region_requirement(RegionRequirement(kgrad_lr_2B[index],  \
+    kgrad_launcher.add_region_requirement(RegionRequirement(kgrad_lr_2B[index], \
 							    WRITE_DISCARD, \
 							    EXCLUSIVE,	\
 							    kgrad_lr_2B[index])); \
     kgrad_launcher.region_requirements[1].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1,1, Z)); \
     kgrad_launcher.region_requirements[1].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1,1, C)); \
-    kgrad_launcher.add_region_requirement(RegionRequirement(kgrad_lr_4A[index],  \
+    kgrad_launcher.add_region_requirement(RegionRequirement(kgrad_lr_4A[index], \
 							    WRITE_DISCARD, \
 							    EXCLUSIVE,	\
 							    kgrad_lr_4A[index])); \
     kgrad_launcher.region_requirements[2].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1,1, ETA)); \
     kgrad_launcher.region_requirements[2].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1,1, BOUND)); \
-    kgrad_launcher.add_region_requirement(RegionRequirement(kgrad_lr_4B[index],  \
+    kgrad_launcher.add_region_requirement(RegionRequirement(kgrad_lr_4B[index], \
 							    WRITE_DISCARD, \
 							    EXCLUSIVE,	\
 							    kgrad_lr_4B[index])); \
     kgrad_launcher.region_requirements[3].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, JSHELL)); \
     kgrad_launcher.region_requirements[3].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, ISHELL)); \
-    kgrad_launcher.add_region_requirement(RegionRequirement(kgrad_lr_Coeff[index], \
+    kgrad_launcher.add_region_requirement(RegionRequirement(kgrad_lr_Coeff[index],  \
 							    WRITE_DISCARD, \
 							    EXCLUSIVE,	\
 							    kgrad_lr_Coeff[index])); \
@@ -4468,8 +4463,18 @@ EriLegion::destroy_kgrad_koutput_logical_regions(int I, int J, int K, int L)
 {
   const int index = BINARY_TO_DECIMAL(I,J,K,L);
   runtime->destroy_logical_region(ctx, kgrad_lr_output[index]);
+  runtime->destroy_index_space(ctx, kgrad_output_is[index]);
+
 }
 
+void
+EriLegion::destroy_kgrad_colors(int I, int J)
+{
+  int IJ = ANGL_PINDEX(I,J); // I<J for k grad kernels
+  runtime->destroy_index_space(ctx, kgrad_color_is[IJ]);
+  runtime->destroy_index_space(ctx, kgrad_is[IJ]);
+
+}
 
 //------------------------------------------------------------
 // destroy kgrad klabel logical regions
@@ -4546,6 +4551,10 @@ EriLegion::destroy_kgrad_regions()
   destroy_kgrad_koutput_logical_regions(1,1,0,1);
   destroy_kgrad_koutput_logical_regions(1,1,1,0);
   destroy_kgrad_koutput_logical_regions(1,1,1,1);
+
+  destroy_kgrad_colors(0,0);
+  destroy_kgrad_colors(0,1);
+  destroy_kgrad_colors(1,1);
 
 }
 
@@ -5138,11 +5147,12 @@ EriLegion::kgrad_kbra_colors(int I, int J)
   bra_count[IJ] = bracount;
   if(bracount==0)
     assert(0);
+#if 0
   // memoize bracount
-  //  const int MINBLOCKS=1024;
-  //  const int MAXBLOCKS=65535;
-  const int MINBLOCKS=512;
-  const int MAXBLOCKS=512;
+  const int MINBLOCKS=1024;
+  const int MAXBLOCKS=65535;
+  //  const int MINBLOCKS=512;
+  //  const int MAXBLOCKS=512;
   const int BSIZEY = 8;
   // ceiling
   const int ywork = (bracount + BSIZEY-1) / BSIZEY;
@@ -5155,6 +5165,16 @@ EriLegion::kgrad_kbra_colors(int I, int J)
       ngrids = (ywork+MAXBLOCKS-1) / MAXBLOCKS;
     }
   }
+#endif
+  // use an algorithm based on num_clrs for partitioning
+  const int MAXBLOCKS=65535;
+  const int BSIZEY = 8;
+  // ceiling
+  const int ywork = (bracount + BSIZEY-1) / BSIZEY;
+  // ngrids or GPUs
+  int ngrids = num_clrs;
+  assert(ywork/num_clrs < MAXBLOCKS);
+
   num_grids[IJ] = ngrids;
   
   typedef BoundSorter::Key Key;
@@ -5162,6 +5182,7 @@ EriLegion::kgrad_kbra_colors(int I, int J)
   int count = 0;
   int stride = 0;
   int total_count =0;
+
   for (int i =0; i< ngrids; i++) {
     int tail = ywork % ngrids;
     int blocks = ywork / ngrids;
@@ -5176,6 +5197,7 @@ EriLegion::kgrad_kbra_colors(int I, int J)
     total_count = total_count + stride;
   }
   // num regions is based on ngrids
+  assert(ngrids>0);
   Rect<1> color_bounds(0,ngrids-1);
   IndexSpace color_is = runtime->create_index_space(ctx, color_bounds);
 
@@ -5188,7 +5210,7 @@ EriLegion::kgrad_kbra_colors(int I, int J)
   kgrad_ip[IJ] = runtime->create_pending_partition(ctx, is1d, color_is);
   kgrad_color_is[IJ] = color_is;
   kgrad_is[IJ] = is1d;
-  log_eri_legion.debug() << "kgrad_is[" << IJ << "] = " << is1d << " bounds = " << is_bounds <<  " stride = " << stride << " count = " << count << "\n";
+  log_eri_legion.debug() << "kgrad_is[" << IJ << "] = " << is1d << " bounds = " << is_bounds <<  " stride = " << stride << " count = " << count << " color_is = " << color_bounds <<"\n";
 
   // partition the yGrid
   int nRows_start = 0;
@@ -5208,7 +5230,7 @@ EriLegion::kgrad_kbra_colors(int I, int J)
 			     << stride << "nRows_start = " << nRows_start << "\n";
       Rect<1> local_bounds_1d(nRows_start, (stride+nRows_start-1));
       nRows_start = stride+nRows_start;
-      log_eri_legion.debug() << "partition: 1d bounds = " << g << " ,bounds = " << local_bounds_1d << "\n";
+      log_eri_legion.debug() << "kgrad partition: 1d bounds = " << g << " ,bounds = " << local_bounds_1d << "\n";
       IndexSpace subspace_1d = runtime->create_index_space(ctx, local_bounds_1d);
       subspaces_1d.push_back(subspace_1d);
       Point<1> color_entry = Point<1>(g);
@@ -5241,6 +5263,7 @@ EriLegion::kgrad_partition(int I, int J, int K, int L)
 							  ctx,	
 							  is,
 							  kgrad_output_fspaces[index]);
+  kgrad_output_is[index] = is;
   runtime->attach_name(kgrad_lr_output[index], name_output);
   int ngrids = num_grids[IJ];
   kgrad_output_ip[index] = runtime->create_pending_partition(ctx, is, kgrad_color_is[IJ]);
@@ -5276,14 +5299,16 @@ EriLegion::kgrad_launcher_partition(bool is_sym)
     init_kgrad_args(t,L1,L2,L3,L4,num_grids[ANGL_PINDEX(L1,L2)]);	\
     const int oindex = BINARY_TO_DECIMAL(L1,L2,L3,L4);			\
     const int is_index = ANGL_PINDEX(L1,L2);				\
-    const int kindex = BINARY_TO_DECIMAL(L1,L2,1,1);			\
+    const int kindex = get_kgrad_kbra_region_index(L1,L2,L3,L4);	\
     LogicalPartition lp_kbra_2A = runtime->get_logical_partition(ctx, kgrad_lr_2A[kindex], kgrad_ip[is_index]); \
     LogicalPartition lp_kbra_2B = runtime->get_logical_partition(ctx, kgrad_lr_2B[kindex], kgrad_ip[is_index]); \
     LogicalPartition lp_kbra_4A = runtime->get_logical_partition(ctx, kgrad_lr_4A[kindex], kgrad_ip[is_index]); \
     LogicalPartition lp_kbra_4B = runtime->get_logical_partition(ctx, kgrad_lr_4B[kindex], kgrad_ip[is_index]); \
     LogicalPartition lp_kbra_Coeff = runtime->get_logical_partition(ctx, kgrad_lr_Coeff[kindex], kgrad_ip[is_index]); \
     LogicalPartition lp_output = runtime->get_logical_partition(ctx, kgrad_lr_output[oindex], kgrad_output_ip[oindex]); \
-    const int kbra_index = get_kgrad_kbra_region_index(L1,L2,L3,L4);	\
+    log_eri_legion.debug() << "logical partition lp_kbra_2A: for is_index" << is_index << " is " << lp_kbra_2A << "\n"; \
+    log_eri_legion.debug() << "kgrad_color_is: " <<  is_index << " ] is " << kgrad_color_is[is_index] << "\n"; \
+    log_eri_legion.debug() << "kgrad_color_is: " <<  is_index << " ] is " << runtime->get_index_space_domain(kgrad_color_is[is_index]) << "\n"; \
     const int kket_index = get_kgrad_kket_region_index(L1,L2,L3,L4);	\
     const int dindex_jl = INDEX_SQUARE(L2,L4);				\
     const int dindex_ik = is_sym ? INDEX_SQUARE(L1,L3): INDEX_SQUARE(L1,L3) + INDEX_SQUARE(1,1) + 1; \
@@ -5291,6 +5316,7 @@ EriLegion::kgrad_launcher_partition(bool is_sym)
     ArgumentMap  arg_map;						\
     int task_id;							\
     task_id = LEGION_KGRAD_TASK_ID(L1,L2,L3,L4);			\
+    log_eri_legion.debug() << "launching task:" << task_id << " [L1,L2,L3,L4] " << L1<<L2<<L3<<L4 << "\n"; \
     IndexLauncher kgrad_init_launcher(task_id, kgrad_color_is[is_index], \
 				      TaskArgument((void*) (&t),	\
 						   sizeof(struct EriLegionKGradTaskArgs)), arg_map); \
@@ -5299,31 +5325,31 @@ EriLegion::kgrad_launcher_partition(bool is_sym)
     kgrad_init_launcher.add_region_requirement(RegionRequirement(lp_kbra_2A, 0, \
 								 READ_ONLY, \
 								 EXCLUSIVE, \
-								 kgrad_lr_2A[kbra_index])); \
+								 kgrad_lr_2A[kindex])); \
     kgrad_init_launcher.region_requirements[0].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, X)); \
     kgrad_init_launcher.region_requirements[0].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, Y)); \
     kgrad_init_launcher.add_region_requirement(RegionRequirement(lp_kbra_2B, 0,\
 								 READ_ONLY, \
 								 EXCLUSIVE, \
-								 kgrad_lr_2B[kbra_index])); \
+								 kgrad_lr_2B[kindex])); \
     kgrad_init_launcher.region_requirements[1].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, Z)); \
     kgrad_init_launcher.region_requirements[1].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, C)); \
     kgrad_init_launcher.add_region_requirement(RegionRequirement(lp_kbra_4A, 0,\
 								 READ_ONLY, \
 								 EXCLUSIVE, \
-								 kgrad_lr_4A[kbra_index])); \
+								 kgrad_lr_4A[kindex])); \
     kgrad_init_launcher.region_requirements[2].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, ETA)); \
     kgrad_init_launcher.region_requirements[2].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, BOUND)); \
     kgrad_init_launcher.add_region_requirement(RegionRequirement(lp_kbra_4B, 0,\
 								 READ_ONLY, \
 								 EXCLUSIVE, \
-								 kgrad_lr_4B[kbra_index])); \
+								 kgrad_lr_4B[kindex])); \
     kgrad_init_launcher.region_requirements[3].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, ISHELL)); \
     kgrad_init_launcher.region_requirements[3].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, JSHELL)); \
     kgrad_init_launcher.add_region_requirement(RegionRequirement(lp_kbra_Coeff, 0,\
 								 READ_ONLY, \
 								 EXCLUSIVE, \
-								 kgrad_lr_Coeff[kbra_index])); \
+								 kgrad_lr_Coeff[kindex])); \
     kgrad_init_launcher.region_requirements[4].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, TAA)); \
     kgrad_init_launcher.region_requirements[4].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, TAB)); \
     kgrad_init_launcher.region_requirements[4].add_field(LEGION_KPAIR_FIELD_ID(L1, L2, 1, 1, RTAP)); \
