@@ -1,6 +1,6 @@
 REGENT ?= regent
 REGENT_FLAGS ?= -fflow 0 -fseparate 1
-TOP_KFOCK_FLAGS ?= -L S
+TOP_KFOCK_FLAGS ?= -L P
 
 TOP_KFOCK_SO := libtopkfock.so
 TOP_KFOCK_H := topkfock.h
