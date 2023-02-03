@@ -7,12 +7,6 @@ link_flags:insert("-L"..os.getenv("LEGION_INSTALL_PATH").."/lib")
 link_flags:insert("-L"..os.getenv("LEGION_INSTALL_PATH").."/lib64")
 link_flags:insert("-L.")
 link_flags:insert("-L./mcmurchie/kfock")
-do
-  local header = terralib.includec("topkfock.h")
-  local thunk = header["topkfock_h_register"]
-  registration_thunks:insert(quote thunk() end)
-  link_flags:insert("-ltopkfock")
-end
 for L1 = 0, MAX_KFOCK do
   for L2 = 0, MAX_KFOCK do
     for L3 = 0, MAX_KFOCK do
@@ -27,6 +21,12 @@ for L1 = 0, MAX_KFOCK do
     end
   end
 end
+local toplevel_thunk
+do
+  local header = terralib.includec("topkfock.h")
+  toplevel_thunk = header["topkfock_h_register"]
+  link_flags:insert("-ltopkfock")
+end
 link_flags:insert("-lregent")
 link_flags:insert("-llegion")
 link_flags:insert("-lrealm")
@@ -36,6 +36,6 @@ local legion = terralib.includec("legion.h")
 
 terra main(argc : int, argv: &rawstring)
   [registration_thunks];
-  legion.legion_runtime_start(argc, argv, false)
+  toplevel_thunk(argc, argv)
 end
 terralib.saveobj("main", "executable", {main=main}, link_flags)
