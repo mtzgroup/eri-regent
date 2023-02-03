@@ -1,5 +1,4 @@
--- TODO: read in from args or env variable
-local MAX_KFOCK=1
+local MAX_KFOCK=tonumber(os.getenv('MAX_KFOCK'))
 
 local registration_thunks = terralib.newlist()
 local link_flags = terralib.newlist()
