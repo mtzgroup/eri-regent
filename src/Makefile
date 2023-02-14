@@ -1,5 +1,5 @@
 REGENT ?= regent
-REGENT_FLAGS ?= -fflow 0 -fseparate 1
+REGENT_FLAGS ?= -fflow 0 -fseparate 1 -fcuda-generate-cubin 1
 TOP_KFOCK_FLAGS ?= -L P
 MAX_KFOCK ?= 1
 
